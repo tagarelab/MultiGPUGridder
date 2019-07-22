@@ -97,7 +97,6 @@ classdef gpuGridder < handle
             obj.fftinfo=fftw('swisdom');
         end
         
-                
         function delete(obj)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Object destructor. Explicitly release gpu memory            %

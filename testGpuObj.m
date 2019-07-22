@@ -10,9 +10,7 @@ reset(gpuDevice());
 
 
 %Set the path to the utils directory
-addpath(fullfile('.','utils'));
-
-    
+addpath(fullfile('.','utils'));    
 
 %Initialize parameters
 volSize=64;
@@ -30,8 +28,6 @@ origSize=volSize;
 volCenter=volSize/2+1;
 origCenter=origSize/2+1;
 origHWidth= origCenter-1;
-
-
 
 %Fuzzy sphere
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
@@ -70,3 +66,4 @@ hold off
 plotProfiles(volR,origCenter,1,10,0);
 hold on;
 plotProfiles(vol,origCenter,1,10,0);
+ylim([min(min(vol(:)), min(volR(:))), max(max(vol(:)), max(volR(:)))])
