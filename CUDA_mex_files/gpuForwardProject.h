@@ -16,6 +16,9 @@
 #ifndef __GPUFORWARDPROJECT_H__
 #define __GPUFORWARDPROJECT_H__
 
-extern void gpuForwardProject();
+extern void gpuForwardProject(    
+    float* vol, float* img, float *axes, float* ker, // GPU arrays
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
+    );
 
 #endif //__GPUFORWARDPROJECT_H__

@@ -1,5 +1,3 @@
-#include "gpuForwardProject.h"
-
 __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* img,int imgSize, float *axes, int nAxes,float maskRadius,
                                     float* ker, int kerSize, float kerHWidth)
 {
@@ -89,69 +87,9 @@ __shared__ float locKer[1000];
                                 } //End k1
                             }//End j1   
                         }//End i1
-                }//End if rr
+                }//End if r
             }//End img_i
 
 }
 
-void gpuForwardProject(
-    float* vol, float* img, float *axes, float* ker, // GPU arrays
-    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
-) 
-{
 
-
-    std::cout << "gpuForwardProject()" << '\n';
-    std::cout << "gpuForwardProject()" << '\n';
-    std::cout << "gpuForwardProject()" << '\n';
-
-
-    // Run the forward projection kernel
-    dim3 dimGrid(32, 32, 1);
-    dim3 dimBlock(4, 4, 1);
-    
-
-    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
-
-    cudaDeviceSynchronize();
-
-    std::cout << "Done with gpuForwardProjectKernel" << '\n';
-
-}
-
-//void Forward_Project(
-//) 
-//{
-
-
-//std::cout << " Forward_Project() " << '\n';
-
-// GPU arrays
-// const float* vol
-// float* img
-// float *axes
-// float* ker
-
-// Parameters
-// int volSize
-// int imgSize
-// int nAxes
-// float maskRadius
-// int kerSize
-// float kerHWidth
-
-// Run the forward projection kernel
-//gpuForwardProjectKernel<<<1, 1>>>(vol, volSize, img,imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
-
-
-
-// gpuForwardProjectKernel(const float* vol, int volSize, float* img,int imgSize, float *axes, int nAxes,float maskRadius,
-//                                     float* ker, int kerSize, float kerHWidth)
-
-
-
-
-
-
-
-//}

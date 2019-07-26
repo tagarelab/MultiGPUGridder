@@ -17,12 +17,34 @@ void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
     
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
 
-    int * arr_1 = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[0]);
+    //int * arr_1 = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[0]);
+    //std::cout << "arr_1 ptr: " << arr_1 << '\n';
 
-    std::cout << "arr_1 ptr: " << arr_1 << '\n';
+    if (Input_Strings.size() != 10)
+    {
+        std::cout << "Wrong number of inputs provided. The number should be equal to 10." << '\n';
+        return;
+    }
 
+    // Get the pointers to the CUDA GPU arrays first
+    float* vol = this->Mem_obj->ReturnCUDAFloatPtr(Input_Strings[0]);
+    float* img = this->Mem_obj->ReturnCUDAFloatPtr(Input_Strings[1]);
+    float* axes = this->Mem_obj->ReturnCUDAFloatPtr(Input_Strings[2]);
+    float* ker = this->Mem_obj->ReturnCUDAFloatPtr(Input_Strings[3]);
 
-    gpuForwardProject();
+    // Get the pointers to the other parameters (non-GPU) next
+    int* volSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[4]);
+    int* imgSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[5]);
+    int* nAxes = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[6]);
+    float* maskRadius = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[7]);
+    int* kerSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[8]);
+    float* kerHWidth = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[9]);
+
+    //     const float* vol, float* img, float *axes, float* ker, // GPU arrays
+    //     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
+    
+    // Run the kernel now
+    gpuForwardProject( vol, img, axes, ker, *volSize, *imgSize, *nAxes, *maskRadius, *kerSize, *kerHWidth );
 
 }
 

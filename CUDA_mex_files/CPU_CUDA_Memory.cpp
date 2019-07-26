@@ -310,7 +310,7 @@ void CPU_CUDA_Memory::disp_mem(std::string varNameString)
         {
             mexPrintf("CPU Matrix size for %s: %i x %i x %i of type %s \n", cpu_arr_names[arr_idx].c_str(), cpu_arr_sizes[arr_idx][0], cpu_arr_sizes[arr_idx][1], cpu_arr_sizes[arr_idx][2], cpu_arr_types[arr_idx].c_str()); 
         }
-
+        mexPrintf("\n"); 
         return;
     }
 
@@ -472,8 +472,9 @@ void CPU_CUDA_Memory::CUDA_disp_mem(std::string varNameString)
         mexPrintf("\n"); 
         for (int arr_idx=0; arr_idx<CUDA_arr_names.size(); arr_idx++)
         {
-            mexPrintf("CPU Matrix size for %s: %i x %i x %i of type %s \n", CUDA_arr_names[arr_idx].c_str(), CUDA_arr_sizes[arr_idx][0], CUDA_arr_sizes[arr_idx][1], CUDA_arr_sizes[arr_idx][2], CUDA_arr_types[arr_idx].c_str()); 
+            mexPrintf("GPU Matrix size for %s: %i x %i x %i of type %s \n", CUDA_arr_names[arr_idx].c_str(), CUDA_arr_sizes[arr_idx][0], CUDA_arr_sizes[arr_idx][1], CUDA_arr_sizes[arr_idx][2], CUDA_arr_types[arr_idx].c_str()); 
         }
+        mexPrintf("\n"); 
         return;
     }
 
