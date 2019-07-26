@@ -1,7 +1,10 @@
 #ifndef __CLASS_HANDLE_H__ // Only define the header once
 #define __CLASS_HANDLE_H__
 
-#include "mex.h"
+#include <mex.h>
+#include "CUDA_Gridder.h"
+
+#include <iostream>
 #include <stdint.h>
 #include <string>
 #include <cstring>

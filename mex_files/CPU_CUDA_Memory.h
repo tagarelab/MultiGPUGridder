@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <limits>
+#include <cstring>
 
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
@@ -19,9 +20,16 @@
 class CPU_CUDA_Memory
 {
 public:
- 
-    CPU_CUDA_Memory() { mexPrintf("Calling constructor\n"); }
-    ~CPU_CUDA_Memory() { mexPrintf("Calling destructor\n"); }
+    
+    // Class constructor
+    CPU_CUDA_Memory() { 
+        std::cout << "CPU_CUDA_Memory() constructor" << '\n';
+        mexPrintf("Calling CPU_CUDA_Memory() constructor\n"); }
+
+    // Class deconstructor
+    ~CPU_CUDA_Memory() { 
+        std::cout << "CPU_CUDA_Memory() deconstructor" << '\n';
+        mexPrintf("Calling destructor\n"); }
 
     int FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector);
 
@@ -34,6 +42,8 @@ public:
     void pin_mem(std::string varNameString);
 
     void disp_mem(std::string varNameString);
+
+    void mem_Free(std::string varNameString);
 
     void CUDA_alloc(std::string varNameString, std::string dataType, int * dataSize, int GPU_Device);
 

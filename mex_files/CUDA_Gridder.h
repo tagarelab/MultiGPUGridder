@@ -18,20 +18,14 @@
 class CUDA_Gridder {
 
 
+public:
 
 	// Create a CPU_CUDA_Memory class object for allocating, copying, and transferring the CPU, GPU, and Matlab memory
 	CPU_CUDA_Memory * Mem_obj;
-
-
-public:
-
+	
 	// Constructor/Destructor
-	//CUDA_Gridder_Initilize();
-	//~CUDA_Gridder_Destruct();
-
-
-
-
+	CUDA_Gridder();
+	~CUDA_Gridder(){};
 
 
 };

@@ -1,4 +1,3 @@
-#include <mex.h>
 #include "mexFunctionWrapper.h"
 
 
@@ -44,10 +43,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
     
-    /*
+    
     // Get the class instance pointer from the second input
     CUDA_Gridder* CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
-    
+      
     // Call the various class methods    
     // mem_alloc    
     if (!strcmp("mem_alloc", cmd)) {
@@ -67,7 +66,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         varDataSize = (int*)mxGetData(prhs[4]);
 
         // Call the method
-        CUDA_Gridder_instance->mem_alloc(varNameString, varDataType, varDataSize);
+        CUDA_Gridder_instance->Mem_obj->mem_alloc(varNameString, varDataType, varDataSize);
+
         return;
     }
 
@@ -84,7 +84,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->pin_mem(varNameString);
+        CUDA_Gridder_instance->Mem_obj->pin_mem(varNameString);
         return;
     }
 
@@ -101,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->disp_mem(varNameString);
+        CUDA_Gridder_instance->Mem_obj->disp_mem(varNameString);
         return;
     }
 
@@ -118,7 +118,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->mem_Free(varNameString);
+        CUDA_Gridder_instance->Mem_obj->mem_Free(varNameString);
         return;
     }
 
@@ -139,7 +139,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 
         // Call the method
-        CUDA_Gridder_instance->mem_Copy(varNameString, prhs[3]);
+        CUDA_Gridder_instance->Mem_obj->mem_Copy(varNameString, prhs[3]);
 
         return;
     }
@@ -159,7 +159,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
         
         // Call the method
-        plhs[0] = CUDA_Gridder_instance->mem_Return(varNameString, plhs[0]);     
+        plhs[0] = CUDA_Gridder_instance->Mem_obj->mem_Return(varNameString, plhs[0]);     
 
         return;
     }
@@ -186,7 +186,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         std::cout << "GPU_Device: " << GPU_Device << '\n';
 
         // Call the method
-        CUDA_Gridder_instance->CUDA_alloc(varNameString, varDataType, varDataSize, GPU_Device);
+        CUDA_Gridder_instance->Mem_obj->CUDA_alloc(varNameString, varDataType, varDataSize, GPU_Device);
         return;
     }
 
@@ -205,7 +205,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->CUDA_Free(varNameString);
+        CUDA_Gridder_instance->Mem_obj->CUDA_Free(varNameString);
         return;
     }
 
@@ -225,7 +225,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->CUDA_disp_mem(varNameString);
+        CUDA_Gridder_instance->Mem_obj->CUDA_disp_mem(varNameString);
         return;
     }
 
@@ -246,7 +246,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 
         // Call the method
-        CUDA_Gridder_instance->CUDA_Copy(varNameString, prhs[3]);
+        CUDA_Gridder_instance->Mem_obj->CUDA_Copy(varNameString, prhs[3]);
 
         return;
     }
@@ -266,7 +266,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
         
         // Call the method
-        plhs[0] = CUDA_Gridder_instance->CUDA_Return(varNameString, plhs[0]);     
+        plhs[0] = CUDA_Gridder_instance->Mem_obj->CUDA_Return(varNameString, plhs[0]);     
 
         return;
     }
@@ -275,9 +275,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (nrhs < 2)
     {
 		mexErrMsgTxt("Second input should be a class instance handle.");
-    }
-     */
-
+    }   
     
     // Got here, so command was not recognized
     mexErrMsgTxt("Command not recognized. Please check the associated .m file.");

@@ -236,7 +236,7 @@ void CPU_CUDA_Memory::disp_mem(std::string varNameString)
 
 }
 
-    void mem_Free(std::string varNameString)
+void CPU_CUDA_Memory::mem_Free(std::string varNameString)
 {    
     // Free the memory of the corresponding array
 
