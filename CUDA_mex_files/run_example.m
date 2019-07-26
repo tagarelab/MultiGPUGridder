@@ -30,8 +30,8 @@ obj = CUDA_Gridder_Matlab_Class();
 % Allocate GPU CUDA memory
 obj.CUDA_alloc('gpuVol', 'float', int32(size(input_data.gpuVol)), 0);
 obj.CUDA_alloc('gpuCASImgs', 'float', int32(size(input_data.gpuCASImgs)), 0);
-obj.CUDA_alloc('gpuCoordAxes', 'float', int32(size(input_data.gpuCoordAxes)), 0);
-obj.CUDA_alloc('gpuKerTbl', 'float', int32(size(input_data.gpuKerTbl)), 0);
+obj.CUDA_alloc('gpuCoordAxes', 'float', int32([2034, 1, 1]), 0);
+obj.CUDA_alloc('gpuKerTbl', 'float', int32([501, 1, 1]), 0);
 
 % Allocate CPU memory
 obj.mem_alloc('CASBox_size', 'int', int32([1 1 1]));
@@ -69,12 +69,12 @@ obj.Forward_Project( ...
 
 
 
-InterpCASImgs = obj.CUDA_Return('gpuVol');
+InterpCASImgs = obj.CUDA_Return('gpuCASImgs');
 
+max(InterpCASImgs(:))
 
-
-imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
-easyMontage(imgs,1);
+% imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
+% easyMontage(imgs,1);
 
 obj.mem_Free('CASBox_size')
 obj.mem_Free('imgSize')
