@@ -33,6 +33,14 @@ public:
 
     int FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector);
 
+    int* ReturnCPUIntPtr(std::string varNameString);
+
+    float* ReturnCPUFloatPtr(std::string varNameString);
+
+    int* ReturnCUDAIntPtr(std::string varNameString);
+
+    float* ReturnCUDAFloatPtr(std::string varNameString);
+
     void mem_alloc(std::string varNameString, std::string dataType, int * dataSize);
 
     void mem_Copy(std::string varNameString, const mxArray *Matlab_Pointer);

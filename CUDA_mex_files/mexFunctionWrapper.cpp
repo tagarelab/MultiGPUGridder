@@ -1,10 +1,7 @@
 #include "mexFunctionWrapper.h"
 
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {	
-
-    //mexEvalString("p=plot(1:10);");
 
     // Get the command string
     char cmd[64];
@@ -41,8 +38,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         if (nlhs != 0 || nrhs != 2)
             mexWarnMsgTxt("Delete: Unexpected arguments ignored.");
         return;
-    }
-    
+    }    
     
     // Get the class instance pointer from the second input
     CUDA_Gridder* CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
@@ -270,6 +266,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         return;
     }
+
+    // Forward_Project    
+    if (!strcmp("Forward_Project", cmd)) {
+        // Check parameters
+
+        if (nrhs <  3)
+        {
+            mexErrMsgTxt("Forward_Project: Unexpected arguments. Please provide (1) variable names as strings.");
+        }                 
+
+        // Get all the variable names as a vector   
+        std::vector<std::string> Input_Strings;
+
+        for (int i = 2; i<nrhs; i++) // Start the index at 2 (because c++ class handle is i=0; cmd is i=1)
+        {
+            char varNameString[64];  
+            mxGetString(prhs[i], varNameString, sizeof(varNameString));
+            Input_Strings.push_back(varNameString);
+        }         
+
+        // Call the method
+        CUDA_Gridder_instance->Forward_Project(Input_Strings);
+        return;
+    }
+
+
 
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)

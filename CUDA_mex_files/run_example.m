@@ -4,19 +4,21 @@ clear
 
 clear obj 
 
+% cd('mex_files')
 
 fprintf('Compiling CUDA_Gridder mex file \n');
 
 % Compile the CUDA kernel first
-% status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
+status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
 
 % if status ~= 0
 %     error("Failed to compile");
 % end
 
 % Compile the mex files second
-clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp
+clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
+% cd('..')
 
 obj = CUDA_Gridder_Matlab_Class();
 
@@ -27,7 +29,10 @@ obj.disp_mem('all')
 
 
 
+obj.Forward_Project('arr_2')
 
+obj.mem_Free('arr_1')
+obj.mem_Free('arr_2')
 
 clear obj % Clear calls the delete method
 %%

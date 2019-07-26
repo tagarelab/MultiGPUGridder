@@ -57,5 +57,9 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = CUDA_Return(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('CUDA_Return', this.objectHandle, varargin{:});
         end
+        %% Forward_Project - Run the forward projection kernel
+        function varargout = Forward_Project(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('Forward_Project', this.objectHandle, varargin{:});
+        end
     end
 end

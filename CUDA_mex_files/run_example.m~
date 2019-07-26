@@ -15,20 +15,21 @@ fprintf('Compiling CUDA_Gridder mex file \n');
 % end
 
 % Compile the mex files second
-clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX CUDA_Gridder.cpp 
+clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp
 
 
+obj = CUDA_Gridder_Matlab_Class();
 
-obj = CUDA_Gridder();
-
-% tic 
+mat_size = int32([ 5, 5, 1]);
 obj.mem_alloc('arr_1', 'float', mat_size);
 obj.mem_alloc('arr_2', 'int', mat_size);
+obj.disp_mem('all')
+
+obj.disp_mem('all')
 
 
 
-
-
+clear obj % Clear calls the delete method
 %%
 reset(gpuDevice(1));
 
@@ -55,7 +56,7 @@ data = single(data);
 
 
 fprintf('Using the example interface\n');
-obj = MATLAB_CUDA_Memory();
+obj = CUDA_Gridder_Matlab_Class();
 
 % tic 
 obj.mem_alloc('arr_1', 'float', mat_size);

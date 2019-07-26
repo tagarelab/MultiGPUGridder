@@ -29,6 +29,98 @@ int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::
 
 }
 
+int* CPU_CUDA_Memory::ReturnCPUIntPtr(std::string varNameString){
+    // Given the name of a variable, return the memory pointer (supports only CPU int pointers)
+    
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name 
+    int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
+
+    if (arr_idx < 0)
+    {
+        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+    }  
+
+    if ( cpu_arr_types[arr_idx] == "int")
+    {
+        // Return the CPU memory pointer
+        return cpu_arr_ptrs[arr_idx].i;
+
+    } else {
+        mexErrMsgTxt("This array is not of integer type. Please try ReturnCPUFloatPtr instead.");
+    }
+    
+    return NULL; // Return null pointer since no pointer was found
+}
+
+float* CPU_CUDA_Memory::ReturnCPUFloatPtr(std::string varNameString){
+    // Given the name of a variable, return the memory pointer (supports only CPU float pointers)
+    
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name 
+    int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
+
+    if (arr_idx < 0)
+    {
+        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+    }  
+
+    if ( cpu_arr_types[arr_idx] == "float")
+    {
+        // Return the CPU memory pointer
+        return cpu_arr_ptrs[arr_idx].f;
+
+    } else {
+        mexErrMsgTxt("This array is not of integer type. Please try ReturnCPUIntPtr instead.");
+    }
+    
+    return NULL; // Return null pointer since no pointer was found
+}
+
+int* CPU_CUDA_Memory::ReturnCUDAIntPtr(std::string varNameString){
+    // Given the name of a variable, return the memory pointer (supports only CUDA int pointers)
+    
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name 
+    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
+
+    if (arr_idx < 0)
+    {
+        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+    }  
+
+    if ( CUDA_arr_types[arr_idx] == "int")
+    {
+        // Return the CUDA memory pointer
+        return CUDA_arr_ptrs[arr_idx].i;
+
+    } else {
+        mexErrMsgTxt("This array is not of integer type. Please try ReturnCUDAFloatPtr instead.");
+    }
+    
+    return NULL; // Return null pointer since no pointer was found
+}
+
+float* CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString){
+    // Given the name of a variable, return the memory pointer (supports only CUDA float pointers)
+    
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name 
+    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
+
+    if (arr_idx < 0)
+    {
+        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+    }  
+
+    if ( CUDA_arr_types[arr_idx] == "float")
+    {
+        // Return the CUDA memory pointer
+        return CUDA_arr_ptrs[arr_idx].f;
+
+    } else {
+        mexErrMsgTxt("This array is not of float type. Please try ReturnCUDAIntPtr instead.");
+    }
+    
+    return NULL; // Return null pointer since no pointer was found
+}
+
 void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType, int * dataSize)
 {        
     // Allocate memory based on the dataType (i.e. int, float, etc.)

@@ -1,3 +1,5 @@
+#include "gpuForwardProject.h"
+
 __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* img,int imgSize, float *axes, int nAxes,float maskRadius,
                                     float* ker, int kerSize, float kerHWidth)
 {
@@ -93,7 +95,12 @@ __shared__ float locKer[1000];
 }
 
 
+void gpuForwardProject() 
+{
 
+    std::cout << "gpuForwardProject()" << '\n';
+
+}
 
 //void Forward_Project(
 //) 
