@@ -30,7 +30,7 @@ void CUDA_Gridder::SetKaiserBesselFunction()
         Mem_obj->CUDA_alloc("ker", "float", arrSize, gpuDevice);
     }
 
-    // After allocating the gpuVol array on the gpuDevice, lets copy the memory
+    // After allocating the gpuVol array on the gpuDevice, lets gpuDevicepy the memory
      Mem_obj->CUDA_Copy("ker", ker);    
 
 
@@ -100,8 +100,8 @@ void CUDA_Gridder::SetMaskRadius(float* maskRadius)
 
 
 // Run the Forward Projection CUDA kernel
-void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
-    // Input: Vector of strings in which the strings refer to variable names in the CPU_CUDA_Memory class
+void CUDA_Gridder::Forward_Project(){
+    // Run the forward projection CUDA kernel
 
     std::cout << "CUDA_Gridder::Forward_Project()" << '\n';
     
@@ -111,7 +111,7 @@ void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
     if ( Mem_obj->GPUArrayAllocated("gpuCASImgs", gpuDevice) == false) 
     {
         // We need to allocate the gpuCASImgs array on this GPU
-        Mem_obj->CUDA_alloc("gpuCASImgs", "float", this->imgSize, gpuDevice);
+        Mem_obj->CUDA_alloc("gpuCASImgs", "float", this->imgSize, gpuDevice);        
     }
 
     // Has the Kaiser bessel vector been allocated and defined already?
@@ -123,21 +123,14 @@ void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
 
 
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
-
-    //int * arr_1 = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[0]);
-    //std::cout << "arr_1 ptr: " << arr_1 << '\n';
-
-    // if (Input_Strings.size() != 10)
-    // {
-    //     std::cout << "Wrong number of inputs provided. The number should be equal to 10." << '\n';
-    //     return;
-    // }
-
     // Get the pointers to the CUDA GPU arrays first
     float* vol  = this->Mem_obj->ReturnCUDAFloatPtr("gpuVol");
     float* img  = this->Mem_obj->ReturnCUDAFloatPtr("gpuCASImgs");
     float* axes = this->Mem_obj->ReturnCUDAFloatPtr("coordAxes");
     float* ker  = this->Mem_obj->ReturnCUDAFloatPtr("ker");
+
+    // Run the kernel now   
+    gpuForwardProject(vol, img, axes, ker, 134, 128, 4068, 63, 501, 2 ); //2034
 
     // Get the pointers to the other parameters (non-GPU) next
     //int* volSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[4]);
@@ -145,19 +138,16 @@ void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
     //int* nAxes = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[6]);
 
 
-    float* maskRadius = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[7]);
-    int* kerSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[8]);
-    float* kerHWidth = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[9]);
+    // float* maskRadius = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[7]);
+    // int* kerSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[8]);
+    // float* kerHWidth = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[9]);
 
     //     const float* vol, float* img, float *axes, float* ker, // GPU arrays
     //     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
     
-    std::cout << "volSize: " << volSize[0] <<'\n';
-    std::cout << "maskRadius: " << maskRadius[0] <<'\n';
-
-    // Run the kernel now
-    // gpuForwardProject(vol, img, axes, ker, volSize[0], imgSize[0], nAxes[0], maskRadius[0], kerSize[0], kerHWidth[0] );
-        
+    // std::cout << "volSize: " << volSize[0] <<'\n';
+    // std::cout << "maskRadius: " << maskRadius[0] <<'\n';
+    // gpuForwardProject(vol, img, axes, ker, volSize[0], imgSize[0], nAxes[0], maskRadius[0], kerSize[0], kerHWidth[0] );   
 
 }
 

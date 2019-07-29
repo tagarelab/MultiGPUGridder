@@ -16,26 +16,58 @@ end
 % Compile the mex files second
 clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
-obj = CUDA_Gridder_Matlab_Class();
 
+% reset(gpuDevice(1));
+% obj.SetVolume(ones(5,5,5))
+% obj.SetAxes(ones(90,1))
+% 
+% obj.SetImgSize(int32([124, 124, 124]))
+% 
+% 
+% obj.Forward_Project('test')
+% 
+% obj.CUDA_disp_mem('all')
+% 
+% 
+% clear obj
+
+% cd('..')
+%
+%%
 
 reset(gpuDevice(1));
-obj.SetVolume(ones(5,5,5))
-obj.SetAxes(ones(90,1))
-
-obj.SetImgSize(int32([124, 124, 124]))
 
 
-obj.Forward_Project('test')
+
+input_data = load('Forward_Project_Input.mat')
+input_data = input_data.x
+
+
+
+gpuCoordAxes = [input_data.gpuCoordAxes; input_data.gpuCoordAxes; input_data.gpuCoordAxes];
+
+obj = CUDA_Gridder_Matlab_Class();
+obj.SetVolume(input_data.gpuVol)
+obj.SetAxes(gpuCoordAxes)
+obj.SetImgSize(int32([128, 128, length(gpuCoordAxes)/9]))
+
+tic
+obj.Forward_Project()
+toc
+
+InterpCASImgs = obj.CUDA_Return('gpuCASImgs');
+
+imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
+easyMontage(imgs,1);
 
 obj.CUDA_disp_mem('all')
 
 
 clear obj
-a
-% cd('..')
-%%
 
+
+a
+%%
 reset(gpuDevice(1));
 
 

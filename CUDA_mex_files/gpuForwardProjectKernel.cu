@@ -15,6 +15,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* img,int imgSize, float *axes, int nAxes,float maskRadius,
     float* ker, int kerSize, float kerHWidth)
 {
+
     int i=blockIdx.x*blockDim.x+threadIdx.x;
     int j=blockIdx.y*blockDim.y+threadIdx.y;
     int volCenter= volSize/2;
@@ -33,6 +34,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     float kerCenter=((float)kerSize-1)/2;
     float kerScale=kerCenter/kerHWidth;
     int kerIndex;
+   
 
     __shared__ float locKer[1000];
 
@@ -42,9 +44,8 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
         for (kerIndex=0;kerIndex<kerSize;kerIndex++) 
         locKer[kerIndex]=*(ker+kerIndex);
     }
-    __syncthreads();
-
-
+    __syncthreads();   
+   
 
     for(img_i=0;img_i<nAxes;img_i++)
     {
@@ -65,7 +66,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
             int_vol_k= roundf(f_vol_k);
 
             *(img_ptr+j*imgSize+i)=0;
-
+            
             for (i1=int_vol_i-convW;i1<=int_vol_i+convW;i1++)
             {
                 ri= (float)i1-f_vol_i;
@@ -123,9 +124,9 @@ void gpuForwardProject(
     dim3 dimGrid(32, 32, 1);
     dim3 dimBlock(4, 4, 1);
 
-    //gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, 134, img, 128, axes, 226, 63,ker, 501, 2);
+    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, 134, img, 128, axes, 678, 63,ker, 501, 2);
 
-    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
+    // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
 
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );

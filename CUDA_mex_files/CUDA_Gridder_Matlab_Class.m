@@ -25,6 +25,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = SetImgSize(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetImgSize', this.objectHandle, varargin{:});
         end
+        %% SetMaskRadius - Set mask radius
+        function varargout = SetMaskRadius(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('SetMaskRadius', this.objectHandle, varargin{:});
+        end
         %% mem_alloc - Allocate memory
         function varargout = mem_alloc(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_alloc', this.objectHandle, varargin{:});

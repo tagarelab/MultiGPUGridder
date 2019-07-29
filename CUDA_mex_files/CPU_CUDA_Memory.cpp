@@ -64,7 +64,7 @@ int* CPU_CUDA_Memory::ReturnCPUIntPtr(std::string varNameString){
 
     if (arr_idx < 0)
     {
-        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+        //mexErrMsgTxt("Failed to locate variable. Please check spelling.");
     }  
 
     if ( cpu_arr_types[arr_idx] == "int")
@@ -87,7 +87,7 @@ float* CPU_CUDA_Memory::ReturnCPUFloatPtr(std::string varNameString){
 
     if (arr_idx < 0)
     {
-        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+        //mexErrMsgTxt("Failed to locate variable. Please check spelling.");
     }  
 
     if ( cpu_arr_types[arr_idx] == "float")
@@ -110,7 +110,7 @@ int* CPU_CUDA_Memory::ReturnCUDAIntPtr(std::string varNameString){
 
     if (arr_idx < 0)
     {
-        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+        //mexErrMsgTxt("Failed to locate variable. Please check spelling.");
     }  
 
     if ( CUDA_arr_types[arr_idx] == "int")
@@ -133,7 +133,7 @@ float* CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString){
 
     if (arr_idx < 0)
     {
-        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+        //mexErrMsgTxt("Failed to locate variable. Please check spelling.");
     }  
 
     if ( CUDA_arr_types[arr_idx] == "float")

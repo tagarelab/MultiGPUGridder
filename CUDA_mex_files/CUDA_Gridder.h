@@ -63,7 +63,7 @@ public:
 	void SetKaiserBesselFunction();
 
 	// Run the forward projection CUDA kernel
-	void Forward_Project(std::vector<std::string> Input_Strings);
+	void Forward_Project();
 
 };
 

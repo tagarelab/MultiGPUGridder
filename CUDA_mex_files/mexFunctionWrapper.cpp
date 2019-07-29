@@ -384,23 +384,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("Forward_Project", cmd)) {
         // Check parameters
 
-        if (nrhs <  3)
+        if (nrhs != 2)
         {
-            mexErrMsgTxt("Forward_Project: Unexpected arguments. Please provide (1) variable names as strings.");
+            mexErrMsgTxt("Forward_Project: Unexpected arguments. ");
         }                 
 
-        // Get all the variable names as a vector   
-        std::vector<std::string> Input_Strings;
-
-        for (int i = 2; i<nrhs; i++) // Start the index at 2 (because c++ class handle is i=0; cmd is i=1)
-        {
-            char varNameString[64];  
-            mxGetString(prhs[i], varNameString, sizeof(varNameString));
-            Input_Strings.push_back(varNameString);
-        }         
-
         // Call the method
-        CUDA_Gridder_instance->Forward_Project(Input_Strings);
+        CUDA_Gridder_instance->Forward_Project();
+        
         return;
     }
 
