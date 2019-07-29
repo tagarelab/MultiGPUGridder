@@ -116,15 +116,11 @@ void gpuForwardProject(
 )
 {
 
-    std::cout << "gpuForwardProject()" << '\n';
-    std::cout << "volSize: " << volSize <<'\n';
-
-
     // Run the forward projection kernel
     dim3 dimGrid(32, 32, 1);
     dim3 dimBlock(4, 4, 1);
 
-    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, 134, img, 128, axes, 678, 63,ker, 501, 2);
+    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, 134, img, 128, axes, nAxes, 63,ker, 501, 2);
 
     // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
 

@@ -44,7 +44,9 @@ input_data = input_data.x
 
 
 
-gpuCoordAxes = [input_data.gpuCoordAxes; input_data.gpuCoordAxes; input_data.gpuCoordAxes];
+gpuCoordAxes = [input_data.gpuCoordAxes; input_data.gpuCoordAxes; input_data.gpuCoordAxes; input_data.gpuCoordAxes; input_data.gpuCoordAxes];
+gpuCoordAxes = [gpuCoordAxes; gpuCoordAxes; gpuCoordAxes; gpuCoordAxes; gpuCoordAxes; gpuCoordAxes; gpuCoordAxes]
+nAxes = length(gpuCoordAxes)/9
 
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetVolume(input_data.gpuVol)
@@ -66,84 +68,84 @@ obj.CUDA_disp_mem('all')
 clear obj
 
 
-a
+
 %%
-reset(gpuDevice(1));
+% reset(gpuDevice(1));
+% 
+% 
+% input_data = load('Forward_Project_Input.mat')
+% input_data = input_data.x
+% 
+% obj = CUDA_Gridder_Matlab_Class();
+% 
+% % Allocate GPU CUDA memory
+% obj.CUDA_alloc('gpuVol', 'float', int32(size(input_data.gpuVol)), 0);
+% obj.CUDA_alloc('gpuCASImgs', 'float', int32(size(input_data.gpuCASImgs)), 0);
+% obj.CUDA_alloc('gpuCoordAxes', 'float', int32([2034, 1, 1]), 0);
+% obj.CUDA_alloc('gpuKerTbl', 'float', int32([501, 1, 1]), 0);
+% 
+% % Allocate CPU memory
+% obj.mem_alloc('CASBox_size', 'int', int32([1 1 1]));
+% obj.mem_alloc('imgSize', 'int', int32([1 1 1]));
+% obj.mem_alloc('nAxes', 'int', int32([1 1 1]));
+% obj.mem_alloc('rMax', 'float', int32([1 1 1]));
+% obj.mem_alloc('kerTblSize', 'int', int32([1 1 1]));
+% obj.mem_alloc('kerHWidth', 'float', int32([1 1 1]));
+% 
+% % Copy Matab array to CUDA array 
+% obj.CUDA_Copy('gpuVol', input_data.gpuVol);
+% obj.CUDA_Copy('gpuCASImgs', input_data.gpuCASImgs);
+% obj.CUDA_Copy('gpuCoordAxes', input_data.gpuCoordAxes);
+% obj.CUDA_Copy('gpuKerTbl', input_data.gpuKerTbl);
+% 
+% % Copy Matab array to CPU array 
+% obj.mem_Copy('CASBox_size', int32(input_data.CASBox_size));
+% obj.mem_Copy('imgSize', int32(input_data.imgSize));
+% obj.mem_Copy('nAxes', int32(input_data.nAxes));
+% obj.mem_Copy('rMax', input_data.rMax);
+% obj.mem_Copy('kerTblSize', int32(input_data.kerTblSize));
+% obj.mem_Copy('kerHWidth', input_data.kerHWidth);
+% 
+% 
+% 
+% obj.CUDA_disp_mem('all')
+% obj.disp_mem('all');
+% 
+% obj.Forward_Project( ...
+%     'gpuVol', 'gpuCASImgs', 'gpuCoordAxes', 'gpuKerTbl', ...
+%     'CASBox_size', 'imgSize', 'nAxes', 'rMax', 'kerTblSize', 'kerHWidth')
+% 
+% 
+% InterpCASImgs = obj.CUDA_Return('gpuCASImgs');
+% 
+% max(InterpCASImgs(:))
+% 
+% % imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
+% % easyMontage(imgs,1);
+% 
+% obj.mem_Free('CASBox_size')
+% obj.mem_Free('imgSize')
+% obj.mem_Free('nAxes')
+% obj.mem_Free('rMax')
+% obj.mem_Free('kerTblSize')
+% obj.mem_Free('kerHWidth')
+% 
+% 
+% 
+% obj.CUDA_Free('gpuVol');
+% obj.CUDA_Free('gpuCASImgs');
+% obj.CUDA_Free('gpuCoordAxes');
+% obj.CUDA_Free('gpuKerTbl');
+% 
+% 
+% 
+% 
 
 
-input_data = load('Forward_Project_Input.mat')
-input_data = input_data.x
-
-obj = CUDA_Gridder_Matlab_Class();
-
-% Allocate GPU CUDA memory
-obj.CUDA_alloc('gpuVol', 'float', int32(size(input_data.gpuVol)), 0);
-obj.CUDA_alloc('gpuCASImgs', 'float', int32(size(input_data.gpuCASImgs)), 0);
-obj.CUDA_alloc('gpuCoordAxes', 'float', int32([2034, 1, 1]), 0);
-obj.CUDA_alloc('gpuKerTbl', 'float', int32([501, 1, 1]), 0);
-
-% Allocate CPU memory
-obj.mem_alloc('CASBox_size', 'int', int32([1 1 1]));
-obj.mem_alloc('imgSize', 'int', int32([1 1 1]));
-obj.mem_alloc('nAxes', 'int', int32([1 1 1]));
-obj.mem_alloc('rMax', 'float', int32([1 1 1]));
-obj.mem_alloc('kerTblSize', 'int', int32([1 1 1]));
-obj.mem_alloc('kerHWidth', 'float', int32([1 1 1]));
-
-% Copy Matab array to CUDA array 
-obj.CUDA_Copy('gpuVol', input_data.gpuVol);
-obj.CUDA_Copy('gpuCASImgs', input_data.gpuCASImgs);
-obj.CUDA_Copy('gpuCoordAxes', input_data.gpuCoordAxes);
-obj.CUDA_Copy('gpuKerTbl', input_data.gpuKerTbl);
-
-% Copy Matab array to CPU array 
-obj.mem_Copy('CASBox_size', int32(input_data.CASBox_size));
-obj.mem_Copy('imgSize', int32(input_data.imgSize));
-obj.mem_Copy('nAxes', int32(input_data.nAxes));
-obj.mem_Copy('rMax', input_data.rMax);
-obj.mem_Copy('kerTblSize', int32(input_data.kerTblSize));
-obj.mem_Copy('kerHWidth', input_data.kerHWidth);
 
 
 
-obj.CUDA_disp_mem('all')
-obj.disp_mem('all');
-
-obj.Forward_Project( ...
-    'gpuVol', 'gpuCASImgs', 'gpuCoordAxes', 'gpuKerTbl', ...
-    'CASBox_size', 'imgSize', 'nAxes', 'rMax', 'kerTblSize', 'kerHWidth')
-
-
-InterpCASImgs = obj.CUDA_Return('gpuCASImgs');
-
-max(InterpCASImgs(:))
-
-% imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
-% easyMontage(imgs,1);
-
-obj.mem_Free('CASBox_size')
-obj.mem_Free('imgSize')
-obj.mem_Free('nAxes')
-obj.mem_Free('rMax')
-obj.mem_Free('kerTblSize')
-obj.mem_Free('kerHWidth')
-
-
-
-obj.CUDA_Free('gpuVol');
-obj.CUDA_Free('gpuCASImgs');
-obj.CUDA_Free('gpuCoordAxes');
-obj.CUDA_Free('gpuKerTbl');
-
-
-
-
-
-
-
-
-
-clear obj % Clear calls the delete method
+% clear obj % Clear calls the delete method
 
 %%
 

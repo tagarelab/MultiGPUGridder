@@ -26,7 +26,7 @@ void CUDA_Gridder::SetKaiserBesselFunction()
     // Has a ker array already been allocated?    
     if ( Mem_obj->GPUArrayAllocated("ker", gpuDevice) == false) 
     {
-        // We need to allocate the coordAxes array on this axesSize
+        // We need to allocate the coordAxes array on this gpuDevice
         Mem_obj->CUDA_alloc("ker", "float", arrSize, gpuDevice);
     }
 
@@ -76,8 +76,8 @@ void CUDA_Gridder::SetAxes(float* coordAxes, int* axesSize)
     // After allocating the coordAxes array on the gpuDevice, lets copy the memory
      Mem_obj->CUDA_Copy("coordAxes", coordAxes);    
 
-     // Remember the axesSize for later
-     this->axesSize = axesSize;
+     // Remember the axesSize for later    
+     this->axesSize = new int(*axesSize);
 
 }
 
@@ -129,8 +129,11 @@ void CUDA_Gridder::Forward_Project(){
     float* axes = this->Mem_obj->ReturnCUDAFloatPtr("coordAxes");
     float* ker  = this->Mem_obj->ReturnCUDAFloatPtr("ker");
 
+    int nAxes = this->axesSize[0] / 9; // Each axes has 9 elements (3 for each x, y, z)
+
+
     // Run the kernel now   
-    gpuForwardProject(vol, img, axes, ker, 134, 128, 4068, 63, 501, 2 ); //2034
+    gpuForwardProject(vol, img, axes, ker, 134, 128, nAxes, 63, 501, 2 ); //2034
 
     // Get the pointers to the other parameters (non-GPU) next
     //int* volSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[4]);
