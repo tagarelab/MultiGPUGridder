@@ -44,6 +44,115 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     CUDA_Gridder* CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
       
     // Call the various class methods    
+    // SetVolume 
+    if (!strcmp("SetVolume", cmd)) {
+        // Check parameters
+        if (nrhs !=  3)
+        {
+            mexErrMsgTxt("SetVolume: Unexpected arguments. Please provide a Matlab array.");
+        }
+       
+        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get the matrix size of the input GPU volume
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions( prhs[2] );
+
+        int dims[3];
+        dims[0] = (int) dims_mwSize[0];
+        dims[1] = (int) dims_mwSize[1];
+        dims[2] = (int) dims_mwSize[2];
+
+        mwSize numDims;
+        numDims = mxGetNumberOfDimensions( prhs[2] );
+
+        if (numDims != 3)
+        {
+            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");            
+        }
+
+
+        // Call the method
+        CUDA_Gridder_instance->SetVolume(matlabArrayPtr, dims);
+
+        return;
+ 
+
+    }
+
+    // SetAxes 
+    if (!strcmp("SetAxes", cmd)) {
+        // Check parameters
+        if (nrhs !=  3)
+        {
+            mexErrMsgTxt("SetAxes: Unexpected arguments. Please provide a Matlab array.");
+        }
+       
+        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get the matrix size of the input GPU volume
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions( prhs[2] );
+
+        mwSize numDims;
+        numDims = mxGetNumberOfDimensions( prhs[2] );
+        
+
+        int dims[3];
+        dims[0] = (int) dims_mwSize[0];
+        dims[1] = (int) dims_mwSize[1];
+        dims[2] = 1;
+
+        if (numDims != 2)
+        {
+            mexErrMsgTxt("SetAxes: Unexpected arguments. Array should be a row vector.");            
+        }
+
+        // Call the method
+        CUDA_Gridder_instance->SetAxes(matlabArrayPtr, dims);
+
+        return;
+
+    }
+
+    // SetImgSize
+    if (!strcmp("SetImgSize", cmd)) {
+        // Check parameters
+        if (nrhs !=  3)
+        {
+            mexErrMsgTxt("SetImgSize: Unexpected arguments. Please provide a row vector.");
+        }
+       
+        int* matlabArrayPtr = (int*)mxGetData( prhs[2] );
+
+        // Get the matrix size of the input GPU volume
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions( prhs[2] );
+
+        mwSize numDims;
+        numDims = mxGetNumberOfDimensions( prhs[2] );        
+
+        int dims[3];
+        dims[0] = (int) dims_mwSize[0];
+        dims[1] = (int) dims_mwSize[1];
+        dims[2] = 1;
+
+        if (numDims != 2)
+        {
+            mexErrMsgTxt("SetImgSize: Unexpected arguments. Input should be a row vector.");            
+        }
+
+        // Call the method
+        CUDA_Gridder_instance->SetImgSize(matlabArrayPtr);
+
+        return;
+
+    }
+
+
+
+
+
     // mem_alloc    
     if (!strcmp("mem_alloc", cmd)) {
         // Check parameters
@@ -241,8 +350,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // TO DO: Check to see if the matrix size is the same as the previously allocated array size
 
 
+        // Get the pointer to the input Matlab array which should be float type (same as previously allocated)
+        float* matlabArrayPtr = (float*)mxGetData( prhs[3] );
+
+
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_Copy(varNameString, prhs[3]);
+        CUDA_Gridder_instance->Mem_obj->CUDA_Copy(varNameString, matlabArrayPtr);
 
         return;
     }

@@ -16,8 +16,23 @@ end
 % Compile the mex files second
 clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
+obj = CUDA_Gridder_Matlab_Class();
 
 
+reset(gpuDevice(1));
+obj.SetVolume(ones(5,5,5))
+obj.SetAxes(ones(90,1))
+
+obj.SetImgSize(int32([124, 124, 124]))
+
+
+obj.Forward_Project('test')
+
+obj.CUDA_disp_mem('all')
+
+
+clear obj
+a
 % cd('..')
 %%
 

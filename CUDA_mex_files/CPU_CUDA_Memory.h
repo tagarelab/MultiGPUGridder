@@ -31,6 +31,8 @@ public:
         std::cout << "CPU_CUDA_Memory() deconstructor" << '\n';
         mexPrintf("Calling destructor\n"); }
 
+    bool GPUArrayAllocated(std::string varNameString, int GPU_Device);
+
     int FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector);
 
     int* ReturnCPUIntPtr(std::string varNameString);
@@ -59,7 +61,7 @@ public:
 
     void CUDA_disp_mem(std::string varNameString);
 
-    void CUDA_Copy(std::string varNameString, const mxArray *Matlab_Pointer);
+    void CUDA_Copy(std::string varNameString, float *New_Array);
 
     mxArray* CUDA_Return(std::string varNameString, mxArray *Matlab_Pointer);
 

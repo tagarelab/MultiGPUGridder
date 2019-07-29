@@ -13,6 +13,18 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function delete(this)
             mexFunctionWrapper('delete', this.objectHandle);
         end
+        %% SetAxes - Set coordinate axes
+        function varargout = SetAxes(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('SetAxes', this.objectHandle, varargin{:});
+        end
+        %% SetVolume - Set GPU volume
+        function varargout = SetVolume(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, varargin{:});
+        end
+        %% SetImgSize - Set output image size
+        function varargout = SetImgSize(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('SetImgSize', this.objectHandle, varargin{:});
+        end
         %% mem_alloc - Allocate memory
         function varargout = mem_alloc(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_alloc', this.objectHandle, varargin{:});

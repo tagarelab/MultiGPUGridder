@@ -2,6 +2,33 @@
 
 // The CPU_CUDA_Memory class functions
 
+bool CPU_CUDA_Memory::GPUArrayAllocated(std::string varNameString, int GPU_Device)
+{
+    // Given the name of the array, is it already allocated on the given GPU?
+
+    int arr_idx = FindArrayIndex(varNameString, this->CUDA_arr_names);    
+
+    if (arr_idx != -1) // The array was found on one of the GPUs 
+    {
+        // Which GPU is the array assigned to?
+        int GPU_assigned = this->CUDA_arr_GPU_Assignment[arr_idx];
+
+        // Is the array on the requested GPU device already?
+        if (GPU_assigned == GPU_Device)
+        {
+            return true;
+        } else {
+            // The array is NOT on the requested GPU device
+            return false;
+        }
+
+
+    } else { // The array is NOT already allocated on any GPU        
+        return false;
+    }   
+
+}
+
 int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector){
     // Find the index in the NameVector vector which is equal to a given string
 
@@ -21,7 +48,7 @@ int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::
     // Check to make sure we found one        
     if (arr_idx >= NameVector.size() || arr_idx == -1) // String name wasn't found in the vector
     {
-        mexErrMsgTxt("Array name is not found. Please check spelling.");
+        //mexErrMsgTxt("Array name is not found. Please check spelling.");
         return -1;
     }
 
@@ -492,7 +519,7 @@ void CPU_CUDA_Memory::CUDA_disp_mem(std::string varNameString)
     mexPrintf("\n"); 
 }
 
-void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, const mxArray *Matlab_Pointer)
+void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, float *New_Array)
 {
     // Given a Matlab array, copy the data to the corresponding CUDA pointer
     mexPrintf("\n");
@@ -518,20 +545,17 @@ void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, const mxArray *Matlab
 
     if ( CUDA_arr_types[arr_idx] == "int")
     {
-        // Get the pointer to the input Matlab array which should be int type (same as previously allocated)
-        int* matlabArray = (int*)mxGetData(Matlab_Pointer);
+        // // Get the pointer to the input Matlab array which should be int type (same as previously allocated)
+        // int* matlabArray = (int*)mxGetData(Matlab_Pointer);
 
-        // CUDA function to copy the data from device to host
-        cudaMemcpy(CUDA_arr_ptrs[arr_idx].i, matlabArray, dim_size*sizeof(int), cudaMemcpyHostToDevice);
-        cudaDeviceSynchronize();
+        // // CUDA function to copy the data from device to host
+        // cudaMemcpy(CUDA_arr_ptrs[arr_idx].i, matlabArray, dim_size*sizeof(int), cudaMemcpyHostToDevice);
+        // cudaDeviceSynchronize();
 
     } else if ( CUDA_arr_types[arr_idx] == "float")
-    {           
-        // Get the pointer to the input Matlab array which should be float type (same as previously allocated)
-        float* matlabArray = (float*)mxGetData(Matlab_Pointer);
-
+    {         
         // Sends data to device
-        cudaMemcpy(CUDA_arr_ptrs[arr_idx].f, matlabArray, dim_size*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size*sizeof(float), cudaMemcpyHostToDevice);
         cudaDeviceSynchronize();
 
     } else 
