@@ -1,4 +1,4 @@
-#include "mex.h"
+//#include "mex.h"
 #include <cstdlib>
 #include <stdio.h>
 #include <iostream>
@@ -16,7 +16,7 @@
 #ifndef __GPUFORWARDPROJECT_H__
 #define __GPUFORWARDPROJECT_H__
 
-extern void gpuForwardProject(    
+extern void gpuForwardProject(  
     float* vol, float* img, float *axes, float* ker, // GPU arrays
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
     );

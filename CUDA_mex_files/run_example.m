@@ -16,6 +16,8 @@ end
 % Compile the mex files second
 clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
+
+
 % cd('..')
 %%
 
@@ -48,11 +50,11 @@ obj.CUDA_Copy('gpuCoordAxes', input_data.gpuCoordAxes);
 obj.CUDA_Copy('gpuKerTbl', input_data.gpuKerTbl);
 
 % Copy Matab array to CPU array 
-obj.mem_Copy('CASBox_size', input_data.CASBox_size);
-obj.mem_Copy('imgSize', input_data.imgSize);
-obj.mem_Copy('nAxes', input_data.nAxes);
+obj.mem_Copy('CASBox_size', int32(input_data.CASBox_size));
+obj.mem_Copy('imgSize', int32(input_data.imgSize));
+obj.mem_Copy('nAxes', int32(input_data.nAxes));
 obj.mem_Copy('rMax', input_data.rMax);
-obj.mem_Copy('kerTblSize', input_data.kerTblSize);
+obj.mem_Copy('kerTblSize', int32(input_data.kerTblSize));
 obj.mem_Copy('kerHWidth', input_data.kerHWidth);
 
 
@@ -60,13 +62,9 @@ obj.mem_Copy('kerHWidth', input_data.kerHWidth);
 obj.CUDA_disp_mem('all')
 obj.disp_mem('all');
 
-
-
-
 obj.Forward_Project( ...
     'gpuVol', 'gpuCASImgs', 'gpuCoordAxes', 'gpuKerTbl', ...
     'CASBox_size', 'imgSize', 'nAxes', 'rMax', 'kerTblSize', 'kerHWidth')
-
 
 
 InterpCASImgs = obj.CUDA_Return('gpuCASImgs');

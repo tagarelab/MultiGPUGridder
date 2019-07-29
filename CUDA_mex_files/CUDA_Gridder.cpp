@@ -15,6 +15,25 @@ void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
 
     std::cout << "CUDA_Gridder::Forward_Project()" << '\n';
     
+
+
+    // call: out1 = rand(5,5); out2 = rand(5,5);
+    mxArray *Uin[2], *Uout[2];
+    Uin[0] = mxCreateDoubleScalar(5);
+    Uin[1] = mxCreateDoubleScalar(5);
+    mexCallMATLAB(1, &Uout[0], 2, Uin, "rand");
+    mexCallMATLAB(1, &Uout[1], 2, Uin, "rand");
+
+    // int mexCallMATLAB(int nlhs, mxArray *plhs[], int nrhs,
+    // mxArray *prhs[], const char *functionName);
+
+    double* ptr = (double*)mxGetData(Uout[0]);
+
+
+    std::cout << "Uout: " << ptr[0] << " " << ptr[1] << '\n';
+
+
+
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
 
     //int * arr_1 = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[0]);
@@ -43,8 +62,12 @@ void CUDA_Gridder::Forward_Project(std::vector<std::string> Input_Strings){
     //     const float* vol, float* img, float *axes, float* ker, // GPU arrays
     //     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
     
+    std::cout << "volSize: " << volSize[0] <<'\n';
+    std::cout << "maskRadius: " << maskRadius[0] <<'\n';
+
     // Run the kernel now
-    gpuForwardProject( vol, img, axes, ker, *volSize, *imgSize, *nAxes, *maskRadius, *kerSize, *kerHWidth );
+    gpuForwardProject(vol, img, axes, ker, volSize[0], imgSize[0], nAxes[0], maskRadius[0], kerSize[0], kerHWidth[0] );
+        
 
 }
 
