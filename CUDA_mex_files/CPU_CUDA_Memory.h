@@ -35,6 +35,8 @@ public:
 
     bool GPUArrayAllocated(std::string varNameString, int GPU_Device);
 
+    bool CPUArrayAllocated(std::string varNameString);
+
     int FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector);
 
     int* ReturnCPUIntPtr(std::string varNameString);
@@ -47,7 +49,7 @@ public:
 
     void mem_alloc(std::string varNameString, std::string dataType, int * dataSize);
 
-    void mem_Copy(std::string varNameString, const mxArray *Matlab_Pointer);
+    void mem_Copy(std::string varNameString, float *New_Array);
 
     mxArray* mem_Return(std::string varNameString, mxArray *Matlab_Pointer);
 

@@ -29,6 +29,20 @@ bool CPU_CUDA_Memory::GPUArrayAllocated(std::string varNameString, int GPU_Devic
 
 }
 
+bool CPU_CUDA_Memory::CPUArrayAllocated(std::string varNameString)
+{
+    // Given the name of the array, is it already allocated on the CPU?
+
+    int arr_idx = FindArrayIndex(varNameString, this->cpu_arr_names);    
+
+    if (arr_idx != -1) // The array was found
+    {
+        return true;
+    } else { // The array is NOT already allocated     
+        return false;
+    }   
+}
+
 int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector){
     // Find the index in the NameVector vector which is equal to a given string
 
@@ -189,9 +203,9 @@ void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType,
 
 }
 
-void CPU_CUDA_Memory::mem_Copy(std::string varNameString, const mxArray *Matlab_Pointer)
+void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
 {
-    // Given a Matlab array, copy the data to the corresponding C++ pointer
+    // Given a float array, copy the data to the corresponding C++ pointer
     mexPrintf("\n");
     mexPrintf("Copying memory: Name %s \n", varNameString.c_str()); 
 
@@ -216,16 +230,12 @@ void CPU_CUDA_Memory::mem_Copy(std::string varNameString, const mxArray *Matlab_
     {
 
         // Get the pointer to the input Matlab array which should be int type (same as previously allocated)
-        int* matlabArray = (int*)mxGetData(Matlab_Pointer);
+        //int* matlabArray = (int*)mxGetData(Matlab_Pointer);
 
-        std::memcpy(cpu_arr_ptrs[arr_idx].i, matlabArray, sizeof(int)*(dim_size));
+        //std::memcpy(cpu_arr_ptrs[arr_idx].i, matlabArray, sizeof(int)*(dim_size));
     } else if ( cpu_arr_types[arr_idx] == "float")
     {
-
-        // Get the pointer to the input Matlab array which should be float type (same as previously allocated)
-        float* matlabArray = (float*)mxGetData(Matlab_Pointer);
-
-        std::memcpy(cpu_arr_ptrs[arr_idx].f, matlabArray, sizeof(float)*(dim_size));
+        std::memcpy(cpu_arr_ptrs[arr_idx].f, New_Array, sizeof(float)*(dim_size));
     } else 
     {
         mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");

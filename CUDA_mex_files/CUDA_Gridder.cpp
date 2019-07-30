@@ -18,14 +18,25 @@ void CUDA_Gridder::SetNumberGPUs(int numGPUs)
     int  numGPUDetected;
     cudaGetDeviceCount(&numGPUDetected);
 
+    std::cout << "numGPUDetected: " << numGPUDetected << '\n';
+
     // Provide error message if no GPUs are found (i.e. all cards are busy) are an invalid selection is chosen
     if ( numGPUDetected == 0 )
     {
         std::cerr << "No NVIDIA graphic cards located on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';;  
+        
+        this->numGPUs = -1;
+
+        return;
     }
 
-    if (numGPUs < 0 || numGPUs >= numGPUDetected){
+    if (numGPUs < 0 || numGPUs >= numGPUDetected + 1){
+
+        this->numGPUs = -1;
+
         std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer." << '\n';
+
+        return;
     }
 
     // Save the user requested number of GPUs to use
@@ -37,20 +48,26 @@ void CUDA_Gridder::SetNumberGPUs(int numGPUs)
 
 // Set the GPU Volume
 void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
-{   
-    std::cout << "Setting gpuVol on GPU 0..." << '\n';
+{      
 
-    int gpuDevice = 0; // Just use the first one for now
-
-     // Has a gpuVol array already been allocated?    
-    if ( Mem_obj->GPUArrayAllocated("gpuVol", gpuDevice) == false) 
+    // Check each GPU to determine if the gpuVol arrays are already allocated
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
-        // We need to allocate the gpuVol array on this gpuDevice
-        Mem_obj->CUDA_alloc("gpuVol", "float", gpuVolSize, gpuDevice);
-    }
 
-    // After allocating the gpuVol array on the gpuDevice, lets copy the memory
-     Mem_obj->CUDA_Copy("gpuVol", gpuVol);    
+        std::cout << "Setting gpuVol on GPU " << gpuDevice << "..." << '\n';
+
+        // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
+        // Has a gpuVol array already been allocated on this GPU?    
+        if ( Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == false) 
+        {
+            // We need to allocate the gpuVol array on this gpuDevice
+            Mem_obj->CUDA_alloc("gpuVol_" + std::to_string(gpuDevice), "float", gpuVolSize, gpuDevice);
+        }
+
+        // After allocating the gpuVol array on the gpuDevice, lets copy the memory
+        Mem_obj->CUDA_Copy("gpuVol_" + std::to_string(gpuDevice), gpuVol);    
+
+    }
 
     // Save the volume size for later
     this->volSize = gpuVolSize;
@@ -60,22 +77,23 @@ void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
 // Set the coordinate axes Volume
 void CUDA_Gridder::SetAxes(float* coordAxes, int* axesSize)
 {   
-    std::cout << "Setting coordAxes array..." << '\n';
-
-    int gpuDevice = 0; // Just use the first GPU for now
+    std::cout << "Setting coordAxes array to pinned CPU memory..." << '\n';
 
      // Has a coordAxes array already been allocated?    
-    if ( Mem_obj->GPUArrayAllocated("coordAxes", gpuDevice) == false) 
+    if ( Mem_obj->CPUArrayAllocated("coordAxes_CPU_Pinned") == false) 
     {
         // We need to allocate the coordAxes array on this axesSize
-        Mem_obj->CUDA_alloc("coordAxes", "float", axesSize, gpuDevice);
+        Mem_obj->mem_alloc("coordAxes_CPU_Pinned", "float", axesSize);
     }
 
     // After allocating the coordAxes array on the gpuDevice, lets copy the memory
-     Mem_obj->CUDA_Copy("coordAxes", coordAxes);    
+    Mem_obj->mem_Copy("coordAxes_CPU_Pinned", coordAxes);    
 
-     // Remember the axesSize for later    
-     this->axesSize = new int(*axesSize);
+    // Lastly, pin the array to allow for async CUDA streaming
+    Mem_obj->pin_mem("coordAxes_CPU_Pinned");
+
+    // Remember the axesSize for later    
+    this->axesSize = new int(*axesSize);
 
 }
 
@@ -130,7 +148,16 @@ void CUDA_Gridder::Forward_Project_Initilize()
     }    
 
 
-
+    // Has the output image array been allocated and pinned to the CPU?
+    if ( Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false) 
+    {
+        // We need to allocate the coordAxes array on this axesSize
+        Mem_obj->mem_alloc("CASImgs_CPU_Pinned", "float", this->imgSize);
+        
+        // Lastly, pin the array to allow for async CUDA streaming
+        Mem_obj->pin_mem("CASImgs_CPU_Pinned");
+        
+    }
 
 }
 

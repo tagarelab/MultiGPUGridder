@@ -259,11 +259,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         char varNameString[64];  
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
-        // TO DO: Check to see if the matrix size is the same as the previously allocated array size
-
+        // Get the pointer to the input Matlab array which should be float type (for now)
+        float* matlabArrayPtr = (float*)mxGetData( prhs[3] );
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_Copy(varNameString, prhs[3]);
+        CUDA_Gridder_instance->Mem_obj->mem_Copy(varNameString, matlabArrayPtr);
 
         return;
     }

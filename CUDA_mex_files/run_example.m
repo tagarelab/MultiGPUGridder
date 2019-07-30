@@ -68,6 +68,7 @@ toc
 % easyMontage(imgs,1);
 
 obj.CUDA_disp_mem('all')
+obj.disp_mem('all')
 
 % obj.CUDA_Free('all')
 
