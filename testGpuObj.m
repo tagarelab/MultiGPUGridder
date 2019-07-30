@@ -41,10 +41,12 @@ coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Forward Project
-%tic
+tic
 img=a.forwardProject(coordAxes);
+toc
+
 easyMontage(img,1);
-%toc
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Back Project

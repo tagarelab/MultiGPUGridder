@@ -1,0 +1,5 @@
+*.mexa64
+*.vscode
+*.ptx
+*.o
+*.mat

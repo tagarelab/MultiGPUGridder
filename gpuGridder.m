@@ -147,14 +147,15 @@ classdef gpuGridder < handle
             blockWidth=4;
             gridWidth=round(obj.imgSize/blockWidth);
             obj.cudaFPKer.ThreadBlockSize=[blockWidth blockWidth 1];
-            obj.cudaFPKer.GridSize=[gridWidth gridWidth 1];
-
+            obj.cudaFPKer.GridSize=[gridWidth gridWidth 1];            
+            tic
             %Call the kernel
             obj.gpuCASImgs=feval(obj.cudaFPKer,...
                             obj.gpuVol, obj.CASBox.size,...
                             obj.gpuCASImgs,obj.imgSize,...
                             obj.gpuCoordAxes, nAxes,single(obj.rMax),...
-                            obj.gpuKerTbl, int32(obj.kerTblSize), single(obj.kerHWidth));
+                            obj.gpuKerTbl, int32(obj.kerTblSize), single(obj.kerHWidth));       
+            toc
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

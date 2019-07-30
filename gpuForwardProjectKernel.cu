@@ -67,17 +67,17 @@ __shared__ float locKer[1000];
                                 rj= (float)j1-f_vol_j;
                                 rj=min(max(rj,(float)-convW),(float)convW);
                                 kerIndex=roundf( rj*kerScale+kerCenter);
-                                kerIndex=min(mimg_ptrax(kerIndex,0),kerSize-1);
-                              //  wj=*(ker+kerimg_ptrIndex);
-                                wj=*(locKer+keimg_ptrrIndex);
-img_ptr
-                                for (k1=int_voimg_ptrl_k-convW;k1<=int_vol_k+convW;k1++)
-                                {img_ptr
-                                    rk= (floatimg_ptr)k1-f_vol_k;
-                                    rk=min(maximg_ptr(rk,(float)-convW),(float)convW);
-                                    kerIndex=rimg_ptroundf( rk*kerScale+kerCenter);
-                                    kerIndex=mimg_ptrin(max(kerIndex,0),kerSize-1);
-                                 //   wk=*(kerimg_ptr+kerIndex);
+                                kerIndex=min(max(kerIndex,0),kerSize-1);
+                              //  wj=*(ker+kerIndex);
+                                wj=*(locKer+kerIndex);
+
+                                for (k1=int_vol_k-convW;k1<=int_vol_k+convW;k1++)
+                                {
+                                    rk= (float)k1-f_vol_k;
+                                    rk=min(max(rk,(float)-convW),(float)convW);
+                                    kerIndex=roundf( rk*kerScale+kerCenter);
+                                    kerIndex=min(max(kerIndex,0),kerSize-1);
+                                 //   wk=*(ker+kerIndex);
                                     wk=*(locKer+kerIndex);
                                     w=wi*wj*wk;
 
@@ -91,4 +91,5 @@ img_ptr
             }//End img_i
 
 }
+
 
