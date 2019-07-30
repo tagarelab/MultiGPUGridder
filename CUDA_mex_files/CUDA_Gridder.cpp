@@ -134,7 +134,8 @@ void CUDA_Gridder::Forward_Project_Initilize()
             int * gpuCASImgs_Size = new int[3];
             gpuCASImgs_Size[0] = this->imgSize[0];
             gpuCASImgs_Size[1] = this->imgSize[1];
-
+            // gpuCASImgs_Size[2] = this->imgSize[2]; 
+   
             //  Each GPU only needs to hold a fraction of the total output images
             // Should probably be this->numGPUs but am getting error
             gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->numGPUs)) + 1; 
@@ -169,8 +170,8 @@ void CUDA_Gridder::Forward_Project_Initilize()
 
             // Each GPU only needs to hold a fraction of the total axes vector
             // Am getting an error so adding a few bytes to the end
-            gpuCoordAxes_Size[0] = ceil(this->axesSize[0] / this->numGPUs) + 100; 
-            //gpuCoordAxes_Size[0] = this->axesSize[0]; 
+            gpuCoordAxes_Size[0] = ceil(this->axesSize[0] / this->numGPUs) + 10; 
+            // gpuCoordAxes_Size[0] = this->axesSize[0]; 
             gpuCoordAxes_Size[1] = this->axesSize[1];
             gpuCoordAxes_Size[2] = this->axesSize[2];
 
@@ -200,7 +201,6 @@ void CUDA_Gridder::Forward_Project(){
     // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
     Forward_Project_Initilize();
 
-
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
 
     // Create a vector of GPU pointers
@@ -228,11 +228,12 @@ void CUDA_Gridder::Forward_Project(){
     int numGPUs   = 4;
     int nStreams  = 4; // One stream for each GPU for now
     
-    int gridSize  = 32;  
-    int blockSize = 4;    
+    // NOTE: gridSize times blockSize needs to equal imgSize
+    int gridSize  = 32;// 32  
+    int blockSize = 8; // 4    
 
-    int volSize   = 134;
-    int imgSize   = 128;
+    int volSize   = 262;//134;
+    int imgSize   = 256;//128;
 
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams

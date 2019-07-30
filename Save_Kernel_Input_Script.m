@@ -11,4 +11,4 @@ x.kerHWidth = single(obj.kerHWidth)
 x.interpBox = obj.interpBox;
 x.fftinfo = obj.fftinfo;
 
-save('Forward_Project_Input_Large.mat','x', '-v7.3') % For >2 GB need to use '-v7.3' flag
+save('Forward_Project_Input_Very_Large.mat','x', '-v7.3') % For >2 GB need to use '-v7.3' flag

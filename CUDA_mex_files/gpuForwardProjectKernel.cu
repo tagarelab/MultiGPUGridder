@@ -160,7 +160,7 @@ void gpuForwardProject(
         // Run the forward projection kernel
         gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
             gpuVol_Vector[i], volSize, gpuCASImgs_Vector[i],
-            128, gpuCoordAxes_Vector[i], nAxes_Stream,
+            imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
             63, ker_bessel_Vector[i], 501, 2);        
   
         gpuErrchk( cudaPeekAtLastError() );

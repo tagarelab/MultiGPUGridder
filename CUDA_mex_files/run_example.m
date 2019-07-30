@@ -75,8 +75,8 @@ reset(gpuDevice());
 
 %%
 
-input_data = load('Forward_Project_Input_Large.mat')
-% input_data = load('Forward_Project_Input_Very_Large.mat')
+% input_data = load('Forward_Project_Input_Large.mat')
+input_data = load('Forward_Project_Input_Very_Large.mat')
 input_data = input_data.x;
 gpuCoordAxes = input_data.gpuCoordAxes;
 
