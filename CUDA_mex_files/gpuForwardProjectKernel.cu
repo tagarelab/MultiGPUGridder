@@ -124,9 +124,8 @@ void gpuForwardProject(
         return;
     }
 
-    // How many bytes is each array
-    int coord_Axes_streamBytes = nAxes * 9 * sizeof(float); // Copy the entire vector for now
-    int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes * sizeof(float); // Copy the entire array for now
+    std::cout << "nAxes: " << nAxes << '\n';
+
 
     // What are the dimensions of each kernel?
     dim3 dimGrid(gridSize, gridSize, 1);
@@ -135,31 +134,76 @@ void gpuForwardProject(
     // Create some CUDA streams
     cudaStream_t stream[nStreams]; 		
 
-    for (int i = 0; i < numGPUs; i++)
+    int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
+
+    for (int i = 0; i < numGPUs; i++) //numGPUs
     { 
-        cudaSetDevice(i); // TO DO: Is this needed?
-        
+
+        cudaSetDevice(i); // TO DO: Is this needed?        
         gpuErrchk( cudaStreamCreate(&stream[i]) );
 
-        cudaMemcpyAsync(gpuCoordAxes_Vector[i], coordAxes_CPU_Pinned, coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
+        // How many axes to assign to this CUDA stream? Need if nAxes is not a multiple of numGPUs
+        int nAxes_Stream = ceil((double)nAxes / nStreams);
+
+        if (nAxes_Stream * (i + 1) > nAxes)
+        {
+            nAxes_Stream = nAxes_Stream - (nAxes_Stream * (i + 1) - nAxes); // Remove the extra axes that are past the maximum nAxes
+        }
+
+        
+
+        std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
+        
+
+        // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
+        int gpuCoordAxes_Offset = processed_nAxes * 9 * 1; // Each axes has 9 elements (X, Y, Z)
+        int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
+
+        int CASImgs_CPU_Offset     = 128 * 128 * processed_nAxes;//imgSize * imgSize * processed_nAxes * sizeof(float); // Number of bytes of already processed images
+        int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
+
+        std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';        
+        std::cout << "gpuCoordAxes_Offset: " << gpuCoordAxes_Offset << '\n';
+    
+        std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';        
+        std::cout << "CASImgs_CPU_Offset: " << CASImgs_CPU_Offset << '\n';
+
+        std::cout << "sizeof(float): " << sizeof(float) << '\n';
+
+        if (gpuCASImgs_streamBytes > imgSize * imgSize * nAxes * sizeof(float))
+        {
+            std::cerr << "gpuCASImgs_streamBytes is too large" << '\n';
+        }
+
+        if (CASImgs_CPU_Offset + gpuCASImgs_streamBytes > imgSize * imgSize * nAxes * sizeof(float))
+        {
+            std::cerr << "CASImgs_CPU_Offset is too large" << '\n';
+        }
+
+
+        // Copy the section of gpuCoordAxes which this stream will process on the current GPU
+        cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
            
         // Run the forward projection kernel
         gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
             gpuVol_Vector[i], 134, gpuCASImgs_Vector[i],
-            128, gpuCoordAxes_Vector[i], nAxes,
+            128, gpuCoordAxes_Vector[i], nAxes_Stream,
             63, ker_bessel_Vector[i], 501, 2);
         
-            // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
-
+  
         gpuErrchk( cudaPeekAtLastError() );
 
         // Copy the resulting gpuCASImgs to the host (CPU)
-        // TO DO: Only copy a subset of this
-    
-        cudaMemcpyAsync(CASImgs_CPU_Pinned, gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+        cudaMemcpyAsync(&CASImgs_CPU_Pinned[CASImgs_CPU_Offset], gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
         gpuErrchk( cudaPeekAtLastError() );
 
+        // Update the number of axes which have already been assigned to a CUDA stream
+        processed_nAxes = processed_nAxes + nAxes_Stream;
+
+        std::cout << "processed_nAxes: " << processed_nAxes << '\n';
     }
+
+    gpuErrchk( cudaDeviceSynchronize() );
 
     std::cout << "Done with gpuForwardProjectKernel" << '\n';
 
@@ -170,6 +214,7 @@ void gpuForwardProject(
 
 
 
+          //// gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
 
 
     // gpuErrchk( cudaDeviceSynchronize() );

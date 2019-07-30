@@ -30,7 +30,7 @@ clear obj
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
-recompile = false;
+recompile = 1;
 if (recompile == true)
     % cd('mex_files')
 
@@ -65,14 +65,14 @@ end
 %
 %%
 
+% pause(2)
 % for i = 1:4
 %     reset(gpuDevice(i));
 % end
 %%
 
-% reset(gpuDevice());
+reset(gpuDevice());
 
-pause(2)
 
 input_data = load('Forward_Project_Input.mat')
 input_data = input_data.x;
@@ -95,7 +95,7 @@ toc
 
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
-InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
+% InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
 
 imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
 easyMontage(imgs,1);

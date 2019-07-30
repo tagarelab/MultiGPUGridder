@@ -220,7 +220,7 @@ void CUDA_Gridder::Forward_Project(){
     int nStreams = 4; // One stream for each GPU for now
     int gridSize = 32;
     int blockSize = 4;
-    this->numGPUs = 4;
+    int numGPUs = 4;
 
 
     // DEBUG
@@ -239,7 +239,7 @@ void CUDA_Gridder::Forward_Project(){
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         134, 128, nAxes, 63, 501, 2, // kernel parameters
-        this->numGPUs, nStreams, gridSize, blockSize// Streaming parameters
+        numGPUs, nStreams, gridSize, blockSize// Streaming parameters
         ); //2034
 
     return;
