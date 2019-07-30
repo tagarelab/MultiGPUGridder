@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <iostream>
-
+#include <vector>
 
 // includes CUDA Runtime
 #include <cuda_runtime.h>
@@ -16,9 +16,10 @@
 #ifndef __GPUFORWARDPROJECT_H__
 #define __GPUFORWARDPROJECT_H__
 
-extern void gpuForwardProject(  
-    float* vol, float* img, float *axes, float* ker, // GPU arrays
-    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
-    );
+extern void gpuForwardProject(
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
+    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters and constants
+);
 
 #endif //__GPUFORWARDPROJECT_H__

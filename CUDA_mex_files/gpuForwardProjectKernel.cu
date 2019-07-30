@@ -109,8 +109,9 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 
 
 void gpuForwardProject(
-     float* vol, float* img, float *axes, float* ker, // GPU arrays
-     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
+    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters and constants
 )
 {
 
@@ -118,7 +119,7 @@ void gpuForwardProject(
     dim3 dimGrid(32, 32, 1);
     dim3 dimBlock(4, 4, 1);
 
-    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, 134, img, 128, axes, nAxes, 63,ker, 501, 2);
+    //gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, 134, img, 128, axes, nAxes, 63,ker, 501, 2);
 
     // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
 

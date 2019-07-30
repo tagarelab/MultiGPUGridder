@@ -130,8 +130,8 @@ void CUDA_Gridder::Forward_Project_Initilize()
         }
 
         // Has the Kaiser bessel vector been allocated and defined?
-        // The name of the GPU pointer is ker_bessel_Vector_0 for GPU 0, ker_bessel_Vector_1 for GPU 1, etc.
-        if ( Mem_obj->GPUArrayAllocated("ker_bessel_Vector_" + std::to_string(gpuDevice), gpuDevice) == false) 
+        // The name of the GPU pointer is ker_bessel_0 for GPU 0, ker_bessel_1 for GPU 1, etc.
+        if ( Mem_obj->GPUArrayAllocated("ker_bessel_" + std::to_string(gpuDevice), gpuDevice) == false) 
         {
             // Set the Kaiser Bessel Function vector to the current gpuDevice
             int arrSize[3];
@@ -140,11 +140,28 @@ void CUDA_Gridder::Forward_Project_Initilize()
             arrSize[2] = 1;
 
             // First allocate the Kaiser Bessel Function vector on the current gpuDevice
-            Mem_obj->CUDA_alloc("ker_bessel_Vector_" + std::to_string(gpuDevice), "float", arrSize, gpuDevice);            
+            Mem_obj->CUDA_alloc("ker_bessel_" + std::to_string(gpuDevice), "float", arrSize, gpuDevice);            
 
             // After allocating the gpuVol array on the gpuDevice, lets gpuDevicepy the memory
-            Mem_obj->CUDA_Copy("ker_bessel_Vector_" + std::to_string(gpuDevice), this->ker_bessel_Vector);    
+            Mem_obj->CUDA_Copy("ker_bessel_" + std::to_string(gpuDevice), this->ker_bessel_Vector);    
         }
+
+        // Has the output image array been allocated and defined?
+        // The name of the GPU pointer is gpuCASImgs_0 for GPU 0, gpuCASImgs_1 for GPU 1, etc.
+        if ( Mem_obj->GPUArrayAllocated("gpuCASImgs_" + std::to_string(gpuDevice), gpuDevice) == false) 
+        {
+            // Allocate the gpuCASImgs on the current gpuDevice
+            Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(gpuDevice), "float", this->imgSize, gpuDevice);            
+        }
+
+        // Has the coordAxes array been allocated and defined?
+        // The name of the GPU pointer is gpuCoordAxes_0 for GPU 0, gpuCoordAxes_1 for GPU 1, etc.
+        if ( Mem_obj->GPUArrayAllocated("gpuCoordAxes_" + std::to_string(gpuDevice), gpuDevice) == false) 
+        {
+            // Allocate the gpuCoordAxes on the current gpuDevice
+            Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(gpuDevice), "float", this->axesSize , gpuDevice);            
+        }
+
     }    
 
 
@@ -173,33 +190,32 @@ void CUDA_Gridder::Forward_Project(){
     return;
 
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
-    // Get the pointers to the CUDA GPU arrays first
-    float* vol  = this->Mem_obj->ReturnCUDAFloatPtr("gpuVol");
-    float* img  = this->Mem_obj->ReturnCUDAFloatPtr("gpuCASImgs");
-    float* axes = this->Mem_obj->ReturnCUDAFloatPtr("coordAxes");
-    float* ker  = this->Mem_obj->ReturnCUDAFloatPtr("ker");
 
-    int nAxes = this->axesSize[0] / 9; // Each axes has 9 elements (3 for each x, y, z)
+    // Create a vector of GPU pointers
+    std::vector<float*> gpuVol_Vector;
+    std::vector<float*> gpuCASImgs_Vector;
+    std::vector<float*> ker_bessel_Vector;
+    std::vector<float*> gpuCoordAxes_Vector;
 
-    // Run the kernel now   
-    gpuForwardProject(vol, img, axes, ker, 134, 128, nAxes, 63, 501, 2 ); //2034
-
-    // Get the pointers to the other parameters (non-GPU) next
-    //int* volSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[4]);
-    //int* imgSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[5]);
-    //int* nAxes   = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[6]);
-
-
-    // float* maskRadius = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[7]);
-    // int* kerSize = this->Mem_obj->ReturnCPUIntPtr(Input_Strings[8]);
-    // float* kerHWidth = this->Mem_obj->ReturnCPUFloatPtr(Input_Strings[9]);
-
-    //     const float* vol, float* img, float *axes, float* ker, // GPU arrays
-    //     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
+    // Find and add the corresponding GPU pointer to each vector of pointers
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
+    {        
+        gpuVol_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(gpuDevice)));
+        gpuCASImgs_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCASImgs_" + std::to_string(gpuDevice)));
+        gpuCoordAxes_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCoordAxes_" + std::to_string(gpuDevice)));
+        ker_bessel_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("ker_bessel_" + std::to_string(gpuDevice)));        
+    }
     
-    // std::cout << "volSize: " << volSize[0] <<'\n';
-    // std::cout << "maskRadius: " << maskRadius[0] <<'\n';
-    // gpuForwardProject(vol, img, axes, ker, volSize[0], imgSize[0], nAxes[0], maskRadius[0], kerSize[0], kerHWidth[0] );   
+    // Each axes has 9 elements (3 for each x, y, z)
+    int nAxes = this->axesSize[0] / 9; 
+
+    // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
+    // Which will step up and run the CUDA streams
+    gpuForwardProject(gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, 134, 128, nAxes, 63, 501, 2 ); //2034
+
+
+
+
 
 }
 
