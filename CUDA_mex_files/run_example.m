@@ -1,22 +1,52 @@
+
+% How to run this script from the terminal (needed in order to use the NVIDIA profiling tools)
+% "/usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB" -nodisplay -nosplash -nodesktop -r "run('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/CUDA_mex_files/run_example.m');exit;"
+
+% -nodisplay -nosplash -nodesktop -r "run('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/testGpuObj.m');exit;"
+
+
+% "C:\<a long path here>\matlab.exe" -nodisplay -nosplash -nodesktop -r "run('C:\<a long path here>\mfile.m');
+% sudo '/usr/local/cuda/NsightSystems-2019.3/Host-x86_64/nsight-sys' 
+% /usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB
+
+% To launch Nsight Systems
+% sudo /usr/local/cuda/NsightSystems-2019.3/Host-x86_64/nsight-sys
+
+% To launch nvidia visual profiler
+% sudo /usr/local/cuda/bin/nvvp
+
+% To launch nvidia nsight compute
+% sudo /usr/local/cuda/NsightCompute-2019.3/nv-nsight-cu
+% "/usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB" -nodisplay -nosplash -nodesktop -r run('/home/brent/Documents/MATLAB/CUDA/Tutorials/July 15 2019/Example 1/Brent_Script.m')
+
+% To watch the GPU usage
+% watch nvidia-smi
+
+
 clc
 clear
 clear obj 
 
-% cd('mex_files')
+addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
+addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
-fprintf('Compiling CUDA_Gridder mex file \n');
+recompile = false;
+if (recompile == true)
+    % cd('mex_files')
 
-% Compile the CUDA kernel first
-status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
+    fprintf('Compiling CUDA_Gridder mex file \n');
 
-if status ~= 0
-    error("Failed to compile");
+    % Compile the CUDA kernel first
+    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
+
+    if status ~= 0
+        error("Failed to compile");
+    end
+
+    % Compile the mex files second
+    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
+
 end
-
-% Compile the mex files second
-clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
-
-
 % reset(gpuDevice(1));
 % obj.SetVolume(ones(5,5,5))
 % obj.SetAxes(ones(90,1))
@@ -40,6 +70,9 @@ clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' 
 % end
 %%
 
+% reset(gpuDevice());
+
+pause(2)
 
 input_data = load('Forward_Project_Input.mat')
 input_data = input_data.x;
@@ -60,10 +93,10 @@ tic
 obj.Forward_Project()
 toc
 
-% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
-% 
+
 imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
 easyMontage(imgs,1);
 
@@ -79,6 +112,7 @@ obj.disp_mem('all')
 clear obj
 
 max(InterpCASImgs(:))
+
 
 
 %%

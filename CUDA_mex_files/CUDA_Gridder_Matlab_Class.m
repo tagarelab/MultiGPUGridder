@@ -7,8 +7,7 @@ classdef CUDA_Gridder_Matlab_Class < handle
         %% Constructor - Create a new C++ class instance 
         function this = CUDA_Gridder_Matlab_Class(varargin)
             this.objectHandle = mexFunctionWrapper('new', varargin{:});
-        end
-        
+        end        
         %% Destructor - Destroy the C++ class instance
         function delete(this)
             mexFunctionWrapper('delete', this.objectHandle);

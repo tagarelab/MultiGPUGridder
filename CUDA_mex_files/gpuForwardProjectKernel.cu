@@ -112,75 +112,54 @@ void gpuForwardProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters and constants
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
+    int numGPUs, int nStreams, int gridSize, int blockSize // Streaming parameters
 )
 {
-  
-    int nStreams = 1; // One stream for each GPU for now
-    int numGPUs  = 4;  // TO DO: make this an input variable
-
+      
     // Check the input vector sizes first
     if (gpuVol_Vector.size() != nStreams || gpuCASImgs_Vector.size() != nStreams || gpuCoordAxes_Vector.size() != nStreams || ker_bessel_Vector.size() != nStreams)
     {
-        // std::cerr << "gpuForwardProject(): Input GPU pointer sizes is not equal to the number of CUDA streams." << '\n';
-        // return;
+        std::cerr << "gpuForwardProject(): Input GPU pointer sizes is not equal to the number of CUDA streams." << '\n';
+        return;
     }
 
-    std::cout << "gpuVol_Vector.size(): " << gpuVol_Vector.size() << '\n';
-    std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
-    std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
-    std::cout << "ker_bessel_Vector.size(): " << ker_bessel_Vector.size() << '\n';
-
-    // Try without the streams first 
-
-    int i = 0;
-
-
     // How many bytes is each array
-    int coord_Axes_streamBytes = 2034 * sizeof(float);//nAxes * 9 * sizeof(float); // Copy the entire vector for now
-    int gpuCASImgs_streamBytes = 128* 128 * 226 * sizeof(float); // Copy the entire array for now
+    int coord_Axes_streamBytes = nAxes * 9 * sizeof(float); // Copy the entire vector for now
+    int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes * sizeof(float); // Copy the entire array for now
 
-    std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
-    std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';
+    // What are the dimensions of each kernel?
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
 
-    std::cout << "coordAxes_CPU_Pinned: " << coordAxes_CPU_Pinned << '\n';
-    std::cout << "gpuVol_Vector[i]: " << gpuVol_Vector[i] << '\n';
-    std::cout << "gpuCASImgs_Vector[i]: " << gpuCASImgs_Vector[i] << '\n';
-    std::cout << "gpuCoordAxes_Vector[i]: " << gpuCoordAxes_Vector[i] << '\n';
-    std::cout << "ker_bessel_Vector[i]: " << ker_bessel_Vector[i] << '\n';
+    // Create some CUDA streams
+    cudaStream_t stream[nStreams]; 		
 
-  
+    for (int i = 0; i < numGPUs; i++)
+    { 
+        cudaSetDevice(i); // TO DO: Is this needed?
+        
+        gpuErrchk( cudaStreamCreate(&stream[i]) );
 
-    cudaMemcpy(gpuCoordAxes_Vector[i], coordAxes_CPU_Pinned, coord_Axes_streamBytes, cudaMemcpyHostToDevice);
-    gpuErrchk( cudaPeekAtLastError() );
+        cudaMemcpyAsync(gpuCoordAxes_Vector[i], coordAxes_CPU_Pinned, coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
+           
+        // Run the forward projection kernel
+        gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
+            gpuVol_Vector[i], 134, gpuCASImgs_Vector[i],
+            128, gpuCoordAxes_Vector[i], nAxes,
+            63, ker_bessel_Vector[i], 501, 2);
+        
+            // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
 
-    gpuErrchk( cudaDeviceSynchronize() );
+        gpuErrchk( cudaPeekAtLastError() );
 
-    // Run the forward projection kernel
-    dim3 dimGrid(32, 32, 1);
-    dim3 dimBlock(4, 4, 1);
-
-    cudaSetDevice(0);
-    gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(
-        gpuVol_Vector[i], 134, gpuCASImgs_Vector[i],
-         128, gpuCoordAxes_Vector[i], nAxes,
-         63, ker_bessel_Vector[i], 501, 2);
-
+        // Copy the resulting gpuCASImgs to the host (CPU)
+        // TO DO: Only copy a subset of this
     
-    gpuErrchk( cudaDeviceSynchronize() );
+        cudaMemcpyAsync(CASImgs_CPU_Pinned, gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+        gpuErrchk( cudaPeekAtLastError() );
 
-    // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
-
-    gpuErrchk( cudaPeekAtLastError() );
-
-    // Copy the resulting gpuCASImgs to the host (CPU)
-    // TO DO: Only copy a subset of this
-    cudaMemcpy(CASImgs_CPU_Pinned, gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost);
-    gpuErrchk( cudaPeekAtLastError() );
-
-
-    gpuErrchk( cudaDeviceSynchronize() );
-
+    }
 
     std::cout << "Done with gpuForwardProjectKernel" << '\n';
 
@@ -193,6 +172,7 @@ void gpuForwardProject(
 
 
 
+    // gpuErrchk( cudaDeviceSynchronize() );
 
    	// // Create some CUDA streams
     // cudaStream_t stream[nStreams];
@@ -271,6 +251,27 @@ void gpuForwardProject(
 
 
 
+
+
+// std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
+// std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';
+
+// std::cout << "coordAxes_CPU_Pinned: " << coordAxes_CPU_Pinned << '\n';
+// std::cout << "gpuVol_Vector[i]: " << gpuVol_Vector[i] << '\n';
+// std::cout << "gpuCASImgs_Vector[i]: " << gpuCASImgs_Vector[i] << '\n';
+// std::cout << "gpuCoordAxes_Vector[i]: " << gpuCoordAxes_Vector[i] << '\n';
+// std::cout << "ker_bessel_Vector[i]: " << ker_bessel_Vector[i] << '\n';
+
+
+// std::cout << "volSize: " << volSize << '\n';
+// std::cout << "imgSize: " << imgSize << '\n';
+// std::cout << "nAxes: " << nAxes << '\n';
+
+
+// std::cout << "gpuVol_Vector.size(): " << gpuVol_Vector.size() << '\n';
+// std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
+// std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
+// std::cout << "ker_bessel_Vector.size(): " << ker_bessel_Vector.size() << '\n';
 
 
 

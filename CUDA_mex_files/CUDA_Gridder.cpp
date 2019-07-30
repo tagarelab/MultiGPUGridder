@@ -217,6 +217,11 @@ void CUDA_Gridder::Forward_Project(){
     // Each axes has 9 elements (3 for each x, y, z)
     int nAxes = this->axesSize[0] / 9; 
 
+    int nStreams = 4; // One stream for each GPU for now
+    int gridSize = 32;
+    int blockSize = 4;
+    this->numGPUs = 4;
+
 
     // DEBUG
     // float **d_array;
@@ -233,7 +238,9 @@ void CUDA_Gridder::Forward_Project(){
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-        134, 128, nAxes, 63, 501, 2 ); //2034
+        134, 128, nAxes, 63, 501, 2, // kernel parameters
+        this->numGPUs, nStreams, gridSize, blockSize// Streaming parameters
+        ); //2034
 
     return;
 

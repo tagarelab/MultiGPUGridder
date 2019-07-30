@@ -1,6 +1,34 @@
+
+% How to run this script from the terminal (needed in order to use the NVIDIA profiling tools)
+% "/usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB" -nodisplay -nosplash -nodesktop -r "run('torials/July 15 2019/Example 1/Brent_Script.m');exit;"
+
+% -nodisplay -nosplash -nodesktop -r "run('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/testGpuObj.m');exit;"
+
+
+% "C:\<a long path here>\matlab.exe" -nodisplay -nosplash -nodesktop -r "run('C:\<a long path here>\mfile.m');
+% sudo '/usr/local/cuda/NsightSystems-2019.3/Host-x86_64/nsight-sys' 
+% /usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB
+
+% To launch Nsight Systems
+% sudo /usr/local/cuda/NsightSystems-2019.3/Host-x86_64/nsight-sys
+
+% To launch nvidia visual profiler
+% sudo /usr/local/cuda/bin/nvvp
+
+% To launch nvidia nsight compute
+% sudo /usr/local/cuda/NsightCompute-2019.3/nv-nsight-cu
+% "/usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB" -nodisplay -nosplash -nodesktop -r run('/home/brent/Documents/MATLAB/CUDA/Tutorials/July 15 2019/Example 1/Brent_Script.m')
+
+% To watch the GPU usage
+% watch nvidia-smi
+
+
 clc
 clear
 clear obj 
+
+addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
+addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
 % cd('mex_files')
 
@@ -35,17 +63,17 @@ clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' 
 %
 %%
 
-reset(gpuDevice(1));
+% for i = 1:4
+%     reset(gpuDevice(i));
+% end
+%%
 
-
+% reset(gpuDevice());
+tic
 
 input_data = load('Forward_Project_Input.mat')
 input_data = input_data.x;
 gpuCoordAxes = input_data.gpuCoordAxes;
-% for i = 1:2
-%     gpuCoordAxes = [gpuCoordAxes gpuCoordAxes];    
-% end
-% nAxes = length(gpuCoordAxes)/9
 
 size(gpuCoordAxes)
 
@@ -62,30 +90,27 @@ tic
 obj.Forward_Project()
 toc
 
-% InterpCASImgs = obj.CUDA_Return('gpuCASImgs');
-% 
-% imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
-% easyMontage(imgs,1);
+InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+
+InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
+
+imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
+easyMontage(imgs,1);
+
+
 
 obj.CUDA_disp_mem('all')
+obj.disp_mem('all')
 
-obj.CUDA_Free('all')
+% obj.CUDA_Free('all')
 
-obj.CUDA_disp_mem('all')
-
-obj.CUDA_Free('all')
-
-obj.CUDA_disp_mem('all')
-
-obj.CUDA_Free('all')
-
-obj.CUDA_Free('all')
-
-obj.CUDA_disp_mem('all')
+% obj.CUDA_disp_mem('all')
 
 clear obj
 
+max(InterpCASImgs(:))
 
+toc
 
 %%
 % reset(gpuDevice(1));
