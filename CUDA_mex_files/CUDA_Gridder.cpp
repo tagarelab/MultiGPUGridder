@@ -94,6 +94,11 @@ void CUDA_Gridder::SetAxes(float* coordAxes, int* axesSize)
 
     // Remember the axesSize for later    
     this->axesSize = new int(*axesSize);
+    this->axesSize[0] = axesSize[0];
+    this->axesSize[1] = axesSize[1];
+    this->axesSize[2] = axesSize[2];
+
+    std::cout << "this->axesSize: " << this->axesSize[0] << " " << this->axesSize[1] << " " << this->axesSize[2] << '\n'; 
 
 }
 
@@ -159,7 +164,7 @@ void CUDA_Gridder::Forward_Project_Initilize()
         if ( Mem_obj->GPUArrayAllocated("gpuCoordAxes_" + std::to_string(gpuDevice), gpuDevice) == false) 
         {
             // Allocate the gpuCoordAxes on the current gpuDevice
-            Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(gpuDevice), "float", this->axesSize , gpuDevice);            
+            Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(gpuDevice), "float", this->axesSize, gpuDevice);            
         }
 
     }    
@@ -187,7 +192,6 @@ void CUDA_Gridder::Forward_Project(){
     // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
     Forward_Project_Initilize();
 
-    return;
 
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
 
@@ -206,16 +210,32 @@ void CUDA_Gridder::Forward_Project(){
         ker_bessel_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("ker_bessel_" + std::to_string(gpuDevice)));        
     }
     
+    // Get the pointers to the CPU input / output arrays
+    float * CASImgs_CPU_Pinned   = this->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+    float * coordAxes_CPU_Pinned = this->Mem_obj->ReturnCPUFloatPtr("coordAxes_CPU_Pinned");
+
     // Each axes has 9 elements (3 for each x, y, z)
     int nAxes = this->axesSize[0] / 9; 
 
+
+    // DEBUG
+    // float **d_array;
+
+    // cudaMalloc((void**)&d_array, sizeof(float*)*4);
+    // std::cout << "coordAxes_CPU_Pinned: " << coordAxes_CPU_Pinned << '\n';
+    // std::cout << "CASImgs_CPU_Pinned: " << CASImgs_CPU_Pinned << '\n';
+    // std::cout << "d_array: " << d_array << '\n';
+    // std::cout << "this->Mem_obj->ReturnCUDAFloatPtr(gpuVol_ + std::to_string(0)): " << this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(0)) << '\n';
+    // END DEBUG
+
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
-    gpuForwardProject(gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, 134, 128, nAxes, 63, 501, 2 ); //2034
+    gpuForwardProject(
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        134, 128, nAxes, 63, 501, 2 ); //2034
 
-
-
-
+    return;
 
 }
 

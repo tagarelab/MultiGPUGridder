@@ -35,17 +35,15 @@ clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' 
 %
 %%
 
-reset(gpuDevice(1));
-
+% for i = 1:4
+%     reset(gpuDevice(i));
+% end
+%%
 
 
 input_data = load('Forward_Project_Input.mat')
 input_data = input_data.x;
 gpuCoordAxes = input_data.gpuCoordAxes;
-% for i = 1:2
-%     gpuCoordAxes = [gpuCoordAxes gpuCoordAxes];    
-% end
-% nAxes = length(gpuCoordAxes)/9
 
 size(gpuCoordAxes)
 
@@ -62,10 +60,14 @@ tic
 obj.Forward_Project()
 toc
 
-% InterpCASImgs = obj.CUDA_Return('gpuCASImgs');
+% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+
+InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
 % 
-% imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
-% easyMontage(imgs,1);
+imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
+easyMontage(imgs,1);
+
+
 
 obj.CUDA_disp_mem('all')
 obj.disp_mem('all')
@@ -76,6 +78,7 @@ obj.disp_mem('all')
 
 clear obj
 
+max(InterpCASImgs(:))
 
 
 %%

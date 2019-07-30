@@ -105,6 +105,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         dims[1] = (int) dims_mwSize[1];
         dims[2] = 1;
 
+        std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n'; 
+
+
         if (numDims != 2)
         {
             mexErrMsgTxt("SetAxes: Unexpected arguments. Array should be a row vector.");            
