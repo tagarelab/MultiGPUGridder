@@ -28,6 +28,8 @@ public:
 
     // Class deconstructor
     ~CPU_CUDA_Memory() { 
+        // Free all the GPU memory
+        CUDA_Free("all");
         std::cout << "CPU_CUDA_Memory() deconstructor" << '\n';
         mexPrintf("Calling destructor\n"); }
 

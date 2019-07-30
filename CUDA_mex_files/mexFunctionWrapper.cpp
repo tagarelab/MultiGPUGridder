@@ -25,12 +25,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }    
 
+    // Get the class instance pointer from the second input
+    CUDA_Gridder* CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
+
     // Delete
     if (!strcmp("delete", cmd)) {
 
-        // TODO: Delete all of the CPU arrays
+        // Delete all of the CPU arrays
+        CUDA_Gridder_instance->Mem_obj->mem_Free("all");
 
-        // TODO: Delete all of the CUDA arrays
+        // Delete all of the CUDA arrays
+        CUDA_Gridder_instance->Mem_obj->CUDA_Free("all");
 
         // Destroy the C++ object
         destroyObject<CUDA_Gridder>(prhs[1]);
@@ -39,10 +44,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mexWarnMsgTxt("Delete: Unexpected arguments ignored.");
         return;
     }    
-    
-    // Get the class instance pointer from the second input
-    CUDA_Gridder* CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
-      
+          
     // Call the various class methods    
     // SetVolume 
     if (!strcmp("SetVolume", cmd)) {
@@ -149,7 +151,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     }
 
+    // SetNumberGPUs
+    if (!strcmp("SetNumberGPUs", cmd)) {
+        // Check parameters
+        if (nrhs != 3)
+        {
+            mexErrMsgTxt("SetNumberGPUs: Unexpected arguments. Please provide a scalar value.");
+        }
+       
+        int numGPUS = (int)mxGetScalar(prhs[2]);         
 
+        std::cout << "numGPUS: " << numGPUS << '\n';
+
+        // Call the method
+        CUDA_Gridder_instance->SetNumberGPUs(numGPUS);
+
+        return;
+
+    }
 
 
 

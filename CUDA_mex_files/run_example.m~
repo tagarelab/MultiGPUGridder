@@ -69,9 +69,19 @@ toc
 
 obj.CUDA_disp_mem('all')
 
-% obj.CUDA_Free('all')
+obj.CUDA_Free('all')
 
-% obj.CUDA_disp_mem('all')
+obj.CUDA_disp_mem('all')
+
+obj.CUDA_Free('all')
+
+obj.CUDA_disp_mem('all')
+
+obj.CUDA_Free('all')
+
+obj.CUDA_Free('all')
+
+obj.CUDA_disp_mem('all')
 
 clear obj
 

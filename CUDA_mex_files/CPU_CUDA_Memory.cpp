@@ -359,6 +359,27 @@ void CPU_CUDA_Memory::mem_Free(std::string varNameString)
 {    
     // Free the memory of the corresponding array
 
+    // If varNameString == "all" then free all the allocated CPU arrays
+    if ( varNameString == "all" )
+    {
+        // Temporarily copy the cpu_arr_names to a new vector
+        std::vector<std::string> cpu_arr_names_temp;
+        for (int i=0; i<cpu_arr_names.size(); i++) 
+        {
+            cpu_arr_names_temp.push_back(cpu_arr_names[i]); 
+        }     
+
+        // Iterate over each name to free the memory
+        for (int i = 0; i<cpu_arr_names_temp.size(); i++)
+        {  
+            // Start at the end of the cpu_arr_names vector and free each CPU array
+            mem_Free(cpu_arr_names_temp[i]); 
+        }
+
+        return;
+    }
+
+
     // Locate the index of the cpu_arr_names vector which correspondes to the given variable name         
     int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
 
@@ -454,6 +475,30 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
 void CPU_CUDA_Memory::CUDA_Free(std::string varNameString)
 {
     // Free the memory of the corresponding CUDA GPU array
+
+    std::cout << "varNameString: " << varNameString << '\n';
+
+    // If varNameString == "all" then free all the allocated GPU arrays
+    if ( varNameString == "all" )
+    {
+        // Temporarily copy the CUDA_arr_names to a new vector 
+        std::vector<std::string> CUDA_arr_names_temp;
+        for (int i=0; i<CUDA_arr_names.size(); i++) 
+        {
+            CUDA_arr_names_temp.push_back(CUDA_arr_names[i]); 
+        }     
+
+        // Iterate over each name to free the memory
+        for (int i = 0; i<CUDA_arr_names_temp.size(); i++)
+        {  
+            // Start at the end of the CUDA_arr_names vector and free each GPU array
+            CUDA_Free(CUDA_arr_names_temp[i]); 
+        }
+
+        return;
+    }
+
+    std::cout << "finding varNameString: " << varNameString << '\n';
 
     // Locate the index of the cpu_arr_names vector which correspondes to the given variable name         
     int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);

@@ -29,6 +29,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = SetMaskRadius(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetMaskRadius', this.objectHandle, varargin{:});
         end
+        %% SetNumberGPUs - Set number of GPUs to use with CUDA kernel
+        function varargout = SetNumberGPUs(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('SetNumberGPUs', this.objectHandle, varargin{:});
+        end
         %% mem_alloc - Allocate memory
         function varargout = mem_alloc(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_alloc', this.objectHandle, varargin{:});

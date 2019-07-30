@@ -108,8 +108,6 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 }
 
 
-
-
 void gpuForwardProject(
      float* vol, float* img, float *axes, float* ker, // GPU arrays
      int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth // Parameters
@@ -124,8 +122,8 @@ void gpuForwardProject(
 
     // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
 
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
+    //gpuErrchk( cudaPeekAtLastError() );
+    //gpuErrchk( cudaDeviceSynchronize() );
 
     std::cout << "Done with gpuForwardProjectKernel" << '\n';
 
