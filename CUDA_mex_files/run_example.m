@@ -73,12 +73,14 @@ end
 
 reset(gpuDevice());
 
+%%
 
-input_data = load('Forward_Project_Input.mat')
+input_data = load('Forward_Project_Input_Large.mat')
+% input_data = load('Forward_Project_Input_Very_Large.mat')
 input_data = input_data.x;
 gpuCoordAxes = input_data.gpuCoordAxes;
 
-size(gpuCoordAxes)
+nAxes = size(gpuCoordAxes,1) / 9
 
 % gpuCoordAxes = coordAxes
 
@@ -87,7 +89,7 @@ obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberGPUs(4);
 obj.SetVolume(input_data.gpuVol)
 obj.SetAxes(gpuCoordAxes)
-obj.SetImgSize(int32([128, 128, length(gpuCoordAxes)/9]))
+obj.SetImgSize(int32([size(input_data.gpuCASImgs,1), size(input_data.gpuCASImgs,1), length(gpuCoordAxes)/9]))
 
 tic
 obj.Forward_Project()
@@ -96,7 +98,7 @@ toc
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 % InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
-
+% 
 imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
 easyMontage(imgs,1);
 

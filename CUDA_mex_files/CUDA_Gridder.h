@@ -4,6 +4,9 @@
 #include "CPU_CUDA_Memory.h"
 #include "gpuForwardProject.h"
 
+#include <cstdlib>
+#include <stdio.h>
+#include <cmath>
 
 #include <iostream>
 #include <vector>

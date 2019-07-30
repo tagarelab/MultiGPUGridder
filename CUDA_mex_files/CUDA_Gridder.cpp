@@ -131,7 +131,16 @@ void CUDA_Gridder::Forward_Project_Initilize()
         if ( Mem_obj->GPUArrayAllocated("gpuCASImgs_" + std::to_string(gpuDevice), gpuDevice) == false) 
         {
             // We need to allocate the gpuCASImgs array on this GPU
-            Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(gpuDevice), "float", this->imgSize, gpuDevice);        
+            int * gpuCASImgs_Size = new int[3];
+            gpuCASImgs_Size[0] = this->imgSize[0];
+            gpuCASImgs_Size[1] = this->imgSize[1];
+
+            //  Each GPU only needs to hold a fraction of the total output images
+            // Should probably be this->numGPUs but am getting error
+            gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->numGPUs)) + 1; 
+   
+            
+            Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(gpuDevice), "float", gpuCASImgs_Size, gpuDevice);        
         }
 
         // Has the Kaiser bessel vector been allocated and defined?
@@ -151,24 +160,23 @@ void CUDA_Gridder::Forward_Project_Initilize()
             Mem_obj->CUDA_Copy("ker_bessel_" + std::to_string(gpuDevice), this->ker_bessel_Vector);    
         }
 
-        // Has the output image array been allocated and defined?
-        // The name of the GPU pointer is gpuCASImgs_0 for GPU 0, gpuCASImgs_1 for GPU 1, etc.
-        if ( Mem_obj->GPUArrayAllocated("gpuCASImgs_" + std::to_string(gpuDevice), gpuDevice) == false) 
-        {
-            // Allocate the gpuCASImgs on the current gpuDevice
-            Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(gpuDevice), "float", this->imgSize, gpuDevice);            
-        }
-
         // Has the coordAxes array been allocated and defined?
         // The name of the GPU pointer is gpuCoordAxes_0 for GPU 0, gpuCoordAxes_1 for GPU 1, etc.
         if ( Mem_obj->GPUArrayAllocated("gpuCoordAxes_" + std::to_string(gpuDevice), gpuDevice) == false) 
         {
             // Allocate the gpuCoordAxes on the current gpuDevice
-            Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(gpuDevice), "float", this->axesSize, gpuDevice);            
+            int * gpuCoordAxes_Size = new int[3];
+
+            // Each GPU only needs to hold a fraction of the total axes vector
+            // Am getting an error so adding a few bytes to the end
+            gpuCoordAxes_Size[0] = ceil(this->axesSize[0] / this->numGPUs) + 100; 
+            //gpuCoordAxes_Size[0] = this->axesSize[0]; 
+            gpuCoordAxes_Size[1] = this->axesSize[1];
+            gpuCoordAxes_Size[2] = this->axesSize[2];
+
+            Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(gpuDevice), "float", gpuCoordAxes_Size, gpuDevice);            
         }
-
     }    
-
 
     // Has the output image array been allocated and pinned to the CPU?
     if ( Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false) 
@@ -217,28 +225,21 @@ void CUDA_Gridder::Forward_Project(){
     // Each axes has 9 elements (3 for each x, y, z)
     int nAxes = this->axesSize[0] / 9; 
 
-    int nStreams = 4; // One stream for each GPU for now
-    int gridSize = 32;
-    int blockSize = 4;
-    int numGPUs = 4;
+    int numGPUs   = 4;
+    int nStreams  = 4; // One stream for each GPU for now
+    
+    int gridSize  = 32;  
+    int blockSize = 4;    
 
-
-    // DEBUG
-    // float **d_array;
-
-    // cudaMalloc((void**)&d_array, sizeof(float*)*4);
-    // std::cout << "coordAxes_CPU_Pinned: " << coordAxes_CPU_Pinned << '\n';
-    // std::cout << "CASImgs_CPU_Pinned: " << CASImgs_CPU_Pinned << '\n';
-    // std::cout << "d_array: " << d_array << '\n';
-    // std::cout << "this->Mem_obj->ReturnCUDAFloatPtr(gpuVol_ + std::to_string(0)): " << this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(0)) << '\n';
-    // END DEBUG
+    int volSize   = 134;
+    int imgSize   = 128;
 
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-        134, 128, nAxes, 63, 501, 2, // kernel parameters
+        volSize, imgSize, nAxes, 63, 501, 2, // kernel parameters
         numGPUs, nStreams, gridSize, blockSize// Streaming parameters
         ); //2034
 

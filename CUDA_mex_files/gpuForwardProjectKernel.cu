@@ -124,9 +124,6 @@ void gpuForwardProject(
         return;
     }
 
-    std::cout << "nAxes: " << nAxes << '\n';
-
-
     // What are the dimensions of each kernel?
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
@@ -149,47 +146,22 @@ void gpuForwardProject(
         {
             nAxes_Stream = nAxes_Stream - (nAxes_Stream * (i + 1) - nAxes); // Remove the extra axes that are past the maximum nAxes
         }
-
-        
-
-        std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
-        
-
+    
         // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
         int gpuCoordAxes_Offset = processed_nAxes * 9 * 1; // Each axes has 9 elements (X, Y, Z)
         int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
 
-        int CASImgs_CPU_Offset     = 128 * 128 * processed_nAxes;//imgSize * imgSize * processed_nAxes * sizeof(float); // Number of bytes of already processed images
+        int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes; // Number of bytes of already processed images
         int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
-
-        std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';        
-        std::cout << "gpuCoordAxes_Offset: " << gpuCoordAxes_Offset << '\n';
-    
-        std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';        
-        std::cout << "CASImgs_CPU_Offset: " << CASImgs_CPU_Offset << '\n';
-
-        std::cout << "sizeof(float): " << sizeof(float) << '\n';
-
-        if (gpuCASImgs_streamBytes > imgSize * imgSize * nAxes * sizeof(float))
-        {
-            std::cerr << "gpuCASImgs_streamBytes is too large" << '\n';
-        }
-
-        if (CASImgs_CPU_Offset + gpuCASImgs_streamBytes > imgSize * imgSize * nAxes * sizeof(float))
-        {
-            std::cerr << "CASImgs_CPU_Offset is too large" << '\n';
-        }
-
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
            
         // Run the forward projection kernel
         gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
-            gpuVol_Vector[i], 134, gpuCASImgs_Vector[i],
+            gpuVol_Vector[i], volSize, gpuCASImgs_Vector[i],
             128, gpuCoordAxes_Vector[i], nAxes_Stream,
-            63, ker_bessel_Vector[i], 501, 2);
-        
+            63, ker_bessel_Vector[i], 501, 2);        
   
         gpuErrchk( cudaPeekAtLastError() );
 
@@ -200,7 +172,6 @@ void gpuForwardProject(
         // Update the number of axes which have already been assigned to a CUDA stream
         processed_nAxes = processed_nAxes + nAxes_Stream;
 
-        std::cout << "processed_nAxes: " << processed_nAxes << '\n';
     }
 
     gpuErrchk( cudaDeviceSynchronize() );
@@ -209,147 +180,4 @@ void gpuForwardProject(
 
     return; 
 
-
-
-
-
-
-          //// gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
-
-
-    // gpuErrchk( cudaDeviceSynchronize() );
-
-   	// // Create some CUDA streams
-    // cudaStream_t stream[nStreams];
-    // for (int i = 0; i < nStreams; i++){
-
-    //     // Split streams by GPU
-    //     int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
-
-    //     if (curr_GPU <= numGPUs)
-    //     {
-    //         cudaSetDevice(curr_GPU);
-    //         cudaStreamCreate(&stream[i]);
-    //     } else 
-    //     {
-    //         std::cerr << "gpuForwardProject(): Failed to create CUDA stream." << '\n';
-    //         return;
-    //     }        
-    // }       
-
-    // // How many bytes is each async streaming?
-    // int coord_Axes_streamBytes = nAxes * 9 * sizeof(float); // Copy the entire vector for now
-    // int gpuCASImgs_streamBytes = 128 * 128 * nAxes * 9 * sizeof(float); // Copy the entire array for now
-
-    // std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
-    // std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';
-
-
-    // gpuErrchk( cudaDeviceSynchronize() ); // Probably not needed
-
-    // // Setup the CUDA streams now
-    // for (int i = 0; i < nStreams; ++i){
-        
-    //     // TO DO: Is it necessary to use cudaSetDevice() here?
-    //     int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
-
-    //     curr_GPU = 0; // For now
-    //     cudaSetDevice(curr_GPU);
-        
-    //     // Get the GPU pointers for this strea
-    //     // float *devPtr_gpuVol     = gpuVol_V    // std::cout << "Done with gpuForwardProjectKernel" << '\n';ctor[i];
-    //     // float *devPtr_gpuCASImgs = gpuCASImgs_Vector[i];
-    //     // float *devPtr_Coord_Axes = gpuCoordAxes_Vector[i];
-    //     // float *devPtr_ker_bessel = ker_bessel_Vector[i];
-
-    //     // TO DO: Only copy a subset of the array
-
-    //     // Copy coord axes from pinned host (CPU) to device (GPU)
-    //     cudaMemcpyAsync(&gpuCoordAxes_Vector[i], coordAxes_CPU_Pinned, coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
-    //     gpuErrchk( cudaPeekAtLastError() );
-
-    //     // Run the forward projection kernel
-    //     dim3 dimGrid(32, 32, 1);
-    //     dim3 dimBlock(4, 4, 1);
-
-    //     gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(
-    //         gpuVol_Vector[i], 134, gpuCASImgs_Vector[i],
-    //          128, gpuCoordAxes_Vector[i], nAxes,
-    //          63, ker_bessel_Vector[i], 501, 2);
-
-    //     // gpuForwardProjectKernel<<< dimGrid, dimBlock >>>(vol, volSize, img, imgSize, axes, nAxes, maskRadius,ker, kerSize, kerHWidth);
-
-    //     gpuErrchk( cudaPeekAtLastError() );
-
-    //     // Copy the resulting gpuCASImgs to the host (CPU)
-    //     // TO DO: Only copy a subset of this
-    //     cudaMemcpyAsync(CASImgs_CPU_Pinned, &gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
-    //     gpuErrchk( cudaPeekAtLastError() );
-
-    // }
-
-    // gpuErrchk( cudaDeviceSynchronize() );
-
-    // std::cout << "Done with gpuForwardProjectKernel" << '\n';
-
 }
-
-
-
-
-
-// std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
-// std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';
-
-// std::cout << "coordAxes_CPU_Pinned: " << coordAxes_CPU_Pinned << '\n';
-// std::cout << "gpuVol_Vector[i]: " << gpuVol_Vector[i] << '\n';
-// std::cout << "gpuCASImgs_Vector[i]: " << gpuCASImgs_Vector[i] << '\n';
-// std::cout << "gpuCoordAxes_Vector[i]: " << gpuCoordAxes_Vector[i] << '\n';
-// std::cout << "ker_bessel_Vector[i]: " << ker_bessel_Vector[i] << '\n';
-
-
-// std::cout << "volSize: " << volSize << '\n';
-// std::cout << "imgSize: " << imgSize << '\n';
-// std::cout << "nAxes: " << nAxes << '\n';
-
-
-// std::cout << "gpuVol_Vector.size(): " << gpuVol_Vector.size() << '\n';
-// std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
-// std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
-// std::cout << "ker_bessel_Vector.size(): " << ker_bessel_Vector.size() << '\n';
-
-
-
-   // float *d_test;
-    // cudaMalloc((void **) &d_test, 3702784*sizeof(float));
-
-    //float *h_test = new float[3702784];
-
-    // float *h_test;
-    // h_test = (float *)malloc(3702784*sizeof(float));
-
-        
-
-
-
-// // Which memory location should we start the transfer on?
-// int streamOffset = i * streamSize;
-
-// int grid_dim = ceil(size/nStreams/blockSize);
-
-
-
-// // Run the addition kernel
-// AddVectorsMask<<<grid_dim, blockSize, 0, stream[i]>>>(devPtrA, devPtrB, devPtrC, size, streamOffset);
-
-// // Run the square elements kernel
-// SquareElements<<<grid_dim, blockSize, 0, stream[i]>>>(devPtrC, size, streamOffset);
-
-// // Run the cosine of elements kernel
-// CosineElements<<<grid_dim, blockSize, 0, stream[i]>>>(devPtrC, size, streamOffset);
-
-// // Run the square elements kernel
-// SquareElements<<<grid_dim, blockSize, 0, stream[i]>>>(devPtrC, size, streamOffset);
-
-// // Copy the result back to the host
-// cudaMemcpyAsync(&C[streamOffset], &devPtrC[streamOffset], streamBytes, cudaMemcpyDeviceToHost, stream[i]);

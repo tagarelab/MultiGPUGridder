@@ -14,8 +14,8 @@ addpath(fullfile('.','utils'));
 
 %Initialize parameters
 volSize=64;
-n1_axes=15;
-n2_axes=15;
+n1_axes=150;%15;
+n2_axes=150;%15
 interpFactor=2.0;
 
 %Get the gridder
