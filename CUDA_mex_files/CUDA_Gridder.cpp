@@ -270,8 +270,7 @@ void CUDA_Gridder::Forward_Project(){
     
     // NOTE: gridSize times blockSize needs to equal imgSize
     int gridSize  = 32;// 32  
-    int blockSize = this->imgSize[0] / gridSize ; // 4    
-
+    int blockSize = this->imgSize[0] / gridSize ; // 4  
 
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams

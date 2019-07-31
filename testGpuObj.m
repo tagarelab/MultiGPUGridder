@@ -13,7 +13,7 @@ reset(gpuDevice());
 addpath(fullfile('.','utils'));    
 
 %Initialize parameters
-volSize=256%128%64;
+volSize=64%128%64;
 n1_axes=15;%15;
 n2_axes=15;%15
 interpFactor=2.0;

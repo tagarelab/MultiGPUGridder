@@ -46,6 +46,29 @@ if (recompile == true)
     clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
 end
+% reset(gpuDevice(1));
+% obj.SetVolume(ones(5,5,5))
+% obj.SetAxes(ones(90,1))
+% 
+% obj.SetImgSize(int32([124, 124, 124]))
+% 
+% 
+% obj.Forward_Project('test')
+% 
+% obj.CUDA_disp_mem('all')
+% 
+% 
+% clear obj
+
+% cd('..')
+%
+%%
+
+% pause(2)
+% for i = 1:4
+%     reset(gpuDevice(i));
+% end
+%%
 
 reset(gpuDevice());
 
@@ -63,8 +86,8 @@ origHWidth = origCenter - 1;
 %Fuzzy sphere
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
 
-% Change the sphere a bit so the projections are not all the same
-vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
+% Cut sphere in half
+vol(:,:,1:volSize/2(
 
 % MATLAB pre-processing to covert vol to CASVol
 % interpBoc and fftinfo are needed for plotting the results
@@ -105,23 +128,6 @@ max(InterpCASImgs(:))
 
 imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
 easyMontage(imgs,1);
-
-
-
-disp('Done!');
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

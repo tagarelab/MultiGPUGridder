@@ -183,10 +183,10 @@ void gpuForwardProject(
         }
 
         // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
-        int gpuCoordAxes_Offset = processed_nAxes * 9 * 1; // Each axes has 9 elements (X, Y, Z)
+        int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
         int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
 
-        int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes; // Number of bytes of already processed images
+        int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
         int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
