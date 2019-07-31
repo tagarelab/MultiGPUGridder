@@ -75,8 +75,8 @@ reset(gpuDevice());
 
 %%
 
-% input_data = load('Forward_Project_Input_Large.mat')
-input_data = load('Forward_Project_Input_Very_Large.mat')
+input_data = load('Forward_Project_Input_Large.mat')
+% input_data = load('Forward_Project_Input_Very_Large.mat')
 input_data = input_data.x;
 gpuCoordAxes = input_data.gpuCoordAxes;
 
@@ -95,6 +95,7 @@ nAxes = input_data.nAxes
 
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberGPUs(4);
+obj.SetNumberStreams(24);
 obj.SetVolume(input_data.gpuVol)
 obj.SetAxes(gpuCoordAxes)
 obj.SetImgSize(int32([size(input_data.gpuCASImgs,1), size(input_data.gpuCASImgs,1), length(gpuCoordAxes)/9]))
@@ -102,24 +103,26 @@ obj.SetImgSize(int32([size(input_data.gpuCASImgs,1), size(input_data.gpuCASImgs,
 tic
 obj.Forward_Project()
 toc
-
+% 
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
-
-obj.CUDA_disp_mem('all')
-obj.disp_mem('all')
+% 
+% obj.CUDA_disp_mem('all')
+% obj.disp_mem('all')
 
 % Needed for plotting below
 interpBox = input_data.interpBox;
 fftinfo = input_data.fftinfo;
 clear obj
 
+max(InterpCASImgs(:))
+
 % Clear all the variables except for InterpCASImgs
 % clearvars -except InterpCASImgs
 
 % InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
 % % 
-imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
-easyMontage(imgs,1);
+% imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
+% easyMontage(imgs,1);
 
 
 
@@ -129,7 +132,7 @@ easyMontage(imgs,1);
 % obj.CUDA_disp_mem('all')
 
 
-% max(InterpCASImgs(:))
+
 
 
 

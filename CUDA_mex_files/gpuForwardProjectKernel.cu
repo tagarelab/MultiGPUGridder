@@ -116,27 +116,29 @@ void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize // Streaming parameters
 )
 {
-    // Verify all the parameters and inputs are valid
+    // Verify all parameters and inputs are valid
     int parameter_check = ParameterChecking(    
-        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, // Vector of GPU array pointers
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         volSize, imgSize, nAxes, maskRadius, kerSize, kerHWidth, // kernel Parameters and constants
         numGPUs, nStreams, gridSize, blockSize // Streaming parameters)
-    )
+    );
 
-    // If an error was detected
-    if (parameter_check != 1)
+    // If an error was detected return
+    if (parameter_check != 0)
     {
         std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
         return;
-    }
+    }    
     
-  
-    // What are the dimensions of each kernel?
+    std::cout << "nStreams: " << nStreams << '\n';
+    // return;
+
+    // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
 
-    // Create some CUDA streams
+    // Create the CUDA streams
     cudaStream_t stream[nStreams]; 		
 
     int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
@@ -149,10 +151,16 @@ void gpuForwardProject(
         cudaSetDevice(curr_GPU); // TO DO: Is this needed?        
         gpuErrchk( cudaStreamCreate(&stream[i]) );
 
-        // How many axes to assign to this CUDA stream? Need if nAxes is not a multiple of numGPUs
-        int nAxes_Stream = ceil((double)nAxes / nStreams);
+        if (curr_GPU < 0 || curr_GPU > 3)
+        {
+            std::cerr << "Error in curr_GPU" << '\n';
+            return;
+        }
 
-        if (nAxes_Stream * (i + 1) > nAxes)
+        // How many coordinate axes to assign to this CUDA stream? 
+        int nAxes_Stream = ceil((double)nAxes / nStreams); // Ceil needed if nStreams is not a multiple of numGPUs
+
+        if (nAxes_Stream * (i + 1) > nAxes) 
         {
             nAxes_Stream = nAxes_Stream - (nAxes_Stream * (i + 1) - nAxes); // Remove the extra axes that are past the maximum nAxes
         }
@@ -160,7 +168,17 @@ void gpuForwardProject(
         // Is there at least one axes to process for this stream?
         if (nAxes_Stream < 1)
         {
-            std:cerr << "nAxes_Stream < 1. Please check the number of streams and GPUs to use and try a lower number of streams." << '\n';
+            std::cerr << "nAxes_Stream < 1. Please check the number of streams and GPUs to use and try a lower number of streams." << '\n';
+            return;
+        }
+
+        std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
+        
+        if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i)
+        {
+            std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
+            std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
+            std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
             return;
         }
 
@@ -175,10 +193,12 @@ void gpuForwardProject(
         cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
            
         // Run the forward projection kernel
+        // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
+        // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
         gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
-            gpuVol_Vector[i], volSize, gpuCASImgs_Vector[i],
+            gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
             imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
-            63, ker_bessel_Vector[i], 501, 2);        
+            63, ker_bessel_Vector[curr_GPU], 501, 2);        
   
         gpuErrchk( cudaPeekAtLastError() );
 
@@ -210,6 +230,7 @@ int ParameterChecking(
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize // Streaming parameters)
+)
 {
     // Check all the input parameters to verify they are all valid
 
@@ -231,6 +252,9 @@ int ParameterChecking(
     // Checking parameter: nStreams
     if (nStreams <= 0 || nStreams < numGPUs)
     {
+        std::cout << "nStreams: " << nStreams << '\n';
+        std::cout << "numGPUs: " << numGPUs << '\n';
+
         std::cerr << "Invalid number of streams provided. Please use SetNumberStreams() to set number of streams >= number of GPUs to use." << '\n';
         return -1;
     }
