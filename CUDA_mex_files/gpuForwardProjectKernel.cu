@@ -116,6 +116,8 @@ void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize // Streaming parameters
 )
 {
+
+    
     // Verify all parameters and inputs are valid
     int parameter_check = ParameterChecking(    
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
@@ -132,7 +134,6 @@ void gpuForwardProject(
     }    
     
     std::cout << "nStreams: " << nStreams << '\n';
-    // return;
 
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
@@ -168,8 +169,8 @@ void gpuForwardProject(
         // Is there at least one axes to process for this stream?
         if (nAxes_Stream < 1)
         {
-            std::cerr << "nAxes_Stream < 1. Please check the number of streams and GPUs to use and try a lower number of streams." << '\n';
-            return;
+            std::cerr << "nAxes_Stream < 1. Skipping this stream." << '\n';
+            continue; // Skip this stream
         }
 
         std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';

@@ -29,6 +29,7 @@ template<class base> inline mxArray *convertPtr2Mat(base *ptr)
 {
     mexLock();
     mxArray *out = mxCreateNumericMatrix(1, 1, mxUINT64_CLASS, mxREAL);
+    mexMakeMemoryPersistent(out); // Make memory persistant
     *((uint64_t *)mxGetData(out)) = reinterpret_cast<uint64_t>(new class_handle<base>(ptr));
     return out;
 }
