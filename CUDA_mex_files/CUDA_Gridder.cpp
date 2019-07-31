@@ -127,7 +127,10 @@ void CUDA_Gridder::SetAxes(float* coordAxes, int* axesSize)
 // Set the output image size parameter
 void CUDA_Gridder::SetImgSize(int* imgSize)
 {
-    this->imgSize = imgSize;
+    this->imgSize = new int[3];
+    this->imgSize[0] = imgSize[0];
+    this->imgSize[1] = imgSize[1];
+    this->imgSize[2] = imgSize[2]; 
 
     std::cout << "imgSize: " << imgSize[0] << " " << imgSize[1] << " " << imgSize[2] << '\n';
 }
@@ -165,7 +168,8 @@ void CUDA_Gridder::Forward_Project_Initilize()
             // Each GPU only needs to hold a fraction of the total output images
             // Should probably be this->numGPUs but am getting error
             gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams)) + 1; 
-   
+
+            std::cout << "gpuCASImgs_Size: " << gpuCASImgs_Size[0] << " "  << gpuCASImgs_Size[1] << " " << gpuCASImgs_Size[2] << '\n';
             
             Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(i), "float", gpuCASImgs_Size, gpuDevice);        
         }
@@ -234,7 +238,7 @@ void CUDA_Gridder::Forward_Project(){
 
 
     // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
-    Forward_Project_Initilize();
+    //Forward_Project_Initilize();
     
 
     // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)

@@ -31,22 +31,28 @@ end
 
 %%
 
-volSize = 64;
+volSize = [64]%, 128, 256, 512];
 n1_axes = 15;
 n2_axes = 15;
 
 
-times = RunExample(volSize, n1_axes, n2_axes)
-
 timing_measurements = [];
 
-% for j = 1:3
-% 
-% 
-%     timing_measurements(j).volSize = volSize;
-%     timing_measurements(j).nCoordAxes = n1_axes * n2_axes + 1;
-%     timing_measurements(j).times = RunExample(volSize, n1_axes, n2_axes);
-% 
-% end
-% Ztiming_measurements
+for j = 1:length(volSize)
 
+    timing_measurements(j).volSize = volSize(j);
+    timing_measurements(j).nCoordAxes = n1_axes * n2_axes + 1;
+    timing_measurements(j).times = RunExample(volSize(j), n1_axes, n2_axes);
+
+end
+
+%% Plot the timing measurements
+
+kernel_times = [];
+
+for i = 1:length(timing_measurements)
+    kernel_times = [kernel_times timing_measurements(i).times(end-2)]
+end
+
+figure('Color', [1 1 1])
+plot(kernel_times, 'b*--')

@@ -419,6 +419,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // Forward_Project_Initilize    
+    if (!strcmp("Forward_Project_Initilize", cmd)) {
+        // Check parameters
+
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("Forward_Project: Unexpected arguments. ");
+        }                 
+
+        // Call the method
+        CUDA_Gridder_instance->Forward_Project_Initilize();
+        
+        return;
+    }
+
     // Forward_Project    
     if (!strcmp("Forward_Project", cmd)) {
         // Check parameters

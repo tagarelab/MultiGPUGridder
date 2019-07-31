@@ -270,6 +270,7 @@ int ParameterChecking(
     // Checking parameter: imgSize
     if (imgSize <= 0)
     {
+        std::cout << "imgSize: " << imgSize << '\n';
         std::cerr << "Invalid imgSize parameter." << '\n';
         return -1;
     }

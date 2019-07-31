@@ -8,7 +8,7 @@ function [times] = RunExample(volSize, n1_axes, n2_axes)
 
     %% Create a volume 
     % Initialize parameters
-    volSize = 64;%256%128;%64;
+%     volSize = 64;%256%128;%64;
 
     interpFactor = 2.0;
 
@@ -34,8 +34,8 @@ function [times] = RunExample(volSize, n1_axes, n2_axes)
     times = [times toc];
 
     %% Define the projection directions
-    n1_axes=15;
-    n2_axes=15;
+%     n1_axes=15;
+%     n2_axes=15;
 
     coordAxes=single([1 0 0 0 1 0 0 0 1]');
     tic
@@ -68,8 +68,8 @@ function [times] = RunExample(volSize, n1_axes, n2_axes)
 %     obj.CUDA_disp_mem('all')
 
     tic
-    disp("Forward_Project()...") % Allocates the rest of the required memory
-    obj.Forward_Project()
+    disp("Forward_Project_Initilize()...") % Allocates the rest of the required memory
+    obj.Forward_Project_Initilize()
     times = [times toc];
 
     tic
@@ -83,16 +83,16 @@ function [times] = RunExample(volSize, n1_axes, n2_axes)
     clear obj
 
     max(InterpCASImgs(:))
-
-    % How many images to plot?
-    numImgsPlot = 10;
-
-    % Make sure we have that many images first
-    numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
-
-    imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
-    easyMontage(imgs,1);
-    colormap gray
+% 
+%     % How many images to plot?
+%     numImgsPlot = 10;
+% 
+%     % Make sure we have that many images first
+%     numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
+% 
+%     imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+%     easyMontage(imgs,1);
+%     colormap gray
 
 
     disp('Done!');
