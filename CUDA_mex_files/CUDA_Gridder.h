@@ -39,6 +39,9 @@ public:
 
 	// Size of the volume
 	int* volSize;
+
+	// Number of CUDA streams to use with the CUDA kernel
+	int nStreams = 1;
 	
 	// Size of the Kaiser bessel vector
 	int kerSize = 501;    
@@ -58,6 +61,9 @@ public:
 
 	// Set the number of GPUs to use with the CUDA kernel
 	void SetNumberGPUs(int numGPUs);
+
+	// Set the number of streams to use with the CUDA kernel
+	void SetNumberStreams(int nStreams);
 
 	// Set GPU volume 
 	void SetVolume( float* gpuVol, int* gpuVolSize);

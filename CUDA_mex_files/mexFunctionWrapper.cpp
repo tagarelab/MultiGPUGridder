@@ -173,7 +173,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     }
 
+    // SetNumberStreams
+    if (!strcmp("SetNumberStreams", cmd)) {
+        // Check parameters
+        if (nrhs != 3)
+        {
+            mexErrMsgTxt("SetNumberStreams: Unexpected arguments. Please provide a scalar value.");
+        }
+       
+        int nStreams = (int)mxGetScalar(prhs[2]);         
 
+        std::cout << "nStreams: " << nStreams << '\n';
+
+        // Call the method
+        CUDA_Gridder_instance->SetNumberStreams(nStreams);
+
+        return;
+
+    }
 
     // mem_alloc    
     if (!strcmp("mem_alloc", cmd)) {

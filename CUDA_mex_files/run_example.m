@@ -80,7 +80,15 @@ input_data = load('Forward_Project_Input_Very_Large.mat')
 input_data = input_data.x;
 gpuCoordAxes = input_data.gpuCoordAxes;
 
-nAxes = size(gpuCoordAxes,1) / 9
+% num_projections = 100; % Use only a subset of the projections for now
+% input_data.nAxes = num_projections;
+
+input_data.gpuCoordAxes = input_data.gpuCoordAxes(1:input_data.nAxes*9);
+
+% Fix the number of CAS images (size the gpuBatchGrider constrained to fit onto a single GPU but we now have 4 GPUs
+input_data.gpuCASImgs = zeros(size(input_data.gpuCASImgs,1), size(input_data.gpuCASImgs,1), input_data.nAxes);
+
+nAxes = input_data.nAxes
 
 % gpuCoordAxes = coordAxes
 
@@ -97,23 +105,31 @@ toc
 
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
+obj.CUDA_disp_mem('all')
+obj.disp_mem('all')
+
+% Needed for plotting below
+interpBox = input_data.interpBox;
+fftinfo = input_data.fftinfo;
+clear obj
+
+% Clear all the variables except for InterpCASImgs
+% clearvars -except InterpCASImgs
+
 % InterpCASImgs = obj.CUDA_Return('gpuCASImgs_0');
-% 
-imgs=imgsFromCASImgs(InterpCASImgs, input_data.interpBox, input_data.fftinfo);
+% % 
+imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
 easyMontage(imgs,1);
 
 
 
-obj.CUDA_disp_mem('all')
-obj.disp_mem('all')
 
 % obj.CUDA_Free('all')
 
 % obj.CUDA_disp_mem('all')
 
-clear obj
 
-max(InterpCASImgs(:))
+% max(InterpCASImgs(:))
 
 
 

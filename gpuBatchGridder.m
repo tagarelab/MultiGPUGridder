@@ -51,7 +51,7 @@ classdef gpuBatchGridder < handle
             imgSize=obj.gridder.origBox.size; %Get image size
             imgs=zeros([imgSize imgSize nAxes],'single'); %Allocate images
             
-            axesPerIteration=obj.gridder.axesPerIteration; %Size of each batch
+            axesPerIteration=nAxes%obj.gridder.axesPerIteration; %Size of each batch
             nIter=ceil(nAxes/axesPerIteration);  %Number of batches
             
             for iter=1:nIter

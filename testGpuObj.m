@@ -13,9 +13,9 @@ reset(gpuDevice());
 addpath(fullfile('.','utils'));    
 
 %Initialize parameters
-volSize=128%64;
-n1_axes=150;%15;
-n2_axes=150;%15
+volSize=256%128%64;
+n1_axes=15;%15;
+n2_axes=15;%15
 interpFactor=2.0;
 
 %Get the gridder

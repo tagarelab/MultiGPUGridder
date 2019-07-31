@@ -23,7 +23,7 @@ void CUDA_Gridder::SetNumberGPUs(int numGPUs)
     // Provide error message if no GPUs are found (i.e. all cards are busy) are an invalid selection is chosen
     if ( numGPUDetected == 0 )
     {
-        std::cerr << "No NVIDIA graphic cards located on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';;  
+        std::cerr << "No NVIDIA graphic cards identified on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';;  
         
         this->numGPUs = -1;
 
@@ -43,6 +43,24 @@ void CUDA_Gridder::SetNumberGPUs(int numGPUs)
     this->numGPUs = numGPUs;
 
     std::cout << "numGPUs: " << numGPUs << '\n';
+
+}
+
+void CUDA_Gridder::SetNumberStreams(int nStreams)
+{
+    // How many streams to use with the CUDA kernels?
+    // Need at least as many streams as numGPUs to use
+
+    if (nStreams < this->numGPUs)
+    {
+        std::cerr << "Please choose at least as many streams as the number of GPUs to use. Use SetNumberGPUs() first." << '\n';;  
+        return;    
+    }
+
+    // Save the user requested number of streams to use
+    this->nStreams = nStreams;
+
+    std::cout << "nStreams: " << nStreams << '\n';
 
 }
 
@@ -198,6 +216,9 @@ void CUDA_Gridder::Forward_Project(){
 
     std::cout << "CUDA_Gridder::Forward_Project()" << '\n';
         
+    // TO DO: Add more error checking. Are all the parameters valid? e.g. numGPUs > 0, nStreams <= numGPUS, etc.
+
+
     // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
     Forward_Project_Initilize();
 
@@ -226,14 +247,15 @@ void CUDA_Gridder::Forward_Project(){
     int nAxes = this->axesSize[0] / 9; 
 
     int numGPUs   = 4;
-    int nStreams  = 4; // One stream for each GPU for now
     
+    
+    int volSize   = 518;//134;//134;
+    int imgSize   = 512;//128;//128;
+
     // NOTE: gridSize times blockSize needs to equal imgSize
     int gridSize  = 32;// 32  
-    int blockSize = 8; // 4    
+    int blockSize = imgSize / gridSize ; // 4    
 
-    int volSize   = 262;//134;
-    int imgSize   = 256;//128;
 
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
@@ -241,7 +263,7 @@ void CUDA_Gridder::Forward_Project(){
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         volSize, imgSize, nAxes, 63, 501, 2, // kernel parameters
-        numGPUs, nStreams, gridSize, blockSize// Streaming parameters
+        numGPUs, this->nStreams, gridSize, blockSize// Streaming parameters
         ); //2034
 
     return;
