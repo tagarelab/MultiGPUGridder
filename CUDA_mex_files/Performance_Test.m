@@ -35,11 +35,11 @@ end
 
 2147483647 / (500 * 500)
 
-volSize  = [64, 128, 256, 512];%[64]%, 128, 256, 512];
-n1_axes  = ones(1,5);%12000%[10, 20, 40, 60, 80, 100, 500, 1000];
+volSize  = 512;%[64, 128, 256, 512];%[64]%, 128, 256, 512];
+n1_axes  = 500%ones(1,5);%12000%[10, 20, 40, 60, 80, 100, 500, 1000];
 n2_axes  = 10;
 
-nStreams = [4, 8, 16, 32, 64, 128, 256, 512];
+nStreams = 64%[4, 8, 16, 32, 64, 128, 256, 512];
 
 timing_measurements = [];
 timing_measurements.volSize = [];
@@ -60,7 +60,7 @@ for i = 1:length(volSize)
                 
                 % Currently limited by the max int32 size when allocating the pinned CPU memory
                 % Leave 5% less of the maximum value
-                n1_axes = round(linspace(10, 2147483647 / (n2_axes(k) * volSize(i)^2 * 4) * 0.95, 5) )
+%                 c = round(linspace(10, 2147483647 / (n2_axes(k) * volSize(i)^2 * 4) * 0.95, 5) )
 
 
                 timing_measurements(iter) = RunExample(volSize(i), n1_axes(j), n2_axes(k), nStreams(z));
@@ -124,7 +124,7 @@ for i = 1:length(timing_measurements)
     str_1 = num2str(timing_measurements(i).nCoordAxes);
     str_2 = num2str(timing_measurements(i).nStreams);
     str_3 = string(str_1) + ", " + string(str_2);
-    text(x + 0.5,y, str_3)   
+    text(x + 0.5,y, str_2)   
     catch
         disp("Failed to plot for " + num2str(i))
     end

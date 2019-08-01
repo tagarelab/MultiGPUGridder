@@ -29,7 +29,7 @@ clear obj
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
-recompile = 10;
+recompile = 1;
 if (recompile == true)
     % cd('mex_files')
 
@@ -47,39 +47,43 @@ if (recompile == true)
 
 end
 
+
+
+
+%%
 reset(gpuDevice());
 
 %% Create a volume 
 % Initialize parameters
 volSize = 256;%256%128;%64;
+n1_axes = 800;
+n2_axes = 10;
 
 interpFactor = 2.0;
     
 origSize   = volSize;
-volCenter  = volSize/2 + 1;
+volCenter  = volSize/2  + 1;
 origCenter = origSize/2 + 1;
 origHWidth = origCenter - 1;
 
-%Fuzzy sphere
+%% Fuzzy sphere
 disp("fuzzymask()...")
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
 
 % Change the sphere a bit so the projections are not all the same
 vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
 
-% MATLAB pre-processing to covert vol to CASVol
-% interpBoc and fftinfo are needed for plotting the results
-disp("Vol_Preprocessing()...")
-[CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
-
 %% Define the projection directions
-n1_axes=100;
-n2_axes=50;
-
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 coordAxes = coordAxes(:);
 nCoordAxes = length(coordAxes)/9;
+
+%% MATLAB pre-processing to covert vol to CASVol
+% interpBoc and fftinfo are needed for plotting the results
+disp("MATLAB Vol_Preprocessing()...")
+[CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+
 
 %% Display some information to the user before running the forward projection kernel
 
@@ -101,6 +105,8 @@ obj.SetAxes(coordAxes)
 disp("SetImgSize()...")
 obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
 
+obj.Forward_Project_Initilize()
+
 tic
 disp("Forward_Project()...")
 obj.Forward_Project()
@@ -112,10 +118,11 @@ InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 clear obj
 
+
 max(InterpCASImgs(:))
 
 % How many images to plot?
-numImgsPlot = 100;
+numImgsPlot = 10;
 
 % Make sure we have that many images first
 numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));

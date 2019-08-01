@@ -148,10 +148,24 @@ void CUDA_Gridder::Forward_Project_Initilize()
 {
     // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
 
+    // Has the output image array been allocated and pinned to the CPU?
+    if ( Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false) 
+    {
+        std::cout << "Allocating CASImgs_CPU_Pinned" << '\n';
+        // We need to allocate the coordAxes array on this axesSize
+        Mem_obj->mem_alloc("CASImgs_CPU_Pinned", "float", this->imgSize);
+        
+        std::cout << "Pinning CASImgs_CPU_Pinned" << '\n';
+
+        // Lastly, pin the array to allow for async CUDA streaming
+        Mem_obj->pin_mem("CASImgs_CPU_Pinned");
+        
+    }
+
     // Check each GPU to determine if all the required pointers are already allocated
     for (int i = 0; i < this->nStreams; i++)
     {
-        std::cout << "Forward_Project_Initilize(): " << i << '\n';
+        std::cout << "Forward_Project_Initilize():  Stream number " << i << '\n';
 
         int gpuDevice = i % this->numGPUs; // Use the remainder operator to split streams evenly between GPUs
 
@@ -188,17 +202,17 @@ void CUDA_Gridder::Forward_Project_Initilize()
             gpuCoordAxes_Size[1] = this->axesSize[1];
             gpuCoordAxes_Size[2] = this->axesSize[2];
 
+            std::cout << "gpuCoordAxes_Size[0]: " << gpuCoordAxes_Size[0] << '\n';            
+
             Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(i), "float", gpuCoordAxes_Size, gpuDevice);            
         }
-
     }
 
     // Only need one per GPU for the Kaiser bessel vector
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
-        // Has the Kaiser bessel vector been allocated and defined?
-        
-        // The name of the GPU pointer is ker_bessel_0 for GPU 0, ker_bessel_1 for GPU 1, etc.
+        // Has the Kaiser bessel vector been allocated and defined?      
+        // The name of the GPU pointer is ker_bessel_1000 for GPU 0, ker_bessel_1 for GPU 1, etc.
         if ( Mem_obj->GPUArrayAllocated("ker_bessel_" + std::to_string(gpuDevice), gpuDevice) == false) 
         {
             // Set the Kaiser Bessel Function vector to the current gpuDevice
@@ -215,17 +229,7 @@ void CUDA_Gridder::Forward_Project_Initilize()
         }
     }    
 
-    // Has the output image array been allocated and pinned to the CPU?
-    if ( Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false) 
-    {
-        // We need to allocate the coordAxes array on this axesSize
-        Mem_obj->mem_alloc("CASImgs_CPU_Pinned", "float", this->imgSize);
-        
-        // Lastly, pin the array to allow for async CUDA streaming
-        Mem_obj->pin_mem("CASImgs_CPU_Pinned");
-        
-    }
-
+    std::cout << "Forward_Project_Initilize() finished" << '\n';
 }
 
 // Run the Forward Projection CUDA kernel
@@ -271,6 +275,8 @@ void CUDA_Gridder::Forward_Project(){
     // NOTE: gridSize times blockSize needs to equal imgSize
     int gridSize  = 32;// 32  
     int blockSize = this->imgSize[0] / gridSize ; // 4  
+
+    // return;
 
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams

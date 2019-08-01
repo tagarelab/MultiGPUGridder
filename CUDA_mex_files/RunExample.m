@@ -73,14 +73,14 @@ function [times] = RunExample(volSize, n1_axes, n2_axes, nStreams)
 
     disp("SetImgSize()...")
     
-    % Check if the array size is larger than int32 allows
-    if (...
-            int32(prod([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes])) ~= ...
-            prod([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))       
-        disp('Matrix size is too large for int32');       
-        clear obj
-        return;
-    end
+%     % Check if the array size is larger than int32 allows
+%     if (...
+%             int32(prod([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes])) ~= ...
+%             prod([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))       
+%         disp('Matrix size is too large for int32');       
+%         clear obj
+%         return;
+%     end
     
     obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
        

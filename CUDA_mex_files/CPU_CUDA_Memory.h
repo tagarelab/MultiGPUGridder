@@ -74,7 +74,8 @@ private:
     // Allow the vector of CPU pointers to be either int, float, or double type
     union Ptr_Types
     {
-        int *i;
+        int *i;        
+        unsigned long long *un_int;
         float *f;
     };
 

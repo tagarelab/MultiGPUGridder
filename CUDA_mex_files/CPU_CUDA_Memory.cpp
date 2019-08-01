@@ -187,11 +187,40 @@ void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType,
 
     if ( dataType == "int")
     {
-        int *new_ptr = new int[ dataSize[0] * dataSize[1] * dataSize[2] ]; // Multiply the X,Y,Z dimensions of the array
+        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
+        unsigned long long *dataSizeLong = new  unsigned long long[3];
+        dataSizeLong[0] = (unsigned long long)dataSize[0];
+        dataSizeLong[1] = (unsigned long long)dataSize[1];
+        dataSizeLong[2] = (unsigned long long)dataSize[2];
+
+        std::cout << "CPU array size: " << dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] * sizeof(int) << '\n';
+
+        int *new_ptr = new int[ dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] ]; // Multiply the X,Y,Z dimensions of the array
         n.i = new_ptr;
+    } else if ( dataType == "unint")            
+    {
+        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
+        unsigned long long *dataSizeLong = new  unsigned long long[3];
+        dataSizeLong[0] = (unsigned long long)dataSize[0];
+        dataSizeLong[1] = (unsigned long long)dataSize[1];
+        dataSizeLong[2] = (unsigned long long)dataSize[2];
+
+        std::cout << "CPU array size: " << dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] * sizeof(unsigned long long) << '\n';
+
+        unsigned long long *new_ptr = new unsigned long long[ dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] ]; // Multiply the X,Y,Z dimensions of the array
+        n.un_int = new_ptr;
+
     } else if ( dataType == "float")
     {
-        float *new_ptr = new float[ dataSize[0] * dataSize[1] * dataSize[2] ]; // Multiply the X,Y,Z dimensions of the array
+        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
+        unsigned long long *dataSizeLong = new  unsigned long long[3];
+        dataSizeLong[0] = (unsigned long long)dataSize[0];
+        dataSizeLong[1] = (unsigned long long)dataSize[1];
+        dataSizeLong[2] = (unsigned long long)dataSize[2];
+
+        std::cout << "CPU array size: " << dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] * sizeof(float) << '\n';
+
+        float *new_ptr = new float[ dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] ]; // Multiply the X,Y,Z dimensions of the array
         n.f = new_ptr;
     } else 
     {
@@ -238,7 +267,7 @@ void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
         std::memcpy(cpu_arr_ptrs[arr_idx].f, New_Array, sizeof(float)*(dim_size));
     } else 
     {
-        mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
+        mexErrMsgTxt("Unrecognized data type. Only float is supported currently for mem_Copy().");
     }      
     
 
@@ -284,6 +313,18 @@ mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_
 
         return Matlab_Pointer;
 
+    }else if ( cpu_arr_types[arr_idx] == "un_int")
+    {
+
+        // Create the output matlab array as type float
+        Matlab_Pointer = mxCreateNumericArray(3, dims, mxUINT64_CLASS, mxREAL);   
+
+        // Get a pointer to the output matrix created above
+        long long int* matlabArrayPtr = (long long int*)mxGetData(Matlab_Pointer);
+
+        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].un_int, sizeof(long long int)*dim_size);
+
+        return Matlab_Pointer;
     } else if ( cpu_arr_types[arr_idx] == "float")
     {
 
@@ -300,15 +341,14 @@ mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_
     {
         mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
     }        
-
-    
-
 }
 
 void CPU_CUDA_Memory::pin_mem(std::string varNameString)
 {
     // Given a variable name, pin the associated CPU array (i.e. make it non-pageable on the RAM so the GPUs can directly access it)
     
+    std::cout << "pin_mem()..." << '\n';
+
     // Locate the index of the cpu_arr_names vector which correspondes to the given variable name         
     int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
 
@@ -318,16 +358,27 @@ void CPU_CUDA_Memory::pin_mem(std::string varNameString)
         return;
     }     
 
-    // Get the size of the array
-    int dim_size = cpu_arr_sizes[arr_idx][0] * cpu_arr_sizes[arr_idx][1] * cpu_arr_sizes[arr_idx][2];
+    // Need to convert the cpu_arr_sizes[arr_idx] to long long int type to allow for array length larger than maximum int32 value
+    unsigned long long *dataSizeLong = new  unsigned long long[3];
+    dataSizeLong[0] = (unsigned long long)cpu_arr_sizes[arr_idx][0];
+    dataSizeLong[1] = (unsigned long long)cpu_arr_sizes[arr_idx][1];
+    dataSizeLong[2] = (unsigned long long)cpu_arr_sizes[arr_idx][2];
+    
+    // Get the size of the array    
+    unsigned long long dim_size = dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2];
 
     // Register the CPU array as pinned memory using the CUDA function
     if ( cpu_arr_types[arr_idx] == "int")
     {            
         cudaHostRegister(cpu_arr_ptrs[arr_idx].i, sizeof(int)*dim_size, 0);
         return;
+    } else if ( cpu_arr_types[arr_idx] == "un_int")
+    {
+        cudaHostRegister(cpu_arr_ptrs[arr_idx].un_int, sizeof(long long int)*dim_size, 0);
+        return;
     } else if ( cpu_arr_types[arr_idx] == "float")
     {
+        std::cout << "Pinning array " << varNameString << " with bytes " << sizeof(float)*dim_size << '\n';
         cudaHostRegister(cpu_arr_ptrs[arr_idx].f, sizeof(float)*dim_size, 0);
         return;
     } else 
@@ -402,10 +453,19 @@ void CPU_CUDA_Memory::mem_Free(std::string varNameString)
     // Delete the arrays first from memory
     if ( cpu_arr_types[arr_idx] == "int")
     {
+
         std::free(cpu_arr_ptrs[arr_idx].i);
-    } else if ( cpu_arr_types[arr_idx] == "float")
+
+    } else if ( cpu_arr_types[arr_idx] == "un_int")
     {
+
+        std::free(cpu_arr_ptrs[arr_idx].un_int);
+
+    }else if ( cpu_arr_types[arr_idx] == "float")
+    {
+
         std::free(cpu_arr_ptrs[arr_idx].f);
+
     }
 
     // Delete the corresponding information from all the cpu vectors
@@ -453,6 +513,15 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
     // Save to the vector of array sizes
     CUDA_arr_sizes.push_back(new_dataSize_ptr);
 
+    // Check to make sure the GPU has enough available memory left
+    size_t mem_tot_0 = 0;
+    size_t mem_free_0 = 0;
+    cudaMemGetInfo(&mem_free_0, & mem_tot_0);
+    std::cout<< "Free memory before copy dev 0: "<< mem_free_0 << " Device: "<< GPU_Device << std::endl;
+
+
+
+
     // Allocate the memory and save the pointer to the corresponding vector
     Ptr_Types n;
 
@@ -460,12 +529,27 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
     {
         int *devPtr = new int[ dataSize[0] * dataSize[1] * dataSize[2] ]; // Multiply the X,Y,Z dimensions of the array
         n.i = devPtr;
+        
+        // Is there enough available memory on the device to allocate this array?
+        if ( mem_free_0 < sizeof(int)*(dataSize[0] * dataSize[1] * dataSize[2]))
+        {
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume." << '\n';
+            return;
+        }
 
         cudaMalloc(&n.i, sizeof(int)*(dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array     
         cudaDeviceSynchronize();
 
     } else if ( dataType == "float")
     {
+
+        // Is there enough available memory on the device to allocate this array?
+        if ( mem_free_0 < sizeof(float)*(dataSize[0] * dataSize[1] * dataSize[2]))
+        {
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume." << '\n';
+            return;
+        }
+
         float *devPtr = new float[ dataSize[0] * dataSize[1] * dataSize[2] ]; // Multiply the X,Y,Z dimensions of the array 
         n.f = devPtr;
 
