@@ -56,7 +56,7 @@ reset(gpuDevice());
 %% Create a volume 
 % Initialize parameters
 volSize = 256;%256%128;%64;
-n1_axes = 800;
+n1_axes = 1000;
 n2_axes = 10;
 
 interpFactor = 2.0;
@@ -94,7 +94,7 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(4);
+obj.SetNumberStreams(32);
 
 disp("SetVolume()...")
 obj.SetVolume(CASVol)
@@ -112,6 +112,9 @@ disp("Forward_Project()...")
 obj.Forward_Project()
 toc
 
+
+obj.CUDA_disp_mem('all')
+obj.disp_mem('all')
 
 % Return the resulting projection images
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');

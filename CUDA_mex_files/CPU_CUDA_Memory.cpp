@@ -296,9 +296,13 @@ mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_
     dims[1] = cpu_arr_sizes[arr_idx][1];
     dims[2] = cpu_arr_sizes[arr_idx][2];
 
-    // Copy the Matlab array to the class pointer for deep copy
-    // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
-    int dim_size = cpu_arr_sizes[arr_idx][0] * cpu_arr_sizes[arr_idx][1] * cpu_arr_sizes[arr_idx][2];
+    // Need to convert the dims to long long int type to allow for array length larger than maximum int32 value
+    unsigned long long *dim_size = new  unsigned long long[3];
+    dim_size[0] = (unsigned long long)cpu_arr_sizes[arr_idx][0];
+    dim_size[1] = (unsigned long long)cpu_arr_sizes[arr_idx][1];
+    dim_size[2] = (unsigned long long)cpu_arr_sizes[arr_idx][2];
+
+    // int dim_size = cpu_arr_sizes[arr_idx][0] * cpu_arr_sizes[arr_idx][1] * cpu_arr_sizes[arr_idx][2];
 
     if ( cpu_arr_types[arr_idx] == "int")
     {
@@ -309,7 +313,7 @@ mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_
         // Get a pointer to the output matrix created above
         int* matlabArrayPtr = (int*)mxGetData(Matlab_Pointer);
 
-        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].i, sizeof(int)*dim_size);
+        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].i, sizeof(int)*dim_size[0]*dim_size[1]*dim_size[2]);
 
         return Matlab_Pointer;
 
@@ -322,7 +326,7 @@ mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_
         // Get a pointer to the output matrix created above
         long long int* matlabArrayPtr = (long long int*)mxGetData(Matlab_Pointer);
 
-        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].un_int, sizeof(long long int)*dim_size);
+        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].un_int, sizeof(long long int)*dim_size[0]*dim_size[1]*dim_size[2]);
 
         return Matlab_Pointer;
     } else if ( cpu_arr_types[arr_idx] == "float")
@@ -334,7 +338,7 @@ mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_
         // Get a pointer to the output matrix created above
         float* matlabArrayPtr = (float*)mxGetData(Matlab_Pointer);
 
-        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].f, sizeof(float)*dim_size);
+        std::memcpy(matlabArrayPtr, cpu_arr_ptrs[arr_idx].f, sizeof(float)*dim_size[0]*dim_size[1]*dim_size[2]);
 
         return Matlab_Pointer;
     } else 
