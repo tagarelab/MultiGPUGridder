@@ -192,6 +192,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     }
 
+    // SetNumberBatches
+    if (!strcmp("SetNumberBatches", cmd)) {
+        // Check parameters
+        if (nrhs != 3)
+        {
+            mexErrMsgTxt("SetNumberBatches: Unexpected arguments. Please provide a scalar value.");
+        }
+       
+        int nBatches = (int)mxGetScalar(prhs[2]);         
+
+        std::cout << "nBatches: " << nBatches << '\n';
+
+        // Call the method
+        CUDA_Gridder_instance->SetNumberBatches(nBatches);
+
+        return;
+    }
+
     // mem_alloc    
     if (!strcmp("mem_alloc", cmd)) {
         // Check parameters

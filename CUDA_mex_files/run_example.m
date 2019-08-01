@@ -53,8 +53,8 @@ reset(gpuDevice());
 
 %% Create a volume 
 % Initialize parameters
-volSize = 512;%256;%256%128;%64;
-n1_axes = 1000;
+volSize = 256;%256;%256%128;%64;
+n1_axes = 10;
 n2_axes = 10;
 
 interpFactor = 2.0;
@@ -78,6 +78,7 @@ coordAxes = coordAxes(:);
 nCoordAxes = length(coordAxes)/9
 
 %% MATLAB pre-processing to covert vol to CASVol
+
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
 [CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
@@ -90,9 +91,12 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Run the forward projection kernel
 
+tic
 obj = CUDA_Gridder_Matlab_Class();
+obj.SetNumberBatches(1);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(32);
+obj.SetNumberStreams(8);
+
 
 disp("SetVolume()...")
 obj.SetVolume(CASVol)
@@ -111,25 +115,36 @@ obj.Forward_Project()
 toc
 
 
-obj.CUDA_disp_mem('all')
-obj.disp_mem('all')
+% obj.CUDA_disp_mem('all')
+% obj.disp_mem('all')
 
 % Return the resulting projection images
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
+
+
+obj.CUDA_Free('all')
 clear obj
 
+
+toc
 
 max(InterpCASImgs(:))
 
 % How many images to plot?
-numImgsPlot = 10;
+numImgsPlot = 100;
 
 % Make sure we have that many images first
-numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
+% numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
 
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
-easyMontage(imgs,1);
+% imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+% easyMontage(imgs,1);
+% 
+% imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
+% easyMontage(imgs,1);
+
+imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
+easyMontage(imgs(:,:,1:end-1),1);
 colormap gray
 
 

@@ -536,8 +536,8 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
         // Is there enough available memory on the device to allocate this array?
         if ( mem_free_0 < sizeof(int)*(dataSize[0] * dataSize[1] * dataSize[2]))
         {
-            mexErrMsgTxt("Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume.");  
-            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume." << '\n';
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()." << '\n';
+            mexErrMsgTxt("Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches().");              
             return;
         }
 
@@ -551,7 +551,7 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
         if ( mem_free_0 < sizeof(float)*(dataSize[0] * dataSize[1] * dataSize[2]))
         {
             mexErrMsgTxt("Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume.");  
-            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume." << '\n';
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
             return;
         }
 
