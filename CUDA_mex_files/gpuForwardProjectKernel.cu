@@ -169,7 +169,7 @@ void gpuForwardProject(
             }
 
             // How many coordinate axes to assign to this CUDA stream? 
-            int nAxes_Stream = floor((double)nAxes / (nBatches * nStreams)); // Ceil needed if nStreams is not a multiple of numGPUs            
+            int nAxes_Stream = ceil((double)nAxes / (nBatches * nStreams)); // Ceil needed if nStreams is not a multiple of numGPUs            
 
             std::cout << "nAxes: " << nAxes << '\n';
             std::cout << "nStreams: " << nStreams << '\n';
@@ -252,6 +252,9 @@ void gpuForwardProject(
 
             // Update the number of axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
+
+
+            // gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams
 
         }
 

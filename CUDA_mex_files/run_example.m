@@ -29,7 +29,7 @@ clear obj
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
-recompile = 0;
+recompile = 1;
 if (recompile == true)
     % cd('mex_files')
 
@@ -54,8 +54,8 @@ reset(gpuDevice());
 %% Create a volume 
 % Initialize parameters
 volSize = 256;%256;%256%128;%64;
-n1_axes = 100;
-n2_axes = 100;
+n1_axes = 10;
+n2_axes = 10;
 
 interpFactor = 2.0;
     
@@ -93,9 +93,9 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 
 tic
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(4);
+obj.SetNumberBatches(1);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(16);
+obj.SetNumberStreams(8);
 
 
 disp("SetVolume()...")
@@ -127,21 +127,25 @@ obj.CUDA_Free('all')
 clear obj
 
 
-
 toc
+
 max(InterpCASImgs(:))
-% 
-% % How many images to plot?
-% numImgsPlot = 100;
-% 
-% % Make sure we have that many images first
+
+% How many images to plot?
+numImgsPlot = 100;
+
+% Make sure we have that many images first
 % numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
-% 
-% % imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+
+% imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+% easyMontage(imgs,1);
 % 
 % imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
 % easyMontage(imgs,1);
-% colormap gray
+
+imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
+easyMontage(imgs(:,:,1:end-1),1);
+colormap gray
 
 
 disp('Done!');
