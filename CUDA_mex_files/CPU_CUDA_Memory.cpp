@@ -521,10 +521,7 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
     size_t mem_tot_0 = 0;
     size_t mem_free_0 = 0;
     cudaMemGetInfo(&mem_free_0, & mem_tot_0);
-    std::cout<< "Free memory before copy dev 0: "<< mem_free_0 << " Device: "<< GPU_Device << std::endl;
-
-
-
+    std::cout<< "Free memory before copy: " << mem_free_0 << " Device: "<< GPU_Device << std::endl;
 
     // Allocate the memory and save the pointer to the corresponding vector
     Ptr_Types n;
@@ -533,10 +530,13 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
     {
         int *devPtr = new int[ dataSize[0] * dataSize[1] * dataSize[2] ]; // Multiply the X,Y,Z dimensions of the array
         n.i = devPtr;
-        
+
+        std::cout << "CUDA Memory requested: " << sizeof(int)*(dataSize[0] * dataSize[1] * dataSize[2]) << " bytes" << '\n';
+
         // Is there enough available memory on the device to allocate this array?
         if ( mem_free_0 < sizeof(int)*(dataSize[0] * dataSize[1] * dataSize[2]))
         {
+            mexErrMsgTxt("Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume.");  
             std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume." << '\n';
             return;
         }
@@ -546,10 +546,11 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
 
     } else if ( dataType == "float")
     {
-
+        std::cout << "CUDA Memory requested: " << sizeof(float)*(dataSize[0] * dataSize[1] * dataSize[2]) << " bytes" << '\n';
         // Is there enough available memory on the device to allocate this array?
         if ( mem_free_0 < sizeof(float)*(dataSize[0] * dataSize[1] * dataSize[2]))
         {
+            mexErrMsgTxt("Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume.");  
             std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume." << '\n';
             return;
         }

@@ -48,14 +48,12 @@ if (recompile == true)
 end
 
 
-
-
 %%
 reset(gpuDevice());
 
 %% Create a volume 
 % Initialize parameters
-volSize = 256;%256%128;%64;
+volSize = 512;%256;%256%128;%64;
 n1_axes = 1000;
 n2_axes = 10;
 
@@ -77,7 +75,7 @@ vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 coordAxes = coordAxes(:);
-nCoordAxes = length(coordAxes)/9;
+nCoordAxes = length(coordAxes)/9
 
 %% MATLAB pre-processing to covert vol to CASVol
 % interpBoc and fftinfo are needed for plotting the results
