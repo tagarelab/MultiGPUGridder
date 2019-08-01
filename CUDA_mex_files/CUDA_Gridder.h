@@ -28,6 +28,9 @@ public:
 	// Number of GPUs to use with the CUDA kernel
 	int numGPUs = 1; // Default is 1
 
+	// Number of kernel batches to perform
+	int nBatches = 1;
+
 	// Output image size parameter
 	int* imgSize;
 
@@ -64,6 +67,9 @@ public:
 
 	// Set the number of streams to use with the CUDA kernel
 	void SetNumberStreams(int nStreams);
+
+	// Set the number of batches to use with the CUDA kernel
+	void SetNumberBatches(int nBatches);
 
 	// Set GPU volume 
 	void SetVolume( float* gpuVol, int* gpuVolSize);

@@ -36,6 +36,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = SetNumberStreams(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetNumberStreams', this.objectHandle, varargin{:});
         end
+        %% SetNumberBatches - Set number of batches to use with CUDA kernel
+        function varargout = SetNumberBatches(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('SetNumberBatches', this.objectHandle, varargin{:});
+        end
         %% mem_alloc - Allocate memory
         function varargout = mem_alloc(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_alloc', this.objectHandle, varargin{:});

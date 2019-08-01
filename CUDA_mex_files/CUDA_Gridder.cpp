@@ -64,6 +64,23 @@ void CUDA_Gridder::SetNumberStreams(int nStreams)
 
 }
 
+void CUDA_Gridder::SetNumberBatches(int nBatches)
+{
+    // How many batches to use with the CUDA kernels?
+
+    if (nBatches <= 0)
+    {
+        std::cerr << "Please choose a positive integer value for number of batches." << '\n';;  
+        return;    
+    }
+
+    // Save the user requested number of batches to use
+    this->nBatches = nBatches;
+
+    std::cout << "this->nBatches: " << this->nBatches << '\n';
+
+}
+
 // Set the GPU Volume
 void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
 {      
@@ -179,9 +196,10 @@ void CUDA_Gridder::Forward_Project_Initilize()
             gpuCASImgs_Size[1] = this->imgSize[1];
             // gpuCASImgs_Size[2] = this->imgSize[2]; 
    
-            // Each GPU only needs to hold a fraction of the total output images
+            // Each GPU only needs to hold a fraction of the total output images (based on number of streams and batches)
             // Should probably be this->numGPUs but am getting error
-            gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams)) + 1; 
+            gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams)) + 1;
+            gpuCASImgs_Size[2] = ceil(gpuCASImgs_Size[2] / (this->nBatches));
 
             std::cout << "gpuCASImgs_Size: " << gpuCASImgs_Size[0] << " "  << gpuCASImgs_Size[1] << " " << gpuCASImgs_Size[2] << '\n';
             
@@ -195,9 +213,9 @@ void CUDA_Gridder::Forward_Project_Initilize()
             // Allocate the gpuCoordAxes on the current gpuDevice
             int * gpuCoordAxes_Size = new int[3];
 
-            // Each GPU only needs to hold a fraction of the total axes vector
+            // Each GPU only needs to hold a fraction of the total axes vector (based on number of streams and batches)
             // Am getting an error so adding a few bytes to the end
-            gpuCoordAxes_Size[0] = ceil(this->axesSize[0] / this->nStreams) + 10; 
+            gpuCoordAxes_Size[0] = ceil(this->axesSize[0] / this->nStreams)  + 10;  /// (this->nBatches)
             // gpuCoordAxes_Size[0] = this->axesSize[0]; 
             gpuCoordAxes_Size[1] = this->axesSize[1];
             gpuCoordAxes_Size[2] = this->axesSize[2];
@@ -276,15 +294,13 @@ void CUDA_Gridder::Forward_Project(){
     int gridSize  = 32;// 32  
     int blockSize = this->imgSize[0] / gridSize ; // 4  
 
-    // return;
-
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, 63, 501, 2, // kernel parameters
-        numGPUs, this->nStreams, gridSize, blockSize// Streaming parameters
+        numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters
         ); //2034
 
     return;

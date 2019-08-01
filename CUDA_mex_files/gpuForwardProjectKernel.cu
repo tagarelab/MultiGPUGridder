@@ -113,17 +113,16 @@ void gpuForwardProject(
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize // Streaming parameters
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
 
-    
     // Verify all parameters and inputs are valid
     int parameter_check = ParameterChecking(    
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         volSize, imgSize, nAxes, maskRadius, kerSize, kerHWidth, // kernel Parameters and constants
-        numGPUs, nStreams, gridSize, blockSize // Streaming parameters)
+        numGPUs, nStreams, gridSize, blockSize, nBatches // Streaming parameters)
     );
 
     // If an error was detected return
@@ -142,91 +141,125 @@ void gpuForwardProject(
     // Create the CUDA streams
     cudaStream_t stream[nStreams]; 		
 
-    int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
-
-    for (int i = 0; i < nStreams; i++) 
+    for (int i = 0; i < nStreams; i++) // Loop through the streams
     { 
-
         int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
 
         cudaSetDevice(curr_GPU); // TO DO: Is this needed?        
         gpuErrchk( cudaStreamCreate(&stream[i]) );
 
-        if (curr_GPU < 0 || curr_GPU > 3)
-        {
-            std::cerr << "Error in curr_GPU" << '\n';
-            return;
-        }
-
-        // How many coordinate axes to assign to this CUDA stream? 
-        int nAxes_Stream = ceil((double)nAxes / nStreams); // Ceil needed if nStreams is not a multiple of numGPUs
-
-        if (nAxes_Stream * (i + 1) > nAxes) 
-        {
-            nAxes_Stream = nAxes_Stream - (nAxes_Stream * (i + 1) - nAxes); // Remove the extra axes that are past the maximum nAxes
-        }
-        
-        // Is there at least one axes to process for this stream?
-        if (nAxes_Stream < 1)
-        {
-            std::cerr << "nAxes_Stream < 1. Skipping this stream." << '\n';
-            continue; // Skip this stream
-        }
-
-        std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
-        
-        if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i)
-        {
-            std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
-            std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
-            std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
-            return;
-        }
-
-        // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
-        int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
-        int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
-
-         // Use unsigned long long int type to allow for array length larger than maximum int32 value 
-        unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
-        CASImgs_CPU_Offset[0] = (unsigned long long)(imgSize);
-        CASImgs_CPU_Offset[1] = (unsigned long long)(imgSize);
-        CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
-        
-        std::cout << "CASImgs_CPU_Offset: " << CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2] << '\n';
-        
-        // int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
-        int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
-
-        // Copy the section of gpuCoordAxes which this stream will process on the current GPU
-        cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
-           
-        // Run the forward projection kernel
-        // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
-        // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
-        gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
-            gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
-            imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
-            63, ker_bessel_Vector[curr_GPU], 501, 2);        
-  
-        gpuErrchk( cudaPeekAtLastError() );
-
-        // Copy the resulting gpuCASImgs to the host (CPU)
-        cudaMemcpyAsync(&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]], gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
-        gpuErrchk( cudaPeekAtLastError() );
-
-        // Update the number of axes which have already been assigned to a CUDA stream
-        processed_nAxes = processed_nAxes + nAxes_Stream;
-
     }
 
-    // TO DO: Add batching if the device memory is not large enough
-    // TO DO: Perhaps add a flag if batching is needed
+
+    int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
+
+    // Loop through the batches
+    for (int currBatch = 0; currBatch < nBatches; currBatch++)
+    {   
+        for (int i = 0; i < nStreams; i++) // Loop through the streams 
+        {             
+            int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
+
+            cudaSetDevice(curr_GPU); // TO DO: Is this needed?        
+
+            if (curr_GPU < 0 || curr_GPU > 3)
+            {
+                std::cerr << "Error in curr_GPU" << '\n';
+                return;
+            }
+
+            // How many coordinate axes to assign to this CUDA stream? 
+            int nAxes_Stream = floor((double)nAxes / (nBatches * nStreams)); // Ceil needed if nStreams is not a multiple of numGPUs            
+
+            std::cout << "nAxes: " << nAxes << '\n';
+            std::cout << "nStreams: " << nStreams << '\n';
+            std::cout << "nBatches: " << nBatches << '\n';
+            std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
+
+            // Check to make sure we dont try to process more coord axes than we have
+            if (processed_nAxes + nAxes_Stream > nAxes) 
+            {
+                // Process the remaining streams (at least one axes is left)
+                nAxes_Stream = nAxes_Stream - (processed_nAxes + nAxes_Stream - nAxes); // Remove the extra axes that are past the maximum nAxes
+            }
+            
+            // Is there at least one axes to process for this stream?
+            if (nAxes_Stream < 1)
+            {
+                std::cerr << "nAxes_Stream < 1. Skipping this stream." << '\n';
+                continue; // Skip this stream
+            }            
+
+                    
+            if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i)
+            {
+                std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
+                std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
+                std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
+                return;
+            }
+
+            // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
+            int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
+            int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
+
+            // Use unsigned long long int type to allow for array length larger than maximum int32 value 
+            unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
+            CASImgs_CPU_Offset[0] = (unsigned long long)(imgSize);
+            CASImgs_CPU_Offset[1] = (unsigned long long)(imgSize);
+            CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
+
+            // int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
+            int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
 
 
-    std::cout << "cudaDeviceSynchronize()" << '\n';
 
-    gpuErrchk( cudaDeviceSynchronize() );
+            std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
+            std::cout << "gpuCoordAxes_Offset: " << gpuCoordAxes_Offset << '\n';
+            std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
+            
+            std::cout << "CASImgs_CPU_Offset: " << CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2] << '\n';
+            std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';
+
+            // Check to make sure the coord axes array has the requested memory
+            if ( (gpuCoordAxes_Offset + coord_Axes_streamBytes) >= nAxes * 9 * sizeof(float))
+            {
+                std::cerr << "(gpuCoordAxes_Offset + coord_Axes_streamBytes) >= nAxes * 9 * sizeof(float). Skipping this stream." << '\n';
+                continue; // Skip this stream
+            }
+           
+            
+            // Copy the section of gpuCoordAxes which this stream will process on the current GPU
+            cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
+            
+
+            // Run the forward projection kernel
+            // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
+            // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
+            gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
+                gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
+                imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
+                63, ker_bessel_Vector[curr_GPU], 501, 2);        
+    
+            gpuErrchk( cudaPeekAtLastError() );
+
+            // Copy the resulting gpuCASImgs to the host (CPU)
+            cudaMemcpyAsync(
+                &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+                gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+
+            gpuErrchk( cudaPeekAtLastError() );
+
+            // Update the number of axes which have already been assigned to a CUDA stream
+            processed_nAxes = processed_nAxes + nAxes_Stream;
+
+        }
+
+        std::cout << "cudaDeviceSynchronize()" << '\n';
+
+        gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams
+
+    }
 
     std::cout << "Done with gpuForwardProjectKernel" << '\n';
 
@@ -240,7 +273,7 @@ int ParameterChecking(
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize // Streaming parameters)
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters)
 )
 {
     // Check all the input parameters to verify they are all valid
@@ -270,6 +303,18 @@ int ParameterChecking(
         return -1;
     }
     
+    // Checking parameter: nBatches
+    if (nBatches <= 0)
+    {
+        std::cout << "nBatches: " << nBatches << '\n';
+
+        std::cerr << "Invalid number of batches provided. Please use SetNumberBatches() to set a non-negative integer number." << '\n';
+        return -1;
+    }
+    
+
+    
+
     // Checking parameter: volSize
     if (volSize <= 0)
     {
