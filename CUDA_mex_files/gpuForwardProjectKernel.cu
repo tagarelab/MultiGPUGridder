@@ -187,7 +187,15 @@ void gpuForwardProject(
         int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
         int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
 
-        int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
+         // Use unsigned long long int type to allow for array length larger than maximum int32 value 
+        unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
+        CASImgs_CPU_Offset[0] = (unsigned long long)(imgSize);
+        CASImgs_CPU_Offset[1] = (unsigned long long)(imgSize);
+        CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
+        
+        std::cout << "CASImgs_CPU_Offset: " << CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2] << '\n';
+        
+        // int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
         int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
@@ -204,7 +212,7 @@ void gpuForwardProject(
         gpuErrchk( cudaPeekAtLastError() );
 
         // Copy the resulting gpuCASImgs to the host (CPU)
-        cudaMemcpyAsync(&CASImgs_CPU_Pinned[CASImgs_CPU_Offset], gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+        cudaMemcpyAsync(&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]], gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
         gpuErrchk( cudaPeekAtLastError() );
 
         // Update the number of axes which have already been assigned to a CUDA stream
@@ -215,6 +223,8 @@ void gpuForwardProject(
     // TO DO: Add batching if the device memory is not large enough
     // TO DO: Perhaps add a flag if batching is needed
 
+
+    std::cout << "cudaDeviceSynchronize()" << '\n';
 
     gpuErrchk( cudaDeviceSynchronize() );
 
