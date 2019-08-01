@@ -236,13 +236,9 @@ void CUDA_Gridder::Forward_Project(){
         
     // TO DO: Add more error checking. Are all the parameters valid? e.g. numGPUs > 0, nStreams <= numGPUS, etc.
 
-
-    // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
-    //Forward_Project_Initilize();
+    // Double check to make sure all the needed CPU and GPU required pointers exist
+    Forward_Project_Initilize(); 
     
-
-    // TO DO: Check the input variables. Is each one the correct type for the kernel? (i.e. CPU vs GPU, int vs float, etc.)
-
     // Create a vector of GPU pointers
     std::vector<float*> gpuVol_Vector;
     std::vector<float*> gpuCASImgs_Vector;

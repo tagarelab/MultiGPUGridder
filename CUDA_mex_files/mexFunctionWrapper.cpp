@@ -425,7 +425,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         if (nrhs != 2)
         {
-            mexErrMsgTxt("Forward_Project: Unexpected arguments. ");
+            mexErrMsgTxt("Forward_Project_Initilize: Unexpected arguments. ");
         }                 
 
         // Call the method

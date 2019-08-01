@@ -29,7 +29,7 @@ clear obj
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
-recompile = 1;
+recompile = 10;
 if (recompile == true)
     % cd('mex_files')
 
@@ -51,7 +51,7 @@ reset(gpuDevice());
 
 %% Create a volume 
 % Initialize parameters
-volSize = 64;%256%128;%64;
+volSize = 256;%256%128;%64;
 
 interpFactor = 2.0;
     
@@ -73,8 +73,8 @@ disp("Vol_Preprocessing()...")
 [CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 
 %% Define the projection directions
-n1_axes=15;
-n2_axes=15;
+n1_axes=100;
+n2_axes=50;
 
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
