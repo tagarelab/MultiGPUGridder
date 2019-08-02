@@ -150,7 +150,6 @@ void gpuForwardProject(
 
     }
 
-
     int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
 
     // Loop through the batches
@@ -212,8 +211,6 @@ void gpuForwardProject(
             // int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
             int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
 
-
-
             std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
             std::cout << "gpuCoordAxes_Offset: " << gpuCoordAxes_Offset << '\n';
             std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
@@ -252,15 +249,11 @@ void gpuForwardProject(
 
             // Update the number of axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
-
-
-            // gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams
-
         }
 
         std::cout << "cudaDeviceSynchronize()" << '\n';
 
-        gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams
+        gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
 
     }
 

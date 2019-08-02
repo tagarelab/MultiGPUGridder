@@ -29,7 +29,7 @@ clear obj
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
-recompile = 1;
+recompile = 0;
 if (recompile == true)
     % cd('mex_files')
 
@@ -54,7 +54,7 @@ reset(gpuDevice());
 %% Create a volume 
 % Initialize parameters
 volSize = 256;%256;%256%128;%64;
-n1_axes = 10;
+n1_axes = 100;
 n2_axes = 10;
 
 interpFactor = 2.0;
@@ -71,6 +71,13 @@ vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
 % Change the sphere a bit so the projections are not all the same
 vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
 
+
+% Use the example matlab MRI image to take projections of
+load mri;
+img = squeeze(D);
+img = imresize3(img,[volSize, volSize, volSize]);
+vol = double(img);
+% easyMontage(vol,1);
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
@@ -93,9 +100,9 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 
 tic
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(1);
+obj.SetNumberBatches(2);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(8);
+obj.SetNumberStreams(32);
 
 
 disp("SetVolume()...")
@@ -132,19 +139,19 @@ toc
 max(InterpCASImgs(:))
 
 % How many images to plot?
-numImgsPlot = 100;
+numImgsPlot = 10;
 
 % Make sure we have that many images first
-% numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
+numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
 
-% imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
-% easyMontage(imgs,1);
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+easyMontage(imgs,1);
+
 % 
 % imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
-% easyMontage(imgs,1);
+% easyMontage(imgs,2);
 
-imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
-easyMontage(imgs(:,:,1:end-1),1);
+
 colormap gray
 
 

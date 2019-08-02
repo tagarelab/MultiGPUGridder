@@ -198,8 +198,8 @@ void CUDA_Gridder::Forward_Project_Initilize()
    
             // Each GPU only needs to hold a fraction of the total output images (based on number of streams and batches)
             // Should probably be this->numGPUs but am getting error
-            gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams)) + 1;
-            gpuCASImgs_Size[2] = ceil(gpuCASImgs_Size[2] / (this->nBatches));
+            gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams));
+            gpuCASImgs_Size[2] = ceil(gpuCASImgs_Size[2] / (this->nBatches)) + 1;
 
             std::cout << "gpuCASImgs_Size: " << gpuCASImgs_Size[0] << " "  << gpuCASImgs_Size[1] << " " << gpuCASImgs_Size[2] << '\n';
             
@@ -301,7 +301,7 @@ void CUDA_Gridder::Forward_Project(){
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, 63, 501, 2, // kernel parameters
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters
-        ); //2034
+        ); 
 
     return;
 
