@@ -108,9 +108,22 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 }
 
 
+__global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize, int nImgs)
+{
+    // Convert the CASImgs to imgs
+
+
+
+
+
+}
+
+
+
 void gpuForwardProject(
-    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
-    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,    // Vector of GPU array pointers
+    std::vector<cufftComplex*> gpuImgs_Vector, std::vector<float*> gpuCoordAxes_Vector, // Vector of GPU array pointers
+    std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
@@ -119,7 +132,7 @@ void gpuForwardProject(
 
     // Verify all parameters and inputs are valid
     int parameter_check = ParameterChecking(    
-        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
+        gpuVol_Vector, gpuCASImgs_Vector, gpuImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         volSize, imgSize, nAxes, maskRadius, kerSize, kerHWidth, // kernel Parameters and constants
         numGPUs, nStreams, gridSize, blockSize, nBatches // Streaming parameters)
@@ -241,6 +254,56 @@ void gpuForwardProject(
                 63, ker_bessel_Vector[curr_GPU], 501, 2);        
     
             gpuErrchk( cudaPeekAtLastError() );
+            
+            // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
+            CASImgsToImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(
+                gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize, nAxes_Stream // nAxes_Stream is also equal to the number of images
+            );
+            
+          
+            // Transform the CASImgs to complex float2 type
+            int size = 100;
+            cufftComplex *h_complex_array, *h_output, *d_complex_array, *d_output;
+
+            cudaMalloc(&d_complex_array, sizeof(cufftComplex) * size);
+            cudaMalloc(&d_output, sizeof(cufftComplex) * size);
+
+            h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+            h_output = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+
+            for (int k = 0; k < size; k++) {
+                h_complex_array[k].x = k;//rand() / (float) RAND_MAX;
+                h_complex_array[k].y = 0;
+              }
+ 
+            // Example output array (cufftReal)
+            cufftComplex *output_test = (cufftComplex*)malloc(size*sizeof(cufftComplex));
+
+            // Plan the inverse FFT operation (for transforming the CASImgs back to imgs)
+            // https://arcb.csc.ncsu.edu/~mueller/cluster/nvidia/0.8/NVIDIA_CUFFT_Library_0.8.pdf
+            cufftHandle plan;
+            int nx = 10;
+            int ny = 10;
+            cufftPlan2d(&plan, nx, ny, CUFFT_C2C); // CUFFT_C2R is complex to real
+             
+
+            cudaMemcpy(d_complex_array, h_complex_array, sizeof(cufftComplex) * size, cudaMemcpyHostToDevice);
+
+
+            // Execute the inverse FFT on the gpuCASImgs
+            cufftExecC2C(plan, (cufftComplex *) d_complex_array, (cufftComplex *) d_output, CUFFT_FORWARD);
+
+            cudaMemcpy(h_output, d_output, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
+            
+            for (int z = 0; z < 10; z ++)
+            {
+                std::cout << "cufftReal h_output.x[" << z << "]: " << h_output[z].x << '\n';
+                std::cout << "cufftReal h_output.y[" << z << "]: " << h_output[z].y << '\n';
+   
+            }
+
+
+
 
             // Copy the resulting gpuCASImgs to the host (CPU)
             cudaMemcpyAsync(
@@ -267,11 +330,12 @@ void gpuForwardProject(
 
 
 int ParameterChecking(
-    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
-    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,    // Vector of GPU array pointers
+    std::vector<cufftComplex*> gpuImgs_Vector, std::vector<float*> gpuCoordAxes_Vector, // Vector of GPU array pointers
+    std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters)
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
     // Check all the input parameters to verify they are all valid
@@ -370,7 +434,7 @@ int ParameterChecking(
     }
 
     // Checking parameters: gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, and ker_bessel_Vector
-    if (gpuVol_Vector.size() <= 0 || gpuCASImgs_Vector.size() <= 0 || gpuCoordAxes_Vector.size() <= 0 || ker_bessel_Vector.size() <= 0)
+    if (gpuVol_Vector.size() <= 0 ||  gpuCASImgs_Vector.size() <= 0 || gpuImgs_Vector.size() <=0 || gpuCoordAxes_Vector.size() <= 0 || ker_bessel_Vector.size() <= 0)
     {
         std::cerr << "gpuForwardProject(): Input GPU pointer vectors are empty. Has SetVolume() and SetAxes() been run?" << '\n';
         return -1;

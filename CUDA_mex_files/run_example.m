@@ -38,28 +38,69 @@ if (recompile == true)
 
     fprintf('Compiling CUDA_Gridder mex file \n');
 
-    % Compile the CUDA kernel first
-    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
+    % Compile the CUDA kernel first 
+    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda -lcufft gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
 
     if status ~= 0
         error("Failed to compile");
     end
 
     % Compile the mex files second
-    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
+    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda -lcufft -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
 end
 
 
 reset(gpuDevice());
 
+%%
+format shortG
+
+x = 1:100;
+x = x - 1;
+% x(1:end) = 1;
+
+x = reshape(x, [10, 10])
+x = transpose(x)
+y = fft(x);
+z = y(1:10);
+z'
+% % real(z')
+
+% cufftReal h_output.x[0]: 4950
+% cufftReal h_output.y[0]: 0
+
+% cufftReal h_output.x[1]: -50
+% cufftReal h_output.y[1]: 153.884
+
+% cufftReal h_output.x[2]: -50
+% cufftReal h_output.y[2]: 68.8191
+
+% cufftReal h_output.x[3]: -50
+% cufftReal h_output.y[3]: 36.3271
+
+% cufftReal h_output.x[4]: -50
+% cufftReal h_output.y[4]: 16.246
+
+% cufftReal h_output.x[5]: -50
+% cufftReal h_output.y[5]: 0
+
+% cufftReal h_output.x[6]: -50
+% cufftReal h_output.y[6]: -16.246
+% cufftReal h_output.x[7]: -50
+% cufftReal h_output.y[7]: -36.3271
+% cufftReal h_output.x[8]: -50
+% cufftReal h_output.y[8]: -68.8191
+% cufftReal h_output.x[9]: -50
+% cufftReal h_output.y[9]: -153.884
 %% Create a volume 
+
 % Initialize parameters
 tic
 
-volSize = 256;%256;%256%128;%64;
-n1_axes = 100;
-n2_axes = 100;
+volSize = 128;%256;%256%128;%64;
+n1_axes = 10;
+n2_axes = 10;
 
 interpFactor = 2.0;
     
@@ -94,7 +135,7 @@ nCoordAxes = length(coordAxes)/9
 disp("MATLAB Vol_Preprocessing()...")
 [CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 
-
+imgsFromCASImgs(CASVol, interpBox, fftinfo);
 %% Display some information to the user before running the forward projection kernel
 
 disp(["Volume size: " + num2str(volSize)])

@@ -34,6 +34,9 @@ public:
 	// Output image size parameter
 	int* imgSize;
 
+	// Interpolation factor
+	int interpFactor = 2;
+	
 	// Mask radius parameter
 	float* maskRadius;
 

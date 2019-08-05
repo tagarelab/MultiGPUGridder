@@ -199,7 +199,7 @@ void CUDA_Gridder::Forward_Project_Initilize()
 
         int gpuDevice = i % this->numGPUs; // Use the remainder operator to split streams evenly between GPUs
 
-        // Has the output array been allocated and defined already?
+        // Has the CASImgs array been allocated and defined already?
         // The name of the GPU pointer is gpuCASImgs_0 for GPU 0, gpuCASImgs_1 for GPU 1, etc.
         if ( Mem_obj->GPUArrayAllocated("gpuCASImgs_" + std::to_string(i), gpuDevice) == false) 
         {
@@ -217,6 +217,25 @@ void CUDA_Gridder::Forward_Project_Initilize()
             std::cout << "gpuCASImgs_Size: " << gpuCASImgs_Size[0] << " "  << gpuCASImgs_Size[1] << " " << gpuCASImgs_Size[2] << '\n';
             
             Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(i), "float", gpuCASImgs_Size, gpuDevice);        
+        }
+
+        // Has the output imgs array been allocated and defined already?
+        // The name of the GPU pointer is gpuImgs_0 for GPU 0, gpuImgs_1 for GPU 1, etc.
+        if ( Mem_obj->GPUArrayAllocated("gpuImgs_" + std::to_string(i), gpuDevice) == false) 
+        {
+            // We need to allocate the gpuCASImgs array on this GPU
+            int * gpuImgs_Size = new int[3];
+            gpuImgs_Size[0] = this->imgSize[0] / interpFactor;
+            gpuImgs_Size[1] = this->imgSize[1] / interpFactor;
+           
+            // Each GPU only needs to hold a fraction of the total output images (based on number of streams and batches)
+            // Should probably be this->numGPUs but am getting error
+            gpuImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams));
+            gpuImgs_Size[2] = ceil(gpuImgs_Size[2] / (this->nBatches)) + 1;
+
+            std::cout << "gpuImgs_Size: " << gpuImgs_Size[0] << " "  << gpuImgs_Size[1] << " " << gpuImgs_Size[2] << '\n';
+            
+            Mem_obj->CUDA_alloc("gpuImgs_" + std::to_string(i), "cufftComplex", gpuImgs_Size, gpuDevice);        
         }
 
         // Has the coordAxes array been allocated and defined?
@@ -277,6 +296,7 @@ void CUDA_Gridder::Forward_Project(){
     // Create a vector of GPU pointers
     std::vector<float*> gpuVol_Vector;
     std::vector<float*> gpuCASImgs_Vector;
+    std::vector<cufftComplex*> gpuImgs_Vector;    
     std::vector<float*> ker_bessel_Vector;
     std::vector<float*> gpuCoordAxes_Vector;
 
@@ -293,6 +313,7 @@ void CUDA_Gridder::Forward_Project(){
     for (int i = 0; i < this->nStreams; i++)
     {
         gpuCASImgs_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCASImgs_" + std::to_string(i)));
+        gpuImgs_Vector.push_back(this->Mem_obj->ReturnCUDAComplexPtr("gpuImgs_" + std::to_string(i)));
         gpuCoordAxes_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCoordAxes_" + std::to_string(i)));
     }
 
@@ -310,7 +331,7 @@ void CUDA_Gridder::Forward_Project(){
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
     gpuForwardProject(
-        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
+        gpuVol_Vector, gpuCASImgs_Vector, gpuImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, 63, 501, 2, // kernel parameters
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters

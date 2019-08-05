@@ -162,6 +162,29 @@ float* CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString){
     return NULL; // Return null pointer since no pointer was found
 }
 
+cufftComplex* CPU_CUDA_Memory::ReturnCUDAComplexPtr(std::string varNameString){
+    // Given the name of a variable, return the memory pointer (supports only CUDA float pointers)
+    
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name 
+    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
+
+    if (arr_idx < 0)
+    {
+        //mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+    }  
+
+    if ( CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Return the CUDA memory pointer
+        return CUDA_arr_ptrs[arr_idx].c;
+
+    } else {
+        mexErrMsgTxt("This array is not of float type. Please try ReturnCUDAIntPtr instead.");
+    }
+    
+    return NULL; // Return null pointer since no pointer was found
+}
+
 void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType, int * dataSize)
 {        
     // Allocate memory based on the dataType (i.e. int, float, etc.)
@@ -561,7 +584,26 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
         cudaMalloc(&n.f, sizeof(float)*(dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array 
         //cudaDeviceSynchronize();
 
-    } else 
+    } else if  (dataType == "cufftComplex")
+    {
+
+        std::cout << "CUDA Memory requested: " << sizeof(cufftComplex)*(dataSize[0] * dataSize[1] * dataSize[2]) << " bytes" << '\n';
+        // Is there enough available memory on the device to allocate this array?
+        if ( mem_free_0 < sizeof(cufftComplex)*(dataSize[0] * dataSize[1] * dataSize[2]))
+        {
+            mexErrMsgTxt("Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume.");  
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
+            return;
+        }
+
+        cufftComplex *devPtr = new cufftComplex[ dataSize[0] * dataSize[1] * dataSize[2] ]; // Multiply the X,Y,Z dimensions of the array 
+        n.c = devPtr;
+
+        cudaMalloc(&n.c, sizeof(cufftComplex)*(dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array 
+        //cudaDeviceSynchronize();
+
+    }   
+    else 
     {
         mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
     }      

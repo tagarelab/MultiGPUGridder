@@ -11,6 +11,8 @@
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
+
 
 // NVTX labeling tools (for the nvidia profiling)
 #include <nvToolsExt.h>
@@ -47,6 +49,8 @@ public:
 
     float* ReturnCUDAFloatPtr(std::string varNameString);
 
+    cufftComplex* ReturnCUDAComplexPtr(std::string varNameString);
+
     void mem_alloc(std::string varNameString, std::string dataType, int * dataSize);
 
     void mem_Copy(std::string varNameString, float *New_Array);
@@ -79,6 +83,7 @@ private:
         int *i;        
         unsigned long long *un_int;
         float *f;
+        cufftComplex * c;
     };
 
     // Variables to hold the CPU arrays
