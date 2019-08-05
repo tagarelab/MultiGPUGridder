@@ -2,9 +2,12 @@
 %   Test of the GpuObject                                                 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 clear all;
 close all;
 reset(gpuDevice());
+
+tic
 
 %kernelHWidth=2.0;
 
@@ -13,9 +16,9 @@ reset(gpuDevice());
 addpath(fullfile('.','utils'));    
 
 %Initialize parameters
-volSize=64%128%64;
-n1_axes=15;%15;
-n2_axes=15;%15
+volSize=256%128%64;
+n1_axes=100;%15;
+n2_axes=10;%15
 interpFactor=2.0;
 
 %Get the gridder
@@ -31,7 +34,10 @@ origHWidth= origCenter-1;
 
 %Fuzzy sphere
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
-a.setVolume(vol);
+
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Create Coordaxes
@@ -42,11 +48,48 @@ coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Forward Project
 tic
-img=a.forwardProject(coordAxes);
+for i = 1:11
+
+    vol = vol + 2;
+
+    a.setVolume(vol);
+
+    img=a.forwardProject(coordAxes);
+
+
+end
+
+toc
+
+% 
+% img_slice = 1000;
+% 
+% figure('Color', [1 1 1])
+% subplot(1,3,1)
+% imagesc(img(:,:,img_slice))
+% title("gpuGridder")
+% axis square
+% 
+% subplot(1,3,2)
+% imagesc(brent_imgs(:,:,img_slice))
+% title("C++ Gridder")
+% axis square
+% subplot(1,3,3)
+% imagesc(img(:,:,img_slice) - brent_imgs(:,:,img_slice))
+% title("Subtraction")
+% 
+% colormap gray
+% axis square
+
+sum(img(:) - brent_imgs(:))
+
+x = load("imgs_brent_gridder.mat")
+
 toc
 
 easyMontage(img,1);
 
+abc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Back Project

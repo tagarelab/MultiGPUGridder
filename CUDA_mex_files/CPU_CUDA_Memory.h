@@ -67,6 +67,8 @@ public:
 
     void CUDA_Copy(std::string varNameString, float *New_Array);
 
+    void CUDA_Copy_Asyc(std::string varNameString, float *New_Array, cudaStream_t stream);
+
     mxArray* CUDA_Return(std::string varNameString, mxArray *Matlab_Pointer);
 
 private:

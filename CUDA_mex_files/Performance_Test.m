@@ -24,27 +24,28 @@ if (recompile == true)
     clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
 
 end
- 
+%  
 % for i = 1:4
 %     reset(gpuDevice(i))
 % end
 
 %%
 
-% Maximum int32 number 2147483647
 
-2147483647 / (500 * 500)
+volSize  = 256%[64, 128, 256]; % 512
+n1_axes  = 100%[2, 6, 10, 14. 20];
+n2_axes  = 100;
+nStreams = 64%[4, 8, 16, 32, 64, 128];
+nGPUs = [1, 2, 3, 4]
+nBatches = 5%[1,2,3,4,5]
 
-volSize  = 512;%[64, 128, 256, 512];%[64]%, 128, 256, 512];
-n1_axes  = 500%ones(1,5);%12000%[10, 20, 40, 60, 80, 100, 500, 1000];
-n2_axes  = 10;
-
-nStreams = 64%[4, 8, 16, 32, 64, 128, 256, 512];
 
 timing_measurements = [];
 timing_measurements.volSize = [];
 timing_measurements.nCoordAxes = [];
 timing_measurements.nStreams = [];
+timing_measurements.nGPUs = [];
+timing_measurements.nBatches = [];
 timing_measurements.fuzzymask = [];
 timing_measurements.Vol_Preprocessing = [];
 timing_measurements.create_uniform_axes = [];
@@ -57,15 +58,18 @@ for i = 1:length(volSize)
     for j = 1:length(n1_axes)
         for k = 1:length(n2_axes)
             for z = 1:length(nStreams)
-                
-                % Currently limited by the max int32 size when allocating the pinned CPU memory
-                % Leave 5% less of the maximum value
-%                 c = round(linspace(10, 2147483647 / (n2_axes(k) * volSize(i)^2 * 4) * 0.95, 5) )
+                for a = 1:length(nGPUs)
+                    for b = 1:length(nBatches)
+                        
+                    reset(gpuDevice());
+                    
+                    timing_measurements(iter) = RunExample(volSize(i), n1_axes(j), n2_axes(k), nStreams(z), nGPUs(a), nBatches(b));
 
-
-                timing_measurements(iter) = RunExample(volSize(i), n1_axes(j), n2_axes(k), nStreams(z));
-
-                iter = iter + 1;
+                    iter = iter + 1;
+                    
+                    end
+                    
+                end
             end
         end
     end    
@@ -117,21 +121,23 @@ for i = 1:length(timing_measurements)
     hold on
     
     try
-    x = timing_measurements(i).nCoordAxes;
+        
+    x = timing_measurements(i).nGPUs;
     y = timing_measurements(i).Forward_Project * 1000;
+    
     plot(x, y, [plot_color plot_style])
     
     str_1 = num2str(timing_measurements(i).nCoordAxes);
     str_2 = num2str(timing_measurements(i).nStreams);
     str_3 = string(str_1) + ", " + string(str_2);
-    text(x + 0.5,y, str_2)   
+    text(x * 1.05,y, str_2)   
     catch
         disp("Failed to plot for " + num2str(i))
     end
     
     
 
-    xlabel('Number of Projections')
+    xlabel('Number of GPUs')
     ylabel('Time (msec)')
     title(num2str(volSize(ndx)) + " Volume Size")
     grid on

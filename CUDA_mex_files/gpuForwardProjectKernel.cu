@@ -158,6 +158,8 @@ void gpuForwardProject(
         for (int i = 0; i < nStreams; i++) // Loop through the streams 
         {             
             int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
+            
+            std::cout << "curr_GPU: " << curr_GPU << '\n';
 
             cudaSetDevice(curr_GPU); // TO DO: Is this needed?        
 
