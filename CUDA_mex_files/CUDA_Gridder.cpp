@@ -84,9 +84,6 @@ void CUDA_Gridder::SetNumberBatches(int nBatches)
 // Set the GPU Volume
 void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
 {      
-    // Create a CUDA stream for asyc memory copying of the gpuVols
-    int nStreams = this->numGPUs;
-    cudaStream_t stream[nStreams]; 	
     
     // Pin gpuVol to host memory ( to enable the asyn stream copying)
     cudaHostRegister(gpuVol, sizeof(float)*gpuVolSize[0]*gpuVolSize[1]*gpuVolSize[2], 0);
@@ -105,6 +102,10 @@ void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
         }
     }
 
+    // Create CUDA streams for asyc memory copying of the gpuVols
+    int nStreams = this->numGPUs;
+    cudaStream_t stream[nStreams]; 	
+
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
         // After allocating the gpuVol array on the gpuDevice, lets copy the memory
@@ -113,7 +114,9 @@ void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
 
     // Unpin gpuVol to host memory (to free pinned memory on the RAM)
     cudaDeviceSynchronize();
-    cudaHostUnregister(gpuVol);
+    cudaError_t chk;
+    chk = cudaHostUnregister(gpuVol);
+    std::cout << "cudaError_t chk: " << chk << '\n';
 
     // Save the volume size for later
     this->volSize = new int(*gpuVolSize);

@@ -23,7 +23,7 @@
 
 
 clc
-clear
+% clear all
 clear obj 
 
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
@@ -55,6 +55,8 @@ reset(gpuDevice());
 
 %% Create a volume 
 % Initialize parameters
+tic
+
 volSize = 256;%256;%256%128;%64;
 n1_axes = 100;
 n2_axes = 100;
@@ -71,14 +73,14 @@ disp("fuzzymask()...")
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
 
 % Change the sphere a bit so the projections are not all the same
-vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
+% vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
 
 
 % Use the example matlab MRI image to take projections of
-load mri;
-img = squeeze(D);
-img = imresize3(img,[volSize, volSize, volSize]);
-vol = double(img);
+% load mri;
+% img = squeeze(D);
+% img = imresize3(img,[volSize, volSize, volSize]);
+% vol = double(img);
 % easyMontage(vol,1);
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
@@ -100,11 +102,11 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Run the forward projection kernel
 
-tic
+
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(2);
+obj.SetNumberBatches(1);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(32);
+obj.SetNumberStreams(24);
 
 
 disp("SetVolume()...")
@@ -118,29 +120,34 @@ obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCo
 
 obj.Forward_Project_Initilize()
 
-tic
+
 disp("Forward_Project()...")
 obj.Forward_Project()
-toc
 
-for i = 1:5
-    disp(num2str(i))
+% 
+% for i = 1:9
+%    
+%     CASVol = CASVol + 1; % Change the volume a bit
+%  
+%     disp("SetVolume()...")
+%     obj.SetVolume(CASVol)
+%  
+%     disp("Forward_Project()...")    
+%     obj.Forward_Project()
+%     
+%     
+%     
+%     % Return the resulting projection images
+%     disp("mem_Return()...")
+%     InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+%     
+% end
 
-    CASVol = CASVol + 2;
 
-    disp("SetVolume()...")
-    obj.SetVolume(CASVol)
-
-    disp("Forward_Project()...")
-    obj.Forward_Project()
-
-    
-    % Return the resulting projection images
-    disp("mem_Return()...")
-    InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
-    
-end
-
+% [r,w] = unix('free | grep Mem');
+% stats = str2double(regexp(w, '[0-9]*', 'match'));
+% memsize = stats(1)/1e6;
+% freemem = (stats(3))/1e6
 
 
 
@@ -148,17 +155,32 @@ end
 % obj.disp_mem('all')
 
 % Return the resulting projection images
-InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
-
-
-
-obj.CUDA_Free('all')
-clear obj
+% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 
 toc
 
-max(InterpCASImgs(:))
+obj.CUDA_Free('all')
+clear obj
+
+% clearvars -except InterpCASImgs interpBox fftinfo
+% % clear all 
+% imgs = imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
+% ndx = floor(linspace(0,size(InterpCASImgs,3),20))
+% 
+% for i = 1:length(ndx)-1
+%     curr_ndx = ndx(i):ndx(i+1)-1;
+%     curr_ndx = curr_ndx + 1;
+%     [curr_ndx(1) curr_ndx(end)]
+%     imgs(:,:,curr_ndx) = imgsFromCASImgs(InterpCASImgs(:,:,curr_ndx), interpBox, fftinfo);
+% end
+
+
+% 
+% imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo);
+% save("imgs_brent_gridder.mat", "imgs")
+
+% max(InterpCASImgs(:))
 
 display_imgs = 0;
 
@@ -181,6 +203,7 @@ end
 disp('Done!');
 
 
+clear all
 
 
 
