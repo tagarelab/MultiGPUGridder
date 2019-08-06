@@ -108,14 +108,41 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 }
 
 
-__global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize, int nImgs)
+__global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
-    // Convert the CASImgs to imgs
+    // CUDA kernel for converting the CASImgs to imgs
+
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+    int k = blockIdx.z * blockDim.z + threadIdx.z;
+
+    // For now, CASimgs is the same dimensions as imgs
+    int ndx_1 = i + j * imgSize + k * imgSize * imgSize;
+
+    
+    // Skip the first row and first column
+    if (i == 0 || j == 0)
+    {
+        // Real component
+        imgs[ndx_1].x = 0;
+
+        // Imaginary component
+        imgs[ndx_1].y = 0;
+
+        return;
+    }
+
+    // Offset to skip the first row then subtract from the end of the matrix and add the offset where the particular image starts in CASimgs
+    int ndx_2 = imgSize + imgSize * imgSize - ndx_1 + k * imgSize * imgSize;
+
+    // Real component
+    imgs[ndx_1].x = 0.5*(CASimgs[ndx_1] + CASimgs[ndx_2]);
+
+    // Imaginary component
+    imgs[ndx_1].y = 0.5*(CASimgs[ndx_1] - CASimgs[ndx_2]);
 
 
-
-
-
+    return;
 }
 
 
@@ -147,9 +174,6 @@ void gpuForwardProject(
     
     std::cout << "nStreams: " << nStreams << '\n';
 
-    // Define CUDA kernel dimensions
-    dim3 dimGrid(gridSize, gridSize, 1);
-    dim3 dimBlock(blockSize, blockSize, 1);
 
     // Create the CUDA streams
     cudaStream_t stream[nStreams]; 		
@@ -243,7 +267,11 @@ void gpuForwardProject(
             
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
-            
+               
+            // Define CUDA kernel dimensions
+            dim3 dimGrid(gridSize, gridSize, 1);
+            dim3 dimBlock(blockSize, blockSize, 1);
+
 
             // Run the forward projection kernel
             // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
@@ -255,21 +283,35 @@ void gpuForwardProject(
     
             gpuErrchk( cudaPeekAtLastError() );
             
+            // Define CUDA kernel dimensions for converting CASImgs to imgs
+            // dim3 dimGrid_CAS_to_Imgs(gridSize, gridSize, 1);
+            // dim3 dimBlock_CAS_to_Imgs(blockSize, blockSize, nAxes_Stream);
+            
             // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
-            CASImgsToImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(
-                gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize, nAxes_Stream // nAxes_Stream is also equal to the number of images
-            );
+            // CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
+            //     gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
+            // );
             
           
             // Transform the CASImgs to complex float2 type
             int size = 100;
-            cufftComplex *h_complex_array, *h_output, *d_complex_array, *d_output;
+            cufftComplex *h_complex_array, *h_imgs, *d_imgs;
+            float * d_CASImgs_test;
+            float * h_CASImgs_test;
 
-            cudaMalloc(&d_complex_array, sizeof(cufftComplex) * size);
-            cudaMalloc(&d_output, sizeof(cufftComplex) * size);
+
+            h_CASImgs_test = (float *) malloc(sizeof(float) * size);
+            cudaMalloc(&d_CASImgs_test, sizeof(float) * size);
+
+            for (int k = 0; k < size; k++) {
+                h_CASImgs_test[k] = k;
+            }
+
+            cudaMalloc(&d_imgs, sizeof(cufftComplex) * size);
+
 
             h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
-            h_output = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+            h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
 
             for (int k = 0; k < size; k++) {
                 h_complex_array[k].x = k;//rand() / (float) RAND_MAX;
@@ -281,28 +323,35 @@ void gpuForwardProject(
 
             // Plan the inverse FFT operation (for transforming the CASImgs back to imgs)
             // https://arcb.csc.ncsu.edu/~mueller/cluster/nvidia/0.8/NVIDIA_CUFFT_Library_0.8.pdf
-            cufftHandle plan;
-            int nx = 10;
-            int ny = 10;
-            cufftPlan2d(&plan, nx, ny, CUFFT_C2C); // CUFFT_C2R is complex to real
+            // cufftHandle plan;
+            // int nx = 10;
+            // int ny = 10;
+            // cufftPlan2d(&plan, nx, ny, CUFFT_C2C); // CUFFT_C2R is complex to real
              
 
-            cudaMemcpy(d_complex_array, h_complex_array, sizeof(cufftComplex) * size, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_CASImgs_test, h_CASImgs_test, sizeof(float) * size, cudaMemcpyHostToDevice);
 
+            dim3 dimGrid_CAS_to_Imgs(1, 1, 1);
+            dim3 dimBlock_CAS_to_Imgs(10, 10, 1); // number of images is the last parameter here
+            
+            // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
+            CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
+                d_CASImgs_test, d_imgs, 10
+            );
+
+            
 
             // Execute the inverse FFT on the gpuCASImgs
-            cufftExecC2C(plan, (cufftComplex *) d_complex_array, (cufftComplex *) d_output, CUFFT_FORWARD);
+            // cufftExecC2C(plan, (cufftComplex *) d_complex_array, (cufftComplex *) d_output, CUFFT_FORWARD);
 
-            cudaMemcpy(h_output, d_output, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_imgs, d_imgs, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
             
-            for (int z = 0; z < 10; z ++)
+            for (int z = 0; z < size; z ++)
             {
-                std::cout << "cufftReal h_output.x[" << z << "]: " << h_output[z].x << '\n';
-                std::cout << "cufftReal h_output.y[" << z << "]: " << h_output[z].y << '\n';
+                std::cout << "cufftComplex h_imgs.x[" << z << "]: " << h_imgs[z].x << '\n';
+                std::cout << "cufftComplex h_imgs.y[" << z << "]: " << h_imgs[z].y << '\n';
    
             }
-
-
 
 
             // Copy the resulting gpuCASImgs to the host (CPU)

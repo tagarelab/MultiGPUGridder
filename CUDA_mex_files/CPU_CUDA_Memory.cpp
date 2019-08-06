@@ -661,6 +661,9 @@ void CPU_CUDA_Memory::CUDA_Free(std::string varNameString)
     } else if ( CUDA_arr_types[arr_idx] == "float" )
     {
         cudaFree( CUDA_arr_ptrs[arr_idx].f );
+    } else if ( CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        cudaFree( CUDA_arr_ptrs[arr_idx].c );
     } else 
     {
         mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
