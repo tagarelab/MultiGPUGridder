@@ -225,8 +225,8 @@ void CUDA_Gridder::Forward_Project_Initilize()
         {
             // We need to allocate the gpuCASImgs array on this GPU
             int * gpuImgs_Size = new int[3];
-            gpuImgs_Size[0] = this->imgSize[0] / interpFactor;
-            gpuImgs_Size[1] = this->imgSize[1] / interpFactor;
+            gpuImgs_Size[0] = this->imgSize[0]; // / interpFactor;
+            gpuImgs_Size[1] = this->imgSize[1]; // / interpFactor;
            
             // Each GPU only needs to hold a fraction of the total output images (based on number of streams and batches)
             // Should probably be this->numGPUs but am getting error
