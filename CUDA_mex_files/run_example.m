@@ -116,8 +116,8 @@ reshape(imgs, [10, 10])
 % Initialize parameters
 tic
 
-volSize = 256;%256;%256%128;%64;
-n1_axes = 100;
+volSize = 64;%256;%256%128;%64;
+n1_axes = 10;
 n2_axes = 10;
 
 interpFactor = 2.0;
@@ -186,7 +186,7 @@ obj.Forward_Project()
 
 % 
 % for i = 1:9
-%    
+%    ,[0 100]
 %     CASVol = CASVol + 1; % Change the volume a bit
 %  
 %     disp("SetVolume()...")
@@ -219,6 +219,9 @@ testImgs= obj.CUDA_Return('gpuImgs_1');
 
 testImgs(1:10)'
 
+close all
+imagesc(real(testImgs(:,:,2))) %(size(vol,1) * interpFactor)
+colormap gray
 
 a = real(fftshift2(ifft2(fftshift2(testImgs(:,:,1)))));  %Inverse Fft
 

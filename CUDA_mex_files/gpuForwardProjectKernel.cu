@@ -148,8 +148,6 @@ __global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
     return;
 }
 
-
-
 void gpuForwardProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,    // Vector of GPU array pointers
     std::vector<cufftComplex*> gpuImgs_Vector, std::vector<float*> gpuCoordAxes_Vector, // Vector of GPU array pointers
@@ -354,15 +352,38 @@ void gpuForwardProject(
                 gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
             );
      
+
             // Plan the inverse FFT operation (for transforming the CASImgs back to imgs)
             // https://arcb.csc.ncsu.edu/~mueller/cluster/nvidia/0.8/NVIDIA_CUFFT_Library_0.8.pdf
-            // cufftHandle plan;            
-            // int nx = imgSize;
-            // int ny = imgSize;
-            // cufftPlan2d(&plan, nx, ny, CUFFT_C2C); // CUFFT_C2C is complex to complex             
+            // https://docs.nvidia.com/cuda/cufft/index.html
 
-            // Execute the inverse FFT on the gpuCASImgs
-            // cufftExecC2C(plan, (cufftComplex *) gpuImgs_Vector[i], (cufftComplex *) gpuImgs_Vector[i], CUFFT_FORWARD);
+            cufftHandle plan;           
+              
+            int nRows = imgSize;
+            int nCols = imgSize;
+            int n[2] = {nRows, nCols};
+            int howMany = nAxes_Stream;
+
+            cufftPlanMany(&plan,
+                2, //rank
+                n, //dimensions = {nRows, nCols}
+                0, //inembed
+                howMany, //istride
+                imgSize*imgSize, //idist
+                0, //onembed
+                howMany, //ostride
+                1, //odist
+                CUFFT_C2C, //cufftType
+                howMany /*batch*/);
+
+            cufftSetStream(plan,stream[i]);
+
+            // TO DO: Need to apply fftshift before the inverse FFT https://github.com/OrangeOwlSolutions/FFT/wiki/The-fftshift-in-CUDA
+            // http://www.orangeowlsolutions.com/archives/251
+
+            // Execute the inverse FFT on each 2D slice of the gpuCASImgs
+            //cufftExecC2C(plan, (cufftComplex *) gpuImgs_Vector[i], (cufftComplex *) gpuImgs_Vector[i], CUFFT_INVERSE);
+
 
             //cudaMemcpy(h_imgs, d_imgs, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
             
@@ -390,6 +411,8 @@ void gpuForwardProject(
         gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
 
     }
+
+
 
     std::cout << "Done with gpuForwardProjectKernel" << '\n';
 

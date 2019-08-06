@@ -75,6 +75,7 @@ x = transpose(x)
 [s1, s2, s3]=size(x);
 o1=min(2,s1);
 o2=min(2,s2);
+
 imgs=complex(zeros(s1,s2,s3,'single'));
 imgs(o1:s1,o2:s2,:)=0.5*(x(o1:s1,o2:s2,:)+x(s1:-1:o1,s2:-1:o2,:)...
     +1i*(x(o1:s1,o2:s2,:)-x(s1:-1:o1,s2:-1:o2,:)))
@@ -185,7 +186,7 @@ obj.Forward_Project()
 
 % 
 % for i = 1:9
-%    
+%    ,[0 100]
 %     CASVol = CASVol + 1; % Change the volume a bit
 %  
 %     disp("SetVolume()...")
@@ -212,6 +213,21 @@ obj.Forward_Project()
 
 obj.CUDA_disp_mem('all')
 obj.disp_mem('all')
+
+
+testImgs= obj.CUDA_Return('gpuImgs_1');
+
+testImgs(1:10)'
+
+close all
+imagesc(real(testImgs(:,:,2))) %(size(vol,1) * interpFactor)
+colormap gray
+
+a = real(fftshift2(ifft2(fftshift2(testImgs(:,:,1)))));  %Inverse Fft
+
+imagesc(a)
+colormap gray
+
 
 % Return the resulting projection images
 % InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
@@ -262,7 +278,7 @@ end
 disp('Done!');
 
 
-clear all
+% clear all
 
 
 
