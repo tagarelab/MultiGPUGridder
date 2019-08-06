@@ -878,18 +878,19 @@ mxArray* CPU_CUDA_Memory::CUDA_Return(std::string varNameString, mxArray *Matlab
         xi = (float*)mxGetPi(Matlab_Pointer);
 
         // TO DO: Is there a better way to copy the result back to Matlab?
+        //cudaMemcpy(xr, CUDA_arr_ptrs[arr_idx].c->x, sizeof(cufftComplex) * dim_size, cudaMemcpyDeviceToHost);
+        //cudaMemcpy(xi, CUDA_arr_ptrs[arr_idx].c->y, sizeof(cufftComplex) * dim_size, cudaMemcpyDeviceToHost);
+
         cufftComplex *h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * dim_size);
         
         cudaMemcpy(h_imgs, CUDA_arr_ptrs[arr_idx].c, sizeof(cufftComplex) * dim_size, cudaMemcpyDeviceToHost);
-
-        //xr[2] = 9;
 
         for (int i=0; i<dim_size; i++)
         {
             xr[i] = h_imgs[i].x; // Real
             xi[i] = h_imgs[i].y; // Imaginary
         }
-        
+
         std::free(h_imgs);
 
         // Get a pointer to the output matrix created above

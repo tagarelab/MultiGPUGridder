@@ -144,7 +144,6 @@ __global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
     // Imaginary component
     imgs[ndx_1].y = 0.5*(CASimgs[ndx_1] - CASimgs[ndx_2]);
 
-
     return;
 }
 
