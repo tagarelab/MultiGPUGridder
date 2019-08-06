@@ -864,6 +864,48 @@ mxArray* CPU_CUDA_Memory::CUDA_Return(std::string varNameString, mxArray *Matlab
 
         return Matlab_Pointer;
 
+    } else if ( CUDA_arr_types[arr_idx] == "cufftComplex")
+    {        
+        // https://www.mathworks.com/help/matlab/matlab_external/upgrade-mex-files-to-use-interleaved-complex.html
+
+        // Create the output matlab array as type cufftComplex
+        Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxCOMPLEX);   
+
+        float  *xr, *xi;
+
+        // Get pointers to the real and imaginary parts of the array
+        xr = (float*)mxGetPr(Matlab_Pointer);
+        xi = (float*)mxGetPi(Matlab_Pointer);
+
+        // TO DO: Is there a better way to copy the result back to Matlab?
+        cufftComplex *h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * dim_size);
+        
+        cudaMemcpy(h_imgs, CUDA_arr_ptrs[arr_idx].c, sizeof(cufftComplex) * dim_size, cudaMemcpyDeviceToHost);
+
+        //xr[2] = 9;
+
+        for (int i=0; i<dim_size; i++)
+        {
+            xr[i] = h_imgs[i].x; // Real
+            xi[i] = h_imgs[i].y; // Imaginary
+        }
+        
+        std::free(h_imgs);
+
+        // Get a pointer to the output matrix created above
+        // mxComplexDouble * xc;
+        //* matlabArrayPtr = (mxComplexSingle*)mxGetComplexSingles(Matlab_Pointer);
+
+        // for (size_t i = 0; i < input->get_number_of_elements(); i++){
+        // 		data[i].real = real(raw_data[i]);
+        // 		data[i].imag = imag(raw_data[i]);
+        // 	}
+
+        // CUDA function to copy the data from device to host
+        //cudaMemcpy(matlabArrayPtr, CUDA_arr_ptrs[arr_idx].c, dim_size*sizeof(cufftComplex), cudaMemcpyDeviceToHost);
+
+        return Matlab_Pointer;
+
     } else 
     {
         mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");

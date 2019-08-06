@@ -111,14 +111,12 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 __global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
     // CUDA kernel for converting the CASImgs to imgs
-
     int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
-    int k = blockIdx.z * blockDim.z + threadIdx.z;
+    int k = blockIdx.z * blockDim.z + threadIdx.z; // Which image?
 
     // For now, CASimgs is the same dimensions as imgs
     int ndx_1 = i + j * imgSize + k * imgSize * imgSize;
-
     
     // Skip the first row and first column
     if (i == 0 || j == 0)
@@ -129,6 +127,11 @@ __global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
         // Imaginary component
         imgs[ndx_1].y = 0;
 
+        return;
+    }
+
+    // Are we outside the bounds of the image?
+    if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
         return;
     }
 
@@ -229,10 +232,11 @@ void gpuForwardProject(
             }            
 
                     
-            if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i)
+            if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i || gpuImgs_Vector.size() <= i)
             {
                 std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
                 std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
+                std::cout << "gpuImgs_Vector.size(): " << gpuImgs_Vector.size() << '\n';
                 std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
                 return;
             }
@@ -287,12 +291,12 @@ void gpuForwardProject(
             // dim3 dimGrid_CAS_to_Imgs(gridSize, gridSize, 1);
             // dim3 dimBlock_CAS_to_Imgs(blockSize, blockSize, nAxes_Stream);
             
-            // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
+            // // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
             // CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
             //     gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
             // );
             
-          
+                /*
             // Transform the CASImgs to complex float2 type
             int size = 100;
             cufftComplex *h_complex_array, *h_imgs, *d_imgs;
@@ -321,37 +325,53 @@ void gpuForwardProject(
             // Example output array (cufftReal)
             cufftComplex *output_test = (cufftComplex*)malloc(size*sizeof(cufftComplex));
 
-            // Plan the inverse FFT operation (for transforming the CASImgs back to imgs)
-            // https://arcb.csc.ncsu.edu/~mueller/cluster/nvidia/0.8/NVIDIA_CUFFT_Library_0.8.pdf
-            // cufftHandle plan;
-            // int nx = 10;
-            // int ny = 10;
-            // cufftPlan2d(&plan, nx, ny, CUFFT_C2C); // CUFFT_C2R is complex to real
-             
 
             cudaMemcpy(d_CASImgs_test, h_CASImgs_test, sizeof(float) * size, cudaMemcpyHostToDevice);
+*/
 
-            dim3 dimGrid_CAS_to_Imgs(1, 1, 1);
-            dim3 dimBlock_CAS_to_Imgs(10, 10, 1); // number of images is the last parameter here
+// gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
+//     gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
+//     imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
+//     63, ker_bessel_Vector[curr_GPU], 501, 2);        
+
+
+        // void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
             
+            dim3 dimGrid_CAS_to_Imgs(32, 32, nAxes_Stream);
+            dim3 dimBlock_CAS_to_Imgs(imgSize/32,imgSize/32,1); 
+
+            std::cout << "gpuImgs_Vector.size(): " << gpuImgs_Vector.size() << '\n';
+            std::cout << "stream " << i << '\n';
+            
+            // cufftComplex *d_imgs; // TEST
+            // cudaMalloc(&d_imgs, sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream); // TEST
+
+            float * d_CASImgs_test;
+            cudaMalloc(&d_CASImgs_test, sizeof(float) * imgSize * imgSize * nAxes_Stream);
+
             // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
             CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
-                d_CASImgs_test, d_imgs, 10
+                gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
             );
-
-            
+     
+            // Plan the inverse FFT operation (for transforming the CASImgs back to imgs)
+            // https://arcb.csc.ncsu.edu/~mueller/cluster/nvidia/0.8/NVIDIA_CUFFT_Library_0.8.pdf
+            // cufftHandle plan;            
+            // int nx = imgSize;
+            // int ny = imgSize;
+            // cufftPlan2d(&plan, nx, ny, CUFFT_C2C); // CUFFT_C2C is complex to complex             
 
             // Execute the inverse FFT on the gpuCASImgs
-            // cufftExecC2C(plan, (cufftComplex *) d_complex_array, (cufftComplex *) d_output, CUFFT_FORWARD);
+            // cufftExecC2C(plan, (cufftComplex *) gpuImgs_Vector[i], (cufftComplex *) gpuImgs_Vector[i], CUFFT_FORWARD);
 
-            cudaMemcpy(h_imgs, d_imgs, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
+            //cudaMemcpy(h_imgs, d_imgs, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
             
-            for (int z = 0; z < size; z ++)
-            {
-                std::cout << "cufftComplex h_imgs.x[" << z << "]: " << h_imgs[z].x << '\n';
-                std::cout << "cufftComplex h_imgs.y[" << z << "]: " << h_imgs[z].y << '\n';
+            //for (int z = 0; z < size; z ++)
+            //{
+            //    std::cout << "cufftComplex h_imgs.x[" << z << "]: " << h_imgs[z].x << '\n';
+            //    std::cout << "cufftComplex h_imgs.y[" << z << "]: " << h_imgs[z].y << '\n';
    
-            }
+           // }
 
 
             // Copy the resulting gpuCASImgs to the host (CPU)
