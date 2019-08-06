@@ -116,8 +116,8 @@ reshape(imgs, [10, 10])
 % Initialize parameters
 tic
 
-volSize = 64;%256;%256%128;%64;
-n1_axes = 10;
+volSize = 256;%256;%256%128;%64;
+n1_axes = 100;
 n2_axes = 10;
 
 interpFactor = 2.0;
@@ -214,6 +214,18 @@ obj.Forward_Project()
 obj.CUDA_disp_mem('all')
 obj.disp_mem('all')
 
+
+testImgs= obj.CUDA_Return('gpuImgs_1');
+
+testImgs(1:10)'
+
+
+a = real(fftshift2(ifft2(fftshift2(testImgs(:,:,1)))));  %Inverse Fft
+
+imagesc(a)
+colormap gray
+
+
 % Return the resulting projection images
 % InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
@@ -263,7 +275,7 @@ end
 disp('Done!');
 
 
-clear all
+% clear all
 
 
 
