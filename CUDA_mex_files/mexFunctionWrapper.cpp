@@ -154,6 +154,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     }
 
+   // SetMaskRadius
+    if (!strcmp("SetMaskRadius", cmd)) {
+        // Check parameters
+        if (nrhs !=  3)
+        {
+            mexErrMsgTxt("SetMaskRadius: Unexpected arguments. Please provide a row vector.");
+        }
+       
+        float* MaskRadius = (float*)mxGetData( prhs[2] );
+  
+        // Call the method
+        CUDA_Gridder_instance->SetMaskRadius(MaskRadius);
+
+        return;
+
+    }
+
     // SetNumberGPUs
     if (!strcmp("SetNumberGPUs", cmd)) {
         // Check parameters

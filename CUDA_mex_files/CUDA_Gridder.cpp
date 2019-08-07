@@ -170,7 +170,7 @@ void CUDA_Gridder::SetMaskRadius(float* maskRadius)
 {
     this->maskRadius = maskRadius;
 
-    std::cout << "maskRadius: " << maskRadius << '\n';
+    std::cout << "maskRadius: " << maskRadius[0] << '\n';
 
 }
 
@@ -312,7 +312,7 @@ void CUDA_Gridder::Forward_Project(){
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-        this->volSize[0], this->imgSize[0], nAxes, 63, 501, 2, // kernel parameters
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius , 501, 2, // kernel parameters
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters
         ); 
 

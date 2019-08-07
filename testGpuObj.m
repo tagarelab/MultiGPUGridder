@@ -16,8 +16,8 @@ tic
 addpath(fullfile('.','utils'));    
 
 %Initialize parameters
-volSize=256%128%64;
-n1_axes=100;%15;
+volSize=128%128%64;
+n1_axes=500;%15;
 n2_axes=10;%15
 interpFactor=2.0;
 
@@ -47,17 +47,11 @@ coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Forward Project
-tic
-for i = 1:11
-
-    vol = vol + 2;
-
-    a.setVolume(vol);
-
-    img=a.forwardProject(coordAxes);
 
 
-end
+a.setVolume(vol);
+img=a.forwardProject(coordAxes);
+
 
 toc
 
@@ -81,11 +75,11 @@ toc
 % colormap gray
 % axis square
 
-sum(img(:) - brent_imgs(:))
+% sum(img(:) - brent_imgs(:))
 
-x = load("imgs_brent_gridder.mat")
+save("gpuGridder_vol128.mat", "img")
 
-toc
+
 
 easyMontage(img,1);
 

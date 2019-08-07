@@ -167,8 +167,8 @@ classdef gpuGridder < handle
             
         end
             
-        function imgs=getImgs(obj)          
-            imgs=imgsFromCASImgs(obj.getInterpCASImgs(),obj.interpBox,obj.fftinfo);
+        function imgs=getImgs(obj)                 
+            imgs=imgsFromCASImgs(obj.getInterpCASImgs(),obj.interpBox,obj.fftinfo);            
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

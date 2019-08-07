@@ -23,7 +23,7 @@
 
 
 clc
-close all
+% clear all
 clear obj 
 
 addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
@@ -58,7 +58,7 @@ reset(gpuDevice());
 tic
 
 volSize = 128;%256;%256%128;%64;
-n1_axes = 500;
+n1_axes = 50;
 n2_axes = 10;
 
 interpFactor = 2.0;
@@ -103,34 +103,11 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 %% Run the forward projection kernel
 
 
-%         interpFactor: 2
-%             padWidth: 3
-%            kerHWidth: 2
-%           kerTblSize: 501
-%              fftinfo: '(fftw-3.3.3 fftwf_wisdom #x706526c0 #x2f8b6c85 #x8cd1bb1a #x7c96e03d↵  (fftwf_codelet_n2fv_32_avx 0 #x11bdd #x11bdd #x0 #x12d24524 #x289b57fa #x2bd8cbf3 #xaac91103)↵  (fftwf_codelet_r2cf_8 2 #x11bdd #x11bdd #x0 #xaccb8bbb #x30a0e5a6 #xb8c0b6b6 #xd9c72532)↵  (fftwf_codelet_r2cfII_8 2 #x11bdd #x11bdd #x0 #x23fb2e26 #x3fe4d3f4 #x78d7c0db #xaba9deb1)↵  (fftwf_codelet_hc2cfdftv_8_sse2 0 #x11bdd #x11bdd #x0 #x444bab32 #xc5e77a42 #x1cbd9c50 #xa8060657)↵  (fftwf_codelet_r2cfII_8 2 #x11bdd #x11bdd #x0 #xd0595f70 #x0f49f59a #x2758e317 #x73323a52)↵  (fftwf_codelet_hc2cfdftv_8_sse2 0 #x11bdd #x11bdd #x0 #x4bb69ce7 #x4599107c #x14ecc846 #x282ba2c3)↵  (fftwf_rdft2_vrank_geq1_register 0 #x11bdd #x11bdd #x0 #xdc61852d #x527070fd #x78c84335 #x33a00be1)↵  (fftwf_codelet_n1fv_32_avx 0 #x11bdd #x11bdd #x0 #x6d48fbd0 #x4b53cd60 #xc80a864b #x3a848396)↵  (fftwf_codelet_r2cf_8 2 #x11bdd #x11bdd #x0 #xaae37515 #xc366903c #xc804fee2 #x44fc70a7)↵)↵'
-%               gpuIds: 1
-%               gpuDev: [1×1 parallel.gpu.CUDADevice]
-%          origVolSize: 128
-%              imgSize: 256
-%                nAxes: 5001
-%                 rMax: 127
-%              origBox: [1×1 struct]
-%            interpBox: [1×1 struct]
-%               CASBox: [1×1 struct]
-%     axesPerIteration: 5001
-%            cudaFPKer: [1×1 parallel.gpu.CUDAKernel]
-%            cudaBPKer: [1×1 parallel.gpu.CUDAKernel]
-%               gpuVol: [262×262×262 gpuArray]
-%            gpuKerTbl: [501×1 gpuArray]
-%         gpuCoordAxes: [45009×1 gpuArray]
-%           gpuCASImgs: [256×256×5001 gpuArray]
-%           gpuCpxImgs: []
-%           
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberBatches(4);
-obj.SetNumberGPUs(4);
-obj.SetNumberStreams(64);
-obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
+obj.SetNumberGPUs(1);
+obj.SetNumberStreams(1);
+
 
 disp("SetVolume()...")
 obj.SetVolume(CASVol)
@@ -147,6 +124,32 @@ obj.Forward_Project_Initilize()
 disp("Forward_Project()...")
 obj.Forward_Project()
 
+% 
+% for i = 1:9
+%    
+%     CASVol = CASVol + 1; % Change the volume a bit
+%  
+%     disp("SetVolume()...")
+%     obj.SetVolume(CASVol)
+%  
+%     disp("Forward_Project()...")    
+%     obj.Forward_Project()
+%     
+%     
+%     
+%     % Return the resulting projection images
+%     disp("mem_Return()...")
+%     InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+%     
+% end
+
+
+% [r,w] = unix('free | grep Mem');
+% stats = str2double(regexp(w, '[0-9]*', 'match'));
+% memsize = stats(1)/1e6;
+% freemem = (stats(3))/1e6
+
+
 
 % obj.CUDA_disp_mem('all')
 % obj.disp_mem('all')
@@ -155,11 +158,17 @@ obj.Forward_Project()
 disp("mem_Return()...")
 InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
-
 disp("imgsFromCASImgs()...")
 tic
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); 
+imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo); 
 toc
+
+% tic
+% for i = 1:2%size(InterpCASImgs,3)
+%     i
+%     imgs(:,:,i)=imgsFromCASImgs(InterpCASImgs(:,:,1:end/2), interpBox, fftinfo); 
+% end
+% toc
 
 
 obj.CUDA_Free('all')
@@ -169,22 +178,27 @@ clearvars -except imgs
 
 clc
  
+
 gpuGridder = load("gpuGridder_vol128.mat");
-% gpuGridder = load("gpuGridder_InterpCASImgs.mat");
-% gpuGridder = load("gpuGridder_gpuVol.mat");
+
+size(gpuGridder.img)
+size(imgs)
+
+max(gpuGridder.img(:))
+max(imgs(:))
 
 
-img_slice = 1;
+img_slice = 500;
 
 close all
 figure('Color', [1 1 1])
 h(1) = subplot(1,3,1);
-imagesc(gpuGridder.img(:,:,img_slice));
+imagesc(gpuGridder.img(:,:,img_slice))
 title("gpuGridder")
 axis square
 
 h(2) = subplot(1,3,2)
-imagesc(imgs(:,:,img_slice));
+imagesc(imgs(:,:,img_slice), [0 0.1]);
 title("C++ Gridder")
 axis square
 
@@ -196,8 +210,6 @@ colormap jet
 axis square
 linkaxes(h, 'xy')
 
-
-sum(sum(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice)))
 
 display_imgs = 0;
 
