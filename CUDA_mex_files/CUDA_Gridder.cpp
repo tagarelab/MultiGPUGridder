@@ -126,6 +126,34 @@ void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
 
 }
 
+// Reset the GPU volume to all zeros
+void CUDA_Gridder::ResetVolume()
+{
+
+    // Loop through all of the GPUs and reset the volume on each GPU
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
+    {
+        std::cout << "Resetting gpuVol on GPU " << gpuDevice << "..." << '\n';
+
+        // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
+        // Has a gpuVol array already been allocated on this GPU?    
+        if ( Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == true) 
+        {
+            cudaSetDevice(gpuDevice);
+
+            // Get the corresponding GPU pointer to the volume on the current GPU
+            float* gpuVolPtr = this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(gpuDevice));
+
+            // Set all elements in the volume on this GPU to zeros
+            cudaMemset(gpuVolPtr, 0, volSize[0]*volSize[1]*volSize[2]*sizeof(float));
+
+        } else 
+        {
+            std::cerr << "Volume has not previously allocated on GPU " << gpuDevice << " Please use SetVolume() first." << '\n';
+        }
+    }
+}
+
 // Set the coordinate axes Volume
 void CUDA_Gridder::SetAxes(float* coordAxes, int* axesSize)
 {   
@@ -396,7 +424,7 @@ void CUDA_Gridder::Back_Project(){
 
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
-    gpuForwardProject(
+    gpuBackProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel parameters
@@ -406,7 +434,6 @@ void CUDA_Gridder::Back_Project(){
     return;
 
 }
-
 
 
 int CUDA_Gridder::ParameterChecking(

@@ -82,6 +82,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     }
 
+    // ResetVolume 
+    if (!strcmp("ResetVolume", cmd)) {
+
+        // Check parameters
+        if (nrhs !=  2)
+        {
+            mexErrMsgTxt("ResetVolume: Unexpected arguments.");
+        }
+       
+        // Call the method
+        CUDA_Gridder_instance->ResetVolume();
+
+        return;
+
+    }
+
+
     // SetAxes 
     if (!strcmp("SetAxes", cmd)) {
         // Check parameters

@@ -38,15 +38,22 @@ if (recompile == true)
 
     fprintf('Compiling CUDA_Gridder mex file \n');
 
-    % Compile the CUDA kernel first
+    % Compile the forward projection CUDA kernel first
     status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
 
     if status ~= 0
         error("Failed to compile");
     end
 
+    % Compile the back projection CUDA kernel first
+    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
+
+    if status ~= 0
+        error("Failed to compile");
+    end
+    
     % Compile the mex files second
-    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
+    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
 
 end
 
@@ -103,9 +110,9 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 %% Run the forward projection kernel
 
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(4);
-obj.SetNumberGPUs(4);
-obj.SetNumberStreams(64);
+obj.SetNumberBatches(1);
+obj.SetNumberGPUs(1);
+obj.SetNumberStreams(4);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
@@ -125,8 +132,20 @@ obj.Forward_Project()
 
 
 %% Run the back projection kernel
+
+disp("ResetVolume()...")
+obj.ResetVolume()
+
+gpuVol  = obj.CUDA_Return('gpuVol_0');
+
+max(gpuVol(:))
+
 disp("Back_Project()...")
 obj.Back_Project()
+
+gpuVol  = obj.CUDA_Return('gpuVol_0');
+
+max(gpuVol(:))
 
 %%
 % obj.CUDA_disp_mem('all')

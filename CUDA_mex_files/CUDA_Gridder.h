@@ -75,6 +75,9 @@ public:
 	// Set GPU volume 
 	void SetVolume( float* gpuVol, int* gpuVolSize);
 
+	// Reset the GPU volumes on all the GPUs
+	void ResetVolume();
+
 	// Set coordinate axes
 	void SetAxes(float* coordAxes, int* axesSize);
 

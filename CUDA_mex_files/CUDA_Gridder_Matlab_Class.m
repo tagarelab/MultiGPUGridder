@@ -20,6 +20,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = SetVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, varargin{:});
         end
+        %% ResetVolume - Reset GPU volume
+        function varargout = ResetVolume(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('ResetVolume', this.objectHandle, varargin{:});
+        end
         %% SetImgSize - Set output image size
         function varargout = SetImgSize(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetImgSize', this.objectHandle, varargin{:});
