@@ -307,18 +307,151 @@ void CUDA_Gridder::Forward_Project(){
     int gridSize  = 32;// 32  
     int blockSize = this->imgSize[0] / gridSize ; // 4  
 
+    // Verify all parameters and inputs are valid
+    int parameter_check = ParameterChecking(    
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
+        numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters)
+    );
+
+    // If an error was detected return and don't start the CUDA kernel
+    if (parameter_check != 0)
+    {
+        std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
+        return;
+    }   
+
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius , 501, 2, // kernel parameters
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel parameters
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters
         ); 
 
     return;
 
 }
+
+
+
+
+int CUDA_Gridder::ParameterChecking(
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
+    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters)
+)
+{
+    // Check all the input parameters to verify they are all valid
+
+    // Checking parameter: numGPUs
+    int  numGPUDetected;
+    cudaGetDeviceCount(&numGPUDetected);
+
+    if (numGPUs < 0 || numGPUs >= numGPUDetected + 1){ //  An invalid numGPUs selection was chosen
+        std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer. Use SetNumberGPUs() function." << '\n';
+        return -1;
+    }
+    
+    if ( numGPUDetected == 0 ) // No GPUs were found (i.e. all cards are busy)
+    {
+        std::cerr << "No NVIDIA graphic cards identified on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';;          
+        return -1;
+    }
+
+    // Checking parameter: nStreams
+    if (nStreams <= 0 || nStreams < numGPUs)
+    {
+        std::cout << "nStreams: " << nStreams << '\n';
+        std::cout << "numGPUs: " << numGPUs << '\n';
+
+        std::cerr << "Invalid number of streams provided. Please use SetNumberStreams() to set number of streams >= number of GPUs to use." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: nBatches
+    if (nBatches <= 0)
+    {
+        std::cout << "nBatches: " << nBatches << '\n';
+
+        std::cerr << "Invalid number of batches provided. Please use SetNumberBatches() to set a non-negative integer number." << '\n';
+        return -1;
+    }
+    
+
+    
+
+    // Checking parameter: volSize
+    if (volSize <= 0)
+    {
+        std::cerr << "Invalid volSize parameter. Please use SetVolume() to define the input volume." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: imgSize
+    if (imgSize <= 0)
+    {
+        std::cout << "imgSize: " << imgSize << '\n';
+        std::cerr << "Invalid imgSize parameter." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: nAxes
+    if (nAxes <= 0)
+    {
+        std::cerr << "Invalid nAxes parameter. Please use SetAxes() to define the input coordinate axes." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: maskRadius
+    if (maskRadius <= 0)
+    {
+        std::cerr << "Invalid maskRadius parameter." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: kerSize
+    if (kerSize <= 0)
+    {
+        std::cerr << "Invalid kerSize parameter." << '\n';
+        return -1;
+    }
+    // Checking parameter: kerHWidth
+    if (kerHWidth <= 0)
+    {
+        std::cerr << "Invalid kerHWidth parameter." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: gridSize
+    if (gridSize <= 0)
+    {
+        std::cerr << "Invalid gridSize parameter." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: blockSize
+    if (blockSize <= 0 || imgSize != gridSize * blockSize) // NOTE: gridSize times blockSize needs to equal imgSize
+    {
+        std::cerr << "Invalid blockSize parameter. gridSize * blockSize must equal imgSize" << '\n';
+        return -1;
+    }
+
+    // Checking parameters: gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, and ker_bessel_Vector
+    if (gpuVol_Vector.size() <= 0 || gpuCASImgs_Vector.size() <= 0 || gpuCoordAxes_Vector.size() <= 0 || ker_bessel_Vector.size() <= 0)
+    {
+        std::cerr << "gpuForwardProject(): Input GPU pointer vectors are empty. Has SetVolume() and SetAxes() been run?" << '\n';
+        return -1;
+    }
+
+    // No errors were detected so return a flag of 0
+    return 0;
+}
+
 
 
 
