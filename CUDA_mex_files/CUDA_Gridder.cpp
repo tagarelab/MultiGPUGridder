@@ -150,17 +150,8 @@ void CUDA_Gridder::SetImages(float* newCASImgs)
         
     }
 
-    // Get the pointers to the CASImgs_CPU_Pinned array
-    float * CASImgs_CPU_Pinned   = this->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
-
-    // Need to convert the array dimensions dims to long long int type to allow for array length larger than maximum int32 value
-    unsigned long long *dim_size = new  unsigned long long[3];
-    dim_size[0] = (unsigned long long)this->imgSize[0];
-    dim_size[1] = (unsigned long long)this->imgSize[1];
-    dim_size[2] = (unsigned long long)this->imgSize[2];
-
-    // Lastly, copy the input array to the pinned CAS Imgs array
-    std::memcpy(CASImgs_CPU_Pinned, newCASImgs, sizeof(float)*(dim_size[0]*dim_size[1]*dim_size[2]));
+    // After allocating the coordAxes array on the gpuDevice, lets copy the memory
+    Mem_obj->mem_Copy("CASImgs_CPU_Pinned", newCASImgs);    
 
 }
 
@@ -446,20 +437,20 @@ void CUDA_Gridder::Back_Project(){
     int blockSize = 4;  //this->imgSize[0] / gridSize ; // 4  
 
     // Verify all parameters and inputs are valid
-    // int parameter_check = ParameterChecking(    
-    //     gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
-    //     CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-    //     this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
-    //     numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters)
-    // );
+    int parameter_check = ParameterChecking(    
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
+        numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters)
+    );
 
-    // // If an error was detected return and don't start the CUDA kernel
-    // if (parameter_check != 0)
-    // {
-    //     std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
-    //     return;
-    // }   
-
+    // If an error was detected return and don't start the CUDA kernel
+    if (parameter_check != 0)
+    {
+        std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
+        return;
+    }   
+    
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
     gpuBackProject(

@@ -65,8 +65,8 @@ reset(gpuDevice());
 tic
 
 volSize = 64;%256;%256%128;%64;
-n1_axes = 15;
-n2_axes = 15;
+n1_axes = 150;
+n2_axes = 10;
 kernelHWidth = 2;
 
 interpFactor = 2.0;
@@ -112,9 +112,9 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 %% Run the forward projection kernel
 
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(1);
-obj.SetNumberGPUs(1);
-obj.SetNumberStreams(2);
+obj.SetNumberBatches(2);
+obj.SetNumberGPUs(4);
+obj.SetNumberStreams(4);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
@@ -150,19 +150,35 @@ disp("Back_Project()...")
 obj.Back_Project()
 toc
 
-volCAS  = obj.CUDA_Return('gpuVol_0');
+% Get the volumes from all the GPUs and add them together
+volCAS  = zeros(size(CASVol));
+for i = 0:3
+    volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
+end
+volCAS = volCAS ./ max(volCAS(:));
 
 
-% Get the density of inserted planes by backprojecting images of all ones
-nAxes=int32(size(coordAxes,1))
-interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
-obj.ResetVolume();
-obj.SetAxes(coordAxes)
 
-obj.Back_Project()
-obj.backProjectInterpCASImg(interpImgs,coordAxes);
-volWt=obj.getInterpCASVol();
+% 
+% 
+% % Get the density of inserted planes by backprojecting images of all ones
+% nAxes=int32(size(coordAxes,1))/9
+% interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
+% obj.ResetVolume();
+% obj.SetAxes(coordAxes)
+% obj.SetImages(interpImgs)
+% 
+% obj.disp_mem('all')
+% 
+% disp("mem_Return()...")
+% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+% 
+% 
+% 
+% obj.Back_Project()
 
+
+% volWt = obj.CUDA_Return('gpuVol_0');
 
 
 

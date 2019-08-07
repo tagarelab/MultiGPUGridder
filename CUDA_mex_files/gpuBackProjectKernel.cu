@@ -16,7 +16,7 @@ __global__ void gpuBackProjectKernel(float* vol,int volSize, float* img,int imgS
 
 {
 float *img_ptr;
-kerHWidth = 2;
+// kerHWidth = 2;
 
 int convW=roundf(kerHWidth);
 int kerIndex,axesIndex;
@@ -45,9 +45,9 @@ __shared__ float locKer[1000];
     vj=blockDim.y*blockIdx.y+threadIdx.y;
     vk=blockDim.z*blockIdx.z+threadIdx.z;
 
-    int volIndex = vk*volSize*volSize+vj*volSize+vi;
+    // int volIndex = vk*volSize*volSize+vj*volSize+vi;
     // vol[volIndex] = volIndex;
-    // return;
+    
 
     volCenter=(int)((float)volSize)/2;
     imgCenter=(int)((float)imgSize)/2;
@@ -103,10 +103,10 @@ __shared__ float locKer[1000];
                                         w=w*(*(locKer+kerIndex));
                                         
                             // Check that this is within the image bounds (not needed when using feval from Matlab it seems)
-                           // if ( j1*imgSize+i1 < imgSize * imgSize && j1*imgSize+i1 >= 0)
-                            //{
+                            if ( j1*imgSize+i1 < imgSize * imgSize && j1*imgSize+i1 >= 0)
+                            {
                                 cumSum += (*(img_ptr+j1*imgSize+i1))*w; 
-                            //}
+                            }
                             
                         } //for i1
                   //  atomicAdd((float *)vol+vk*volSize*volSize+vj*volSize+vi,(float)cumSum);
@@ -127,14 +127,14 @@ void gpuBackProject(
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
-{
+{   
     
     std::cout << "nStreams: " << nStreams << '\n';
 
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, gridSize);
     dim3 dimBlock(blockSize, blockSize, blockSize);
-
+    
     // Create the CUDA streams
     cudaStream_t stream[nStreams]; 		
 
@@ -165,7 +165,7 @@ void gpuBackProject(
                 std::cerr << "Error in curr_GPU" << '\n';
                 return;
             }
-
+            
             // How many coordinate axes to assign to this CUDA stream? 
             int nAxes_Stream = ceil((double)nAxes / (nBatches * nStreams)); // Ceil needed if nStreams is not a multiple of numGPUs            
 
@@ -188,13 +188,13 @@ void gpuBackProject(
                 continue; // Skip this stream
             }  
                     
-            if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i)
+            if (gpuCASImgs_Vector.size() <= i || gpuCASImgs_Vector.size() == 0 || gpuCoordAxes_Vector.size() <= i || gpuCoordAxes_Vector.size() == 0)
             {
                 std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
                 std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
                 std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
                 return;
-            }
+            }        
 
             // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
             int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
@@ -205,7 +205,7 @@ void gpuBackProject(
             CASImgs_CPU_Offset[0] = (unsigned long long)(imgSize);
             CASImgs_CPU_Offset[1] = (unsigned long long)(imgSize);
             CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
-
+            
             // int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
             int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
 
@@ -224,8 +224,26 @@ void gpuBackProject(
             }          
             
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
-            cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
-            
+            cudaMemcpyAsync(
+                gpuCoordAxes_Vector[i],
+                &coordAxes_CPU_Pinned[gpuCoordAxes_Offset],
+                coord_Axes_streamBytes,
+                cudaMemcpyHostToDevice,
+                stream[i]);
+                
+            // Copy the section of gpuCASImgs which this stream will process on the current GPU
+            cudaMemcpyAsync(
+                gpuCASImgs_Vector[i],
+                &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+                gpuCASImgs_streamBytes,
+                cudaMemcpyHostToDevice,
+                stream[i]);
+                
+              // cudaMemcpyAsync(
+            //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+            //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+
+
             // Run the back projection kernel
             // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
             // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
@@ -233,12 +251,12 @@ void gpuBackProject(
                 gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
                 imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
                 maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
-    
+               
             gpuErrchk( cudaPeekAtLastError() );
 
             std::cout << "cudaDeviceSynchronize()" << '\n';
 
-            // gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
+            gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
 
             // return;
             
@@ -259,7 +277,7 @@ void gpuBackProject(
             //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
             gpuErrchk( cudaPeekAtLastError() );
-
+                
             // Update the number of axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
         }
