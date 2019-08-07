@@ -15,9 +15,9 @@ addpath(fullfile('.','utils'));
     
 
 %Initialize parameters
-volSize=64;
-n1_axes=15;
-n2_axes=15;
+volSize=256
+n1_axes=100;
+n2_axes=50;
 interpFactor=2.0;
 
 %Get the gridder
@@ -46,7 +46,9 @@ coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Forward Project
 %tic
+tic
 img=a.forwardProject(coordAxes);
+toc
 easyMontage(img,1);
 %toc
 
@@ -65,6 +67,8 @@ a.backProject(img,coordAxes);
 %tic
 volR=a.reconstructVol(coordAxes);
 easyMontage(volR,2);
+
+% save("gpuGriddervolR.mat", "volR")
 
 figure(10);
 hold off

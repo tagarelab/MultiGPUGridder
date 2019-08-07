@@ -433,7 +433,7 @@ void CUDA_Gridder::Back_Project(){
     int nAxes = this->axesSize[0] / 9; 
     
     // NOTE: gridSize times blockSize needs to equal imgSize
-    int gridSize  = 66;//66;//32;// 32  
+    int gridSize  = this->imgSize[0] / 4;//66;//32;// 32  
     int blockSize = 4;  //this->imgSize[0] / gridSize ; // 4  
 
     // Verify all parameters and inputs are valid

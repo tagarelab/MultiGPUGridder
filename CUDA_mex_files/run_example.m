@@ -64,9 +64,9 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-volSize = 64;%256;%256%128;%64;
-n1_axes = 150;
-n2_axes = 10;
+volSize = 128;%256;%256%128;%64;
+n1_axes = 100;
+n2_axes = 50;
 kernelHWidth = 2;
 
 interpFactor = 2.0;
@@ -85,11 +85,11 @@ size(vol)
 
 
 % Use the example matlab MRI image to take projections of
-% load mri;
-% img = squeeze(D);
-% img = imresize3(img,[volSize, volSize, volSize]);
-% vol = double(img);
-% easyMontage(vol,1);
+load mri;
+img = squeeze(D);
+img = imresize3(img,[volSize, volSize, volSize]);
+vol = single(img);
+easyMontage(vol,1);
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
@@ -112,13 +112,13 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 %% Run the forward projection kernel
 
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(2);
+obj.SetNumberBatches(1);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(4);
+obj.SetNumberStreams(32);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
-obj.SetVolume(CASVol)
+obj.SetVolume(single(CASVol))
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)
@@ -126,22 +126,26 @@ obj.SetAxes(coordAxes)
 disp("SetImgSize()...")
 obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
 
+disp("Projection_Initilize()...")
 obj.Projection_Initilize()
 
-
+tic
 disp("Forward_Project()...")
 obj.Forward_Project()
+toc
+
+% Return the resulting projection images
+disp("mem_Return()...")
+InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+
+
+disp("imgsFromCASImgs()...")
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,:), interpBox, fftinfo); 
+
+easyMontage(imgs,2);
 
 
 %% Run the back projection kernel
-
-% gpuCASImgs = obj.CUDA_Return('gpuCASImgs_0');
-% max(gpuCASImgs(:))
-
-gpuVol  = obj.CUDA_Return('gpuVol_0');
-% mean(gpuVol(:))
-
-
 disp("ResetVolume()...")
 obj.ResetVolume()
 
@@ -155,49 +159,55 @@ volCAS  = zeros(size(CASVol));
 for i = 0:3
     volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
-% volCAS = volCAS ./ max(volCAS(:));
 
-
-% Get the density of inserted planes by backprojecting images of all ones
-nAxes=int32(size(coordAxes,1))/9
+% Get the density of inserted planes by backprojecting CASimages of values equal to one
+nAxes = size(coordAxes,1)/9;
 interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
 obj.ResetVolume();
 obj.SetImages(interpImgs)
 
-obj.disp_mem('all')
-obj.CUDA_disp_mem('all')
-
-
+tic
 obj.Back_Project()
+toc
 
-
+% Get the resulting volume from all the GPUs and add them together
 volWt  = zeros(size(CASVol));
 for i = 0:3
     volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 
-
-imagesc(volWt(:,:,50))
-
+% Divide the previous volume with the plane density volume
 volCAS=volCAS./(volWt+1e-6);
 
 % Reconstruct the volume from CASVol
-vol=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
+volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
 
-easyMontage(vol,1);
 
-% gpuVol_2(1:10)
-
-% mean(gpuVol_2(:)) - mean(gpuVol(:))
-
-% obj.CUDA_disp_mem('all')
+% figure
+% imagesc(vol(:,:,floor(size(vol,3)/2)))
+% colormap gray
+% axis square
 % 
-% [min(gpuVol_2(:)) max(gpuVol_2(:))]
+easyMontage(volReconstructed,3);
+
+easyMontage(vol - volReconstructed,4);
+colorbar
 
 obj.CUDA_Free('all')
 clear obj
 
 
+
+
+
+
+
+
+
+
+
+
+%%
 % 
 % %%
 % abc
@@ -277,7 +287,32 @@ clear obj
 % clear all
 
 
-
+% 
+% % Compare with the gpuGridder matlab version
+% gpuGridder = load("gpuGriddervolR.mat")
+% 
+% 
+% img_slice = 32;
+% 
+% close all
+% figure('Color', [1 1 1])
+% h(1) = subplot(1,3,1);
+% imagesc(gpuGridder.volR(:,:,img_slice));
+% title("gpuGridder - Back Projection")
+% axis square
+% 
+% h(2) = subplot(1,3,2)
+% imagesc(vol(:,:,img_slice));
+% title("Multi GPU Gridder - Back Projection")
+% axis square
+% 
+% h(3) = subplot(1,3,3);
+% imagesc(gpuGridder.volR(:,:,img_slice) - vol(:,:,img_slice))
+% title("Subtraction")
+% colorbar
+% colormap jet
+% axis square
+% linkaxes(h, 'xy')
 
 
 

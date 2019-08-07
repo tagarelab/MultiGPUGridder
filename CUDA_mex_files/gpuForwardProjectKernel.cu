@@ -188,12 +188,12 @@ void gpuForwardProject(
             int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
 
             // Use unsigned long long int type to allow for array length larger than maximum int32 value 
+            // Number of bytes of already processed images
             unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
             CASImgs_CPU_Offset[0] = (unsigned long long)(imgSize);
             CASImgs_CPU_Offset[1] = (unsigned long long)(imgSize);
             CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
-
-            // int CASImgs_CPU_Offset     = imgSize * imgSize * processed_nAxes;              // Number of bytes of already processed images
+                
             int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
 
             std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';

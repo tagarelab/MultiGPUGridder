@@ -249,26 +249,6 @@ void gpuBackProject(
 
             std::cout << "cudaDeviceSynchronize()" << '\n';
 
-            //gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
-
-            // return;
-            
-            // float * h_Vol;
-            // h_Vol = (float *) malloc(sizeof(float) * volSize * volSize * volSize);
-
-            // cudaMemcpy(h_Vol, gpuVol_Vector[curr_GPU], sizeof(float) * volSize * volSize * volSize, cudaMemcpyDeviceToHost);
-
-            // for (int z = 0; z < 5000; z ++)
-            // {
-            //     std::cout << "h_Vol[" << z << "]: " << h_Vol[z] << '\n';
-            // }
-
-
-            // Copy the resulting gpuCASImgs to the host (CPU)
-            // cudaMemcpyAsync(
-            //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-            //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
-
             gpuErrchk( cudaPeekAtLastError() );
                 
             // Update the number of axes which have already been assigned to a CUDA stream
