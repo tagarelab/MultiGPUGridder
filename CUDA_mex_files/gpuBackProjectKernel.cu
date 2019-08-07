@@ -16,6 +16,8 @@ __global__ void gpuBackProjectKernel(float* vol,int volSize, float* img,int imgS
 
 {
 float *img_ptr;
+kerHWidth = 2;
+
 int convW=roundf(kerHWidth);
 int kerIndex,axesIndex;
 int vi,vj,vk,i1,j1;
@@ -43,14 +45,19 @@ __shared__ float locKer[1000];
     vj=blockDim.y*blockIdx.y+threadIdx.y;
     vk=blockDim.z*blockIdx.z+threadIdx.z;
 
+    int volIndex = vk*volSize*volSize+vj*volSize+vi;
+    // vol[volIndex] = volIndex;
+    // return;
+
     volCenter=(int)((float)volSize)/2;
     imgCenter=(int)((float)imgSize)/2;
 
     r=sqrtf((float) (vi-volCenter)*(vi-volCenter)+(vj-volCenter)*(vj-volCenter)+(vk-volCenter)*(vk-volCenter));
-
+   
     if ( (vi<volSize)&&(vj<volSize)&&(vk<volSize) &&(r<=maskRadius) )
     {
             cumSumAllAxes=0;
+
             for (axesIndex=0;axesIndex<nAxes;axesIndex++)
                 {
 
@@ -69,7 +76,7 @@ __shared__ float locKer[1000];
                         imgj=roundf(f_imgj);
 
                         img_ptr=img+axesIndex*imgSize*imgSize;
-
+                        
                    cumSum=0;
                     for (j1=imgj-convW;j1<=imgj+convW;j1++)
                         for (i1=imgi-convW;i1<=imgi+convW;i1++)
@@ -94,15 +101,21 @@ __shared__ float locKer[1000];
                                         kerIndex=roundf( r*kerScale+kerCenter);
                                         kerIndex=min(max(kerIndex,0),kerSize-1);
                                         w=w*(*(locKer+kerIndex));
-                               
-                            cumSum += (*(img_ptr+j1*imgSize+i1))*w; 
+                                        
+                            // Check that this is within the image bounds (not needed when using feval from Matlab it seems)
+                           // if ( j1*imgSize+i1 < imgSize * imgSize && j1*imgSize+i1 >= 0)
+                            //{
+                                cumSum += (*(img_ptr+j1*imgSize+i1))*w; 
+                            //}
+                            
                         } //for i1
                   //  atomicAdd((float *)vol+vk*volSize*volSize+vj*volSize+vi,(float)cumSum);
                         cumSumAllAxes += cumSum;
                     }// If f_imgk                   
             }// for axesIndex
-            /* Add the accumulated All axes sum to the volume */
-         atomicAdd((float *)vol+vk*volSize*volSize+vj*volSize+vi,(float)cumSumAllAxes);
+            /* Add the accumulated All axes sum to the volume */            
+        atomicAdd((float *)vol+vk*volSize*volSize+vj*volSize+vi,(float)cumSumAllAxes);
+        //atomicAdd((float *)vol + volIndex, cumSumAllAxes);
     } //If vi,vj,vk
 }
 
@@ -119,8 +132,8 @@ void gpuBackProject(
     std::cout << "nStreams: " << nStreams << '\n';
 
     // Define CUDA kernel dimensions
-    dim3 dimGrid(gridSize, gridSize, 1);
-    dim3 dimBlock(blockSize, blockSize, 1);
+    dim3 dimGrid(gridSize, gridSize, gridSize);
+    dim3 dimBlock(blockSize, blockSize, blockSize);
 
     // Create the CUDA streams
     cudaStream_t stream[nStreams]; 		
@@ -223,10 +236,27 @@ void gpuBackProject(
     
             gpuErrchk( cudaPeekAtLastError() );
 
+            std::cout << "cudaDeviceSynchronize()" << '\n';
+
+            // gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
+
+            // return;
+            
+            // float * h_Vol;
+            // h_Vol = (float *) malloc(sizeof(float) * volSize * volSize * volSize);
+
+            // cudaMemcpy(h_Vol, gpuVol_Vector[curr_GPU], sizeof(float) * volSize * volSize * volSize, cudaMemcpyDeviceToHost);
+
+            // for (int z = 0; z < 5000; z ++)
+            // {
+            //     std::cout << "h_Vol[" << z << "]: " << h_Vol[z] << '\n';
+            // }
+
+
             // Copy the resulting gpuCASImgs to the host (CPU)
-            cudaMemcpyAsync(
-                &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+            // cudaMemcpyAsync(
+            //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+            //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
             gpuErrchk( cudaPeekAtLastError() );
 

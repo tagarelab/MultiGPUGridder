@@ -78,6 +78,9 @@ public:
 	// Reset the GPU volumes on all the GPUs
 	void ResetVolume();
 
+	// Set CAS Imgs array
+	void SetImages(float* newCASImgs);
+	
 	// Set coordinate axes
 	void SetAxes(float* coordAxes, int* axesSize);
 

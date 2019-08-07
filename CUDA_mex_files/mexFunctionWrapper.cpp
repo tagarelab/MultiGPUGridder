@@ -78,7 +78,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         CUDA_Gridder_instance->SetVolume(matlabArrayPtr, dims);
 
         return;
- 
+
+    }
+
+    // SetImages 
+    if (!strcmp("SetImages", cmd)) {
+        // Check parameters
+        if (nrhs !=  3)
+        {
+            mexErrMsgTxt("SetImages: Unexpected arguments. Please provide a Matlab array.");
+        }
+       
+        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get the matrix size of the input GPU volume
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions( prhs[2] );
+
+        int dims[3];
+        dims[0] = (int) dims_mwSize[0];
+        dims[1] = (int) dims_mwSize[1];
+        dims[2] = (int) dims_mwSize[2];
+
+        mwSize numDims;
+        numDims = mxGetNumberOfDimensions( prhs[2] );
+
+        if (numDims != 3)
+        {
+            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");            
+        }
+
+
+        // Call the method
+        CUDA_Gridder_instance->SetImages(matlabArrayPtr);
+
+        return;
 
     }
 

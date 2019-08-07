@@ -64,9 +64,10 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-volSize = 128;%256;%256%128;%64;
-n1_axes = 500;
-n2_axes = 10;
+volSize = 64;%256;%256%128;%64;
+n1_axes = 15;
+n2_axes = 15;
+kernelHWidth = 2;
 
 interpFactor = 2.0;
     
@@ -78,7 +79,7 @@ origHWidth = origCenter - 1;
 %% Fuzzy sphere
 disp("fuzzymask()...")
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
-
+size(vol)
 % Change the sphere a bit so the projections are not all the same
 % vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
 
@@ -99,8 +100,9 @@ nCoordAxes = length(coordAxes)/9
 
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
-[CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+[CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 
+size(CASVol)
 
 %% Display some information to the user before running the forward projection kernel
 
@@ -112,7 +114,7 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberBatches(1);
 obj.SetNumberGPUs(1);
-obj.SetNumberStreams(4);
+obj.SetNumberStreams(2);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
@@ -133,21 +135,57 @@ obj.Forward_Project()
 
 %% Run the back projection kernel
 
+% gpuCASImgs = obj.CUDA_Return('gpuCASImgs_0');
+% max(gpuCASImgs(:))
+
+gpuVol  = obj.CUDA_Return('gpuVol_0');
+% mean(gpuVol(:))
+
+
 disp("ResetVolume()...")
 obj.ResetVolume()
 
-gpuVol  = obj.CUDA_Return('gpuVol_0');
-
-max(gpuVol(:))
-
+tic
 disp("Back_Project()...")
 obj.Back_Project()
+toc
 
-gpuVol  = obj.CUDA_Return('gpuVol_0');
+volCAS  = obj.CUDA_Return('gpuVol_0');
 
-max(gpuVol(:))
+
+% Get the density of inserted planes by backprojecting images of all ones
+nAxes=int32(size(coordAxes,1))
+interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
+obj.ResetVolume();
+obj.SetAxes(coordAxes)
+
+obj.Back_Project()
+obj.backProjectInterpCASImg(interpImgs,coordAxes);
+volWt=obj.getInterpCASVol();
+
+
+
+
+
+% Reconstruct the volume from CASVol
+vol=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
+
+easyMontage(vol,1);
+
+% gpuVol_2(1:10)
+
+% mean(gpuVol_2(:)) - mean(gpuVol(:))
+
+% obj.CUDA_disp_mem('all')
+% 
+% [min(gpuVol_2(:)) max(gpuVol_2(:))]
+
+obj.CUDA_Free('all')
+clear obj
 
 %%
+abc
+
 % obj.CUDA_disp_mem('all')
 % obj.disp_mem('all')
 
