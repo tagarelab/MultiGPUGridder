@@ -231,14 +231,13 @@ void gpuForwardProject(
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
             
-
             // Run the forward projection kernel
             // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
             // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
             gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
                 gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
                 imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
-                63, ker_bessel_Vector[curr_GPU], 501, 2);        
+                maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
     
             gpuErrchk( cudaPeekAtLastError() );
 
