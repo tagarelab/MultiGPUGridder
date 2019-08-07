@@ -3,6 +3,7 @@
 
 #include "CPU_CUDA_Memory.h"
 #include "gpuForwardProject.h"
+#include "gpuBackProject.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -74,6 +75,12 @@ public:
 	// Set GPU volume 
 	void SetVolume( float* gpuVol, int* gpuVolSize);
 
+	// Reset the GPU volumes on all the GPUs
+	void ResetVolume();
+
+	// Set CAS Imgs array
+	void SetImages(float* newCASImgs);
+	
 	// Set coordinate axes
 	void SetAxes(float* coordAxes, int* axesSize);
 
@@ -84,10 +91,22 @@ public:
 	void SetMaskRadius(float* maskRadius);
 
 	// Allocate all the required GPU arrays on each GPU and required CPU arrays  
-	void Forward_Project_Initilize();
+	void Projection_Initilize();
 
 	// Run the forward projection CUDA kernel
 	void Forward_Project();
+
+	// Run the back projection CUDA kernel
+	void Back_Project();
+
+	// Check the parameters before launching the forward or back project CUDA kernels
+	int ParameterChecking(
+		std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
+		std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+		float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+		int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
+		int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
+	);
 
 };
 

@@ -97,6 +97,7 @@ classdef gpuGridder < handle
             obj.fftinfo=fftw('swisdom');
         end
         
+                
         function delete(obj)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Object destructor. Explicitly release gpu memory            %
@@ -147,15 +148,14 @@ classdef gpuGridder < handle
             blockWidth=4;
             gridWidth=round(obj.imgSize/blockWidth);
             obj.cudaFPKer.ThreadBlockSize=[blockWidth blockWidth 1];
-            obj.cudaFPKer.GridSize=[gridWidth gridWidth 1];            
-            
+            obj.cudaFPKer.GridSize=[gridWidth gridWidth 1];
+
             %Call the kernel
             obj.gpuCASImgs=feval(obj.cudaFPKer,...
                             obj.gpuVol, obj.CASBox.size,...
                             obj.gpuCASImgs,obj.imgSize,...
                             obj.gpuCoordAxes, nAxes,single(obj.rMax),...
-                            obj.gpuKerTbl, int32(obj.kerTblSize), single(obj.kerHWidth));       
-            
+                            obj.gpuKerTbl, int32(obj.kerTblSize), single(obj.kerHWidth));
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -167,8 +167,8 @@ classdef gpuGridder < handle
             
         end
             
-        function imgs=getImgs(obj)                 
-            imgs=imgsFromCASImgs(obj.getInterpCASImgs(),obj.interpBox,obj.fftinfo);            
+        function imgs=getImgs(obj)          
+            imgs=imgsFromCASImgs(obj.getInterpCASImgs(),obj.interpBox,obj.fftinfo);
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

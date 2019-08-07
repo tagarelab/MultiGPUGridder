@@ -13,11 +13,11 @@
 #include <nvToolsExt.h>
 #include <cuda_profiler_api.h>
 
-#ifndef __GPUFORWARDPROJECT_H__
-#define __GPUFORWARDPROJECT_H__
+#ifndef __GPUBACKPROJECT_H__
+#define __GPUBACKPROJECT_H__
 
 // Create the CUDA streams and launch the forward projection kernel
-extern void gpuForwardProject(
+extern void gpuBackProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
@@ -25,4 +25,4 @@ extern void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 );
 
-#endif //__GPUFORWARDPROJECT_H__
+#endif //__GPUBACKPROJECT_H__

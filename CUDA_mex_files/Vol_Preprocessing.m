@@ -1,4 +1,4 @@
-function [CASVol, interpBox, fftinfo]  = Vol_Preprocessing(vol, interpFactor)
+function [CASVol, CASBox, origBox, interpBox, fftinfo]  = Vol_Preprocessing(vol, interpFactor)
     % Run MATLAB preprocessing to convert some input vol to CASVol
     
     %Basic upsampling parameters

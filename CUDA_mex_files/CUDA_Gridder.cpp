@@ -126,6 +126,63 @@ void CUDA_Gridder::SetVolume(float* gpuVol, int* gpuVolSize)
 
 }
 
+// Set the CAS Images Volume
+void CUDA_Gridder::SetImages(float* newCASImgs)
+{      
+    // Has the image size been defined already?
+    if (this->imgSize[0] <=0 )
+    {
+        std::cerr << "Image size has not been defined yet. Please use SetImgSize() first. " << '\n';
+        return;
+    }
+
+    // Has the output CAS image array been allocated and pinned to the CPU?
+    if ( Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false) 
+    {
+        std::cout << "Allocating CASImgs_CPU_Pinned" << '\n';
+        // We need to allocate the coordAxes array on this axesSize
+        Mem_obj->mem_alloc("CASImgs_CPU_Pinned", "float", this->imgSize);
+        
+        std::cout << "Pinning CASImgs_CPU_Pinned" << '\n';
+
+        // Lastly, pin the array to allow for async CUDA streaming
+        Mem_obj->pin_mem("CASImgs_CPU_Pinned");
+        
+    }
+
+    // After allocating the coordAxes array on the gpuDevice, lets copy the memory
+    Mem_obj->mem_Copy("CASImgs_CPU_Pinned", newCASImgs);    
+
+}
+
+// Reset the GPU volume to all zeros
+void CUDA_Gridder::ResetVolume()
+{
+
+    // Loop through all of the GPUs and reset the volume on each GPU
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
+    {
+        std::cout << "Resetting gpuVol on GPU " << gpuDevice << "..." << '\n';
+
+        // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
+        // Has a gpuVol array already been allocated on this GPU?    
+        if ( Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == true) 
+        {
+            cudaSetDevice(gpuDevice);
+
+            // Get the corresponding GPU pointer to the volume on the current GPU
+            float* gpuVolPtr = this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(gpuDevice));
+
+            // Set all elements in the volume on this GPU to zeros
+            cudaMemset(gpuVolPtr, 0, volSize[0]*volSize[1]*volSize[2]*sizeof(float));
+
+        } else 
+        {
+            std::cerr << "Volume has not previously allocated on GPU " << gpuDevice << " Please use SetVolume() first." << '\n';
+        }
+    }
+}
+
 // Set the coordinate axes Volume
 void CUDA_Gridder::SetAxes(float* coordAxes, int* axesSize)
 {   
@@ -174,7 +231,7 @@ void CUDA_Gridder::SetMaskRadius(float* maskRadius)
 
 }
 
-void CUDA_Gridder::Forward_Project_Initilize()
+void CUDA_Gridder::Projection_Initilize()
 {
     // Initialize all the needed CPU and GPU pointers and check that all the required pointers exist
 
@@ -195,7 +252,7 @@ void CUDA_Gridder::Forward_Project_Initilize()
     // Check each GPU to determine if all the required pointers are already allocated
     for (int i = 0; i < this->nStreams; i++)
     {
-        std::cout << "Forward_Project_Initilize():  Stream number " << i << '\n';
+        std::cout << "Projection_Initilize():  Stream number " << i << '\n';
 
         int gpuDevice = i % this->numGPUs; // Use the remainder operator to split streams evenly between GPUs
 
@@ -260,7 +317,7 @@ void CUDA_Gridder::Forward_Project_Initilize()
         }
     }    
 
-    std::cout << "Forward_Project_Initilize() finished" << '\n';
+    std::cout << "Projection_Initilize() finished" << '\n';
 }
 
 // Run the Forward Projection CUDA kernel
@@ -272,7 +329,7 @@ void CUDA_Gridder::Forward_Project(){
     // TO DO: Add more error checking. Are all the parameters valid? e.g. numGPUs > 0, nStreams <= numGPUS, etc.
 
     // Double check to make sure all the needed CPU and GPU required pointers exist
-    Forward_Project_Initilize(); 
+    Projection_Initilize(); 
     
     // Create a vector of GPU pointers
     std::vector<float*> gpuVol_Vector;
@@ -307,18 +364,221 @@ void CUDA_Gridder::Forward_Project(){
     int gridSize  = 32;// 32  
     int blockSize = this->imgSize[0] / gridSize ; // 4  
 
+    // Verify all parameters and inputs are valid
+    int parameter_check = ParameterChecking(    
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
+        numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters)
+    );
+
+    // If an error was detected return and don't start the CUDA kernel
+    if (parameter_check != 0)
+    {
+        std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
+        return;
+    }   
+
     // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
     // Which will step up and run the CUDA streams
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
-        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius , 501, 2, // kernel parameters
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel parameters
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters
         ); 
 
     return;
 
 }
+
+// Run the Back Projection CUDA kernel
+void CUDA_Gridder::Back_Project(){
+    // Run the back projection CUDA kernel
+
+    std::cout << "CUDA_Gridder::Back_Project()" << '\n';
+        
+    // TO DO: Add more error checking. Are all the parameters valid? e.g. numGPUs > 0, nStreams <= numGPUS, etc.
+
+    // Double check to make sure all the needed CPU and GPU required pointers exist
+    Projection_Initilize(); 
+    
+    // Create a vector of GPU pointers
+    std::vector<float*> gpuVol_Vector;
+    std::vector<float*> gpuCASImgs_Vector;
+    std::vector<float*> ker_bessel_Vector;
+    std::vector<float*> gpuCoordAxes_Vector;
+
+    // Find and add the corresponding GPU pointer to each vector of pointers 
+    // NOTE: Only need one of these GPU arrays per GPU
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
+    {        
+        gpuVol_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(gpuDevice)));      
+        ker_bessel_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("ker_bessel_" + std::to_string(gpuDevice)));        
+    }
+
+    // Find and add the corresponding GPU pointer for each stream to each vector of pointers 
+    // NOTE: Need one of these arrays for each of the CUDA streams
+    for (int i = 0; i < this->nStreams; i++)
+    {
+        gpuCASImgs_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCASImgs_" + std::to_string(i)));
+        gpuCoordAxes_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCoordAxes_" + std::to_string(i)));
+    }
+
+    // Get the pointers to the CPU input / output arrays
+    float * CASImgs_CPU_Pinned   = this->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+    float * coordAxes_CPU_Pinned = this->Mem_obj->ReturnCPUFloatPtr("coordAxes_CPU_Pinned");
+
+    // Each axes has 9 elements (3 for each x, y, z)
+    int nAxes = this->axesSize[0] / 9; 
+    
+    // NOTE: gridSize times blockSize needs to equal imgSize
+    int gridSize  = this->imgSize[0] / 4;//66;//32;// 32  
+    int blockSize = 4;  //this->imgSize[0] / gridSize ; // 4  
+
+    // Verify all parameters and inputs are valid
+    int parameter_check = ParameterChecking(    
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
+        numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters)
+    );
+
+    // If an error was detected return and don't start the CUDA kernel
+    if (parameter_check != 0)
+    {
+        std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
+        return;
+    }   
+    
+    // Pass the vector of pointers to the C++ function in gpuForwardProject.cu
+    // Which will step up and run the CUDA streams
+    gpuBackProject(
+        gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU arrays
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel parameters
+        numGPUs, this->nStreams, gridSize, blockSize, this->nBatches // Streaming parameters
+        ); 
+
+    return;
+
+}
+
+
+int CUDA_Gridder::ParameterChecking(
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
+    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters)
+)
+{
+    // Check all the input parameters to verify they are all valid
+
+    // Checking parameter: numGPUs
+    int  numGPUDetected;
+    cudaGetDeviceCount(&numGPUDetected);
+
+    if (numGPUs < 0 || numGPUs >= numGPUDetected + 1){ //  An invalid numGPUs selection was chosen
+        std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer. Use SetNumberGPUs() function." << '\n';
+        return -1;
+    }
+    
+    if ( numGPUDetected == 0 ) // No GPUs were found (i.e. all cards are busy)
+    {
+        std::cerr << "No NVIDIA graphic cards identified on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';;          
+        return -1;
+    }
+
+    // Checking parameter: nStreams
+    if (nStreams <= 0 || nStreams < numGPUs)
+    {
+        std::cout << "nStreams: " << nStreams << '\n';
+        std::cout << "numGPUs: " << numGPUs << '\n';
+
+        std::cerr << "Invalid number of streams provided. Please use SetNumberStreams() to set number of streams >= number of GPUs to use." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: nBatches
+    if (nBatches <= 0)
+    {
+        std::cout << "nBatches: " << nBatches << '\n';
+
+        std::cerr << "Invalid number of batches provided. Please use SetNumberBatches() to set a non-negative integer number." << '\n';
+        return -1;
+    }
+    
+
+    
+
+    // Checking parameter: volSize
+    if (volSize <= 0)
+    {
+        std::cerr << "Invalid volSize parameter. Please use SetVolume() to define the input volume." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: imgSize
+    if (imgSize <= 0)
+    {
+        std::cout << "imgSize: " << imgSize << '\n';
+        std::cerr << "Invalid imgSize parameter." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: nAxes
+    if (nAxes <= 0)
+    {
+        std::cerr << "Invalid nAxes parameter. Please use SetAxes() to define the input coordinate axes." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: maskRadius
+    if (maskRadius <= 0)
+    {
+        std::cerr << "Invalid maskRadius parameter." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: kerSize
+    if (kerSize <= 0)
+    {
+        std::cerr << "Invalid kerSize parameter." << '\n';
+        return -1;
+    }
+    // Checking parameter: kerHWidth
+    if (kerHWidth <= 0)
+    {
+        std::cerr << "Invalid kerHWidth parameter." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: gridSize
+    if (gridSize <= 0)
+    {
+        std::cerr << "Invalid gridSize parameter." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: blockSize
+    if (blockSize <= 0 || imgSize != gridSize * blockSize) // NOTE: gridSize times blockSize needs to equal imgSize
+    {
+        std::cerr << "Invalid blockSize parameter. gridSize * blockSize must equal imgSize" << '\n';
+        //return -1;
+    }
+
+    // Checking parameters: gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, and ker_bessel_Vector
+    if (gpuVol_Vector.size() <= 0 || gpuCASImgs_Vector.size() <= 0 || gpuCoordAxes_Vector.size() <= 0 || ker_bessel_Vector.size() <= 0)
+    {
+        std::cerr << "gpuForwardProject(): Input GPU pointer vectors are empty. Has SetVolume() and SetAxes() been run?" << '\n';
+        return -1;
+    }
+
+    // No errors were detected so return a flag of 0
+    return 0;
+}
+
 
 
 

@@ -47,14 +47,14 @@ classdef gpuBatchGridder < handle
             %       reference frame                                       %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
-            nAxes=size(coordAxes,2);          %Get the number of projections
+            nAxes=size(coordAxes,2);        %Get the number of projections
             imgSize=obj.gridder.origBox.size; %Get image size
             imgs=zeros([imgSize imgSize nAxes],'single'); %Allocate images
             
-            axesPerIteration=nAxes%obj.gridder.axesPerIteration; %Size of each batch
+            axesPerIteration=obj.gridder.axesPerIteration; %Size of each batch
             nIter=ceil(nAxes/axesPerIteration);  %Number of batches
             
-            for iter=1:nIter
+            for iter=1:nIter,
                 %For each batch, forward project and collect images
                 axesStart=1+(iter-1)*axesPerIteration;
                 axesEnd=min(iter*axesPerIteration,nAxes);

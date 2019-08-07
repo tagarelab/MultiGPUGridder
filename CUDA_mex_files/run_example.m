@@ -38,15 +38,22 @@ if (recompile == true)
 
     fprintf('Compiling CUDA_Gridder mex file \n');
 
-    % Compile the CUDA kernel first
+    % Compile the forward projection CUDA kernel first
     status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
 
     if status ~= 0
         error("Failed to compile");
     end
 
+    % Compile the back projection CUDA kernel first
+    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
+
+    if status ~= 0
+        error("Failed to compile");
+    end
+    
     % Compile the mex files second
-    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o
+    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
 
 end
 
@@ -58,8 +65,9 @@ reset(gpuDevice());
 tic
 
 volSize = 128;%256;%256%128;%64;
-n1_axes = 500;
-n2_axes = 10;
+n1_axes = 100;
+n2_axes = 50;
+kernelHWidth = 2;
 
 interpFactor = 2.0;
     
@@ -71,17 +79,17 @@ origHWidth = origCenter - 1;
 %% Fuzzy sphere
 disp("fuzzymask()...")
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
-
+size(vol)
 % Change the sphere a bit so the projections are not all the same
 % vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
 
 
 % Use the example matlab MRI image to take projections of
-% load mri;
-% img = squeeze(D);
-% img = imresize3(img,[volSize, volSize, volSize]);
-% vol = double(img);
-% easyMontage(vol,1);
+load mri;
+img = squeeze(D);
+img = imresize3(img,[volSize, volSize, volSize]);
+vol = single(img);
+easyMontage(vol,1);
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
@@ -92,8 +100,9 @@ nCoordAxes = length(coordAxes)/9
 
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
-[CASVol, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+[CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 
+size(CASVol)
 
 %% Display some information to the user before running the forward projection kernel
 
@@ -102,38 +111,14 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Run the forward projection kernel
 
-
-%         interpFactor: 2
-%             padWidth: 3
-%            kerHWidth: 2
-%           kerTblSize: 501
-%              fftinfo: '(fftw-3.3.3 fftwf_wisdom #x706526c0 #x2f8b6c85 #x8cd1bb1a #x7c96e03d↵  (fftwf_codelet_n2fv_32_avx 0 #x11bdd #x11bdd #x0 #x12d24524 #x289b57fa #x2bd8cbf3 #xaac91103)↵  (fftwf_codelet_r2cf_8 2 #x11bdd #x11bdd #x0 #xaccb8bbb #x30a0e5a6 #xb8c0b6b6 #xd9c72532)↵  (fftwf_codelet_r2cfII_8 2 #x11bdd #x11bdd #x0 #x23fb2e26 #x3fe4d3f4 #x78d7c0db #xaba9deb1)↵  (fftwf_codelet_hc2cfdftv_8_sse2 0 #x11bdd #x11bdd #x0 #x444bab32 #xc5e77a42 #x1cbd9c50 #xa8060657)↵  (fftwf_codelet_r2cfII_8 2 #x11bdd #x11bdd #x0 #xd0595f70 #x0f49f59a #x2758e317 #x73323a52)↵  (fftwf_codelet_hc2cfdftv_8_sse2 0 #x11bdd #x11bdd #x0 #x4bb69ce7 #x4599107c #x14ecc846 #x282ba2c3)↵  (fftwf_rdft2_vrank_geq1_register 0 #x11bdd #x11bdd #x0 #xdc61852d #x527070fd #x78c84335 #x33a00be1)↵  (fftwf_codelet_n1fv_32_avx 0 #x11bdd #x11bdd #x0 #x6d48fbd0 #x4b53cd60 #xc80a864b #x3a848396)↵  (fftwf_codelet_r2cf_8 2 #x11bdd #x11bdd #x0 #xaae37515 #xc366903c #xc804fee2 #x44fc70a7)↵)↵'
-%               gpuIds: 1
-%               gpuDev: [1×1 parallel.gpu.CUDADevice]
-%          origVolSize: 128
-%              imgSize: 256
-%                nAxes: 5001
-%                 rMax: 127
-%              origBox: [1×1 struct]
-%            interpBox: [1×1 struct]
-%               CASBox: [1×1 struct]
-%     axesPerIteration: 5001
-%            cudaFPKer: [1×1 parallel.gpu.CUDAKernel]
-%            cudaBPKer: [1×1 parallel.gpu.CUDAKernel]
-%               gpuVol: [262×262×262 gpuArray]
-%            gpuKerTbl: [501×1 gpuArray]
-%         gpuCoordAxes: [45009×1 gpuArray]
-%           gpuCASImgs: [256×256×5001 gpuArray]
-%           gpuCpxImgs: []
-%           
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(4);
+obj.SetNumberBatches(1);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(64);
+obj.SetNumberStreams(32);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
-obj.SetVolume(CASVol)
+obj.SetVolume(single(CASVol))
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)
@@ -141,15 +126,13 @@ obj.SetAxes(coordAxes)
 disp("SetImgSize()...")
 obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
 
-obj.Forward_Project_Initilize()
+disp("Projection_Initilize()...")
+obj.Projection_Initilize()
 
-
+tic
 disp("Forward_Project()...")
 obj.Forward_Project()
-
-
-% obj.CUDA_disp_mem('all')
-% obj.disp_mem('all')
+toc
 
 % Return the resulting projection images
 disp("mem_Return()...")
@@ -157,73 +140,179 @@ InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 
 disp("imgsFromCASImgs()...")
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,:), interpBox, fftinfo); 
+
+easyMontage(imgs,2);
+
+
+%% Run the back projection kernel
+disp("ResetVolume()...")
+obj.ResetVolume()
+
 tic
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); 
+disp("Back_Project()...")
+obj.Back_Project()
 toc
 
+% Get the volumes from all the GPUs and add them together
+volCAS  = zeros(size(CASVol));
+for i = 0:3
+    volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
+end
+
+% Get the density of inserted planes by backprojecting CASimages of values equal to one
+nAxes = size(coordAxes,1)/9;
+interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
+obj.ResetVolume();
+obj.SetImages(interpImgs)
+
+tic
+obj.Back_Project()
+toc
+
+% Get the resulting volume from all the GPUs and add them together
+volWt  = zeros(size(CASVol));
+for i = 0:3
+    volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
+end
+
+% Divide the previous volume with the plane density volume
+volCAS=volCAS./(volWt+1e-6);
+
+% Reconstruct the volume from CASVol
+volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
+
+
+% figure
+% imagesc(vol(:,:,floor(size(vol,3)/2)))
+% colormap gray
+% axis square
+% 
+easyMontage(volReconstructed,3);
+
+easyMontage(vol - volReconstructed,4);
+colorbar
 
 obj.CUDA_Free('all')
 clear obj
 
-clearvars -except imgs
-
-clc
- 
-gpuGridder = load("gpuGridder_vol128.mat");
-% gpuGridder = load("gpuGridder_InterpCASImgs.mat");
-% gpuGridder = load("gpuGridder_gpuVol.mat");
-
-
-img_slice = 1;
-
-close all
-figure('Color', [1 1 1])
-h(1) = subplot(1,3,1);
-imagesc(gpuGridder.img(:,:,img_slice));
-title("gpuGridder")
-axis square
-
-h(2) = subplot(1,3,2)
-imagesc(imgs(:,:,img_slice));
-title("C++ Gridder")
-axis square
-
-h(3) = subplot(1,3,3);
-imagesc(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice))
-title("Subtraction")
-colorbar
-colormap jet
-axis square
-linkaxes(h, 'xy')
-
-
-sum(sum(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice)))
-
-display_imgs = 0;
-
-if display_imgs  == 1
-    % How many images to plot?
-    numImgsPlot = 10;
-
-    % Make sure we have that many images first
-    numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
-
-    imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
-    easyMontage(imgs,1);
-    % 
-    % % 
-    % imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
-    % easyMontage(imgs,2);
-    colormap jet
-end
-
-disp('Done!');
-
-
-clear all
 
 
 
+
+
+
+
+
+
+
+
+%%
+% 
+% %%
+% abc
+% 
+% % obj.CUDA_disp_mem('all')
+% % obj.disp_mem('all')
+% 
+% % Return the resulting projection images
+% disp("mem_Return()...")
+% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+% 
+% 
+% disp("imgsFromCASImgs()...")
+% tic
+% imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); 
+% toc
+% 
+% 
+% obj.CUDA_Free('all')
+% clear obj
+% 
+% clearvars -except imgs
+% 
+% clc
+%  
+% gpuGridder = load("gpuGridder_vol128.mat");
+% % gpuGridder = load("gpuGridder_InterpCASImgs.mat");
+% % gpuGridder = load("gpuGridder_gpuVol.mat");
+% 
+% 
+% img_slice = 1;
+% 
+% close all
+% figure('Color', [1 1 1])
+% h(1) = subplot(1,3,1);
+% imagesc(gpuGridder.img(:,:,img_slice));
+% title("gpuGridder")
+% axis square
+% 
+% h(2) = subplot(1,3,2)
+% imagesc(imgs(:,:,img_slice));
+% title("C++ Gridder")
+% axis square
+% 
+% h(3) = subplot(1,3,3);
+% imagesc(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice))
+% title("Subtraction")
+% colorbar
+% colormap jet
+% axis square
+% linkaxes(h, 'xy')
+% 
+% 
+% sum(sum(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice)))
+% 
+% display_imgs = 0;
+% 
+% if display_imgs  == 1
+%     % How many images to plot?
+%     numImgsPlot = 10;
+% 
+%     % Make sure we have that many images first
+%     numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
+% 
+%     imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+%     easyMontage(imgs,1);
+%     % 
+%     % % 
+%     % imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
+%     % easyMontage(imgs,2);
+%     colormap jet
+% end
+% 
+% disp('Done!');
+% 
+% 
+% clear all
+
+
+% 
+% % Compare with the gpuGridder matlab version
+% gpuGridder = load("gpuGriddervolR.mat")
+% 
+% 
+% img_slice = 32;
+% 
+% close all
+% figure('Color', [1 1 1])
+% h(1) = subplot(1,3,1);
+% imagesc(gpuGridder.volR(:,:,img_slice));
+% title("gpuGridder - Back Projection")
+% axis square
+% 
+% h(2) = subplot(1,3,2)
+% imagesc(vol(:,:,img_slice));
+% title("Multi GPU Gridder - Back Projection")
+% axis square
+% 
+% h(3) = subplot(1,3,3);
+% imagesc(gpuGridder.volR(:,:,img_slice) - vol(:,:,img_slice))
+% title("Subtraction")
+% colorbar
+% colormap jet
+% axis square
+% linkaxes(h, 'xy')
 
 
 

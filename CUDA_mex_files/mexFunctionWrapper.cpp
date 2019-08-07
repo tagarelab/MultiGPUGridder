@@ -78,9 +78,60 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         CUDA_Gridder_instance->SetVolume(matlabArrayPtr, dims);
 
         return;
- 
 
     }
+
+    // SetImages 
+    if (!strcmp("SetImages", cmd)) {
+        // Check parameters
+        if (nrhs !=  3)
+        {
+            mexErrMsgTxt("SetImages: Unexpected arguments. Please provide a Matlab array.");
+        }
+       
+        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get the matrix size of the input GPU volume
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions( prhs[2] );
+
+        int dims[3];
+        dims[0] = (int) dims_mwSize[0];
+        dims[1] = (int) dims_mwSize[1];
+        dims[2] = (int) dims_mwSize[2];
+
+        mwSize numDims;
+        numDims = mxGetNumberOfDimensions( prhs[2] );
+
+        if (numDims != 3)
+        {
+            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");            
+        }
+
+
+        // Call the method
+        CUDA_Gridder_instance->SetImages(matlabArrayPtr);
+
+        return;
+
+    }
+
+    // ResetVolume 
+    if (!strcmp("ResetVolume", cmd)) {
+
+        // Check parameters
+        if (nrhs !=  2)
+        {
+            mexErrMsgTxt("ResetVolume: Unexpected arguments.");
+        }
+       
+        // Call the method
+        CUDA_Gridder_instance->ResetVolume();
+
+        return;
+
+    }
+
 
     // SetAxes 
     if (!strcmp("SetAxes", cmd)) {
@@ -454,17 +505,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
-    // Forward_Project_Initilize    
-    if (!strcmp("Forward_Project_Initilize", cmd)) {
+    // Projection_Initilize    
+    if (!strcmp("Projection_Initilize", cmd)) {
         // Check parameters
 
         if (nrhs != 2)
         {
-            mexErrMsgTxt("Forward_Project_Initilize: Unexpected arguments. ");
+            mexErrMsgTxt("Projection_Initilize: Unexpected arguments. ");
         }                 
 
         // Call the method
-        CUDA_Gridder_instance->Forward_Project_Initilize();
+        CUDA_Gridder_instance->Projection_Initilize();
         
         return;
     }
@@ -484,7 +535,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // Back_Project    
+    if (!strcmp("Back_Project", cmd)) {
+        // Check parameters
 
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("Back_Project: Unexpected arguments. ");
+        }                 
+
+        // Call the method
+        CUDA_Gridder_instance->Back_Project();
+        
+        return;
+    }
 
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)
