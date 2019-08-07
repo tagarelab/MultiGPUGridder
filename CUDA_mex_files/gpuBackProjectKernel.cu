@@ -239,14 +239,7 @@ void gpuBackProject(
                 cudaMemcpyHostToDevice,
                 stream[i]);
                 
-              // cudaMemcpyAsync(
-            //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-            //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
-
-
             // Run the back projection kernel
-            // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
-            // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
             gpuBackProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
                 gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
                 imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
@@ -256,7 +249,7 @@ void gpuBackProject(
 
             std::cout << "cudaDeviceSynchronize()" << '\n';
 
-            gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
+            //gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
 
             // return;
             

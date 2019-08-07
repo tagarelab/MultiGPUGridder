@@ -155,33 +155,31 @@ volCAS  = zeros(size(CASVol));
 for i = 0:3
     volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
-volCAS = volCAS ./ max(volCAS(:));
+% volCAS = volCAS ./ max(volCAS(:));
 
 
+% Get the density of inserted planes by backprojecting images of all ones
+nAxes=int32(size(coordAxes,1))/9
+interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
+obj.ResetVolume();
+obj.SetImages(interpImgs)
 
-% 
-% 
-% % Get the density of inserted planes by backprojecting images of all ones
-% nAxes=int32(size(coordAxes,1))/9
-% interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
-% obj.ResetVolume();
-% obj.SetAxes(coordAxes)
-% obj.SetImages(interpImgs)
-% 
-% obj.disp_mem('all')
-% 
-% disp("mem_Return()...")
-% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
-% 
-% 
-% 
-% obj.Back_Project()
+obj.disp_mem('all')
+obj.CUDA_disp_mem('all')
 
 
-% volWt = obj.CUDA_Return('gpuVol_0');
+obj.Back_Project()
 
 
+volWt  = zeros(size(CASVol));
+for i = 0:3
+    volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
+end
 
+
+imagesc(volWt(:,:,50))
+
+volCAS=volCAS./(volWt+1e-6);
 
 % Reconstruct the volume from CASVol
 vol=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
@@ -199,82 +197,84 @@ easyMontage(vol,1);
 obj.CUDA_Free('all')
 clear obj
 
-%%
-abc
 
-% obj.CUDA_disp_mem('all')
-% obj.disp_mem('all')
-
-% Return the resulting projection images
-disp("mem_Return()...")
-InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
-
-
-disp("imgsFromCASImgs()...")
-tic
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); 
-toc
-
-
-obj.CUDA_Free('all')
-clear obj
-
-clearvars -except imgs
-
-clc
- 
-gpuGridder = load("gpuGridder_vol128.mat");
-% gpuGridder = load("gpuGridder_InterpCASImgs.mat");
-% gpuGridder = load("gpuGridder_gpuVol.mat");
-
-
-img_slice = 1;
-
-close all
-figure('Color', [1 1 1])
-h(1) = subplot(1,3,1);
-imagesc(gpuGridder.img(:,:,img_slice));
-title("gpuGridder")
-axis square
-
-h(2) = subplot(1,3,2)
-imagesc(imgs(:,:,img_slice));
-title("C++ Gridder")
-axis square
-
-h(3) = subplot(1,3,3);
-imagesc(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice))
-title("Subtraction")
-colorbar
-colormap jet
-axis square
-linkaxes(h, 'xy')
-
-
-sum(sum(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice)))
-
-display_imgs = 0;
-
-if display_imgs  == 1
-    % How many images to plot?
-    numImgsPlot = 10;
-
-    % Make sure we have that many images first
-    numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
-
-    imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
-    easyMontage(imgs,1);
-    % 
-    % % 
-    % imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
-    % easyMontage(imgs,2);
-    colormap jet
-end
-
-disp('Done!');
-
-
-clear all
+% 
+% %%
+% abc
+% 
+% % obj.CUDA_disp_mem('all')
+% % obj.disp_mem('all')
+% 
+% % Return the resulting projection images
+% disp("mem_Return()...")
+% InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
+% 
+% 
+% disp("imgsFromCASImgs()...")
+% tic
+% imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); 
+% toc
+% 
+% 
+% obj.CUDA_Free('all')
+% clear obj
+% 
+% clearvars -except imgs
+% 
+% clc
+%  
+% gpuGridder = load("gpuGridder_vol128.mat");
+% % gpuGridder = load("gpuGridder_InterpCASImgs.mat");
+% % gpuGridder = load("gpuGridder_gpuVol.mat");
+% 
+% 
+% img_slice = 1;
+% 
+% close all
+% figure('Color', [1 1 1])
+% h(1) = subplot(1,3,1);
+% imagesc(gpuGridder.img(:,:,img_slice));
+% title("gpuGridder")
+% axis square
+% 
+% h(2) = subplot(1,3,2)
+% imagesc(imgs(:,:,img_slice));
+% title("C++ Gridder")
+% axis square
+% 
+% h(3) = subplot(1,3,3);
+% imagesc(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice))
+% title("Subtraction")
+% colorbar
+% colormap jet
+% axis square
+% linkaxes(h, 'xy')
+% 
+% 
+% sum(sum(gpuGridder.img(:,:,img_slice) - imgs(:,:,img_slice)))
+% 
+% display_imgs = 0;
+% 
+% if display_imgs  == 1
+%     % How many images to plot?
+%     numImgsPlot = 10;
+% 
+%     % Make sure we have that many images first
+%     numImgsPlot = min(numImgsPlot, size(InterpCASImgs,3));
+% 
+%     imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:numImgsPlot), interpBox, fftinfo);
+%     easyMontage(imgs,1);
+%     % 
+%     % % 
+%     % imgs=imgsFromCASImgs(InterpCASImgs(:,:,end-numImgsPlot:end), interpBox, fftinfo);
+%     % easyMontage(imgs,2);
+%     colormap jet
+% end
+% 
+% disp('Done!');
+% 
+% 
+% clear all
 
 
 
