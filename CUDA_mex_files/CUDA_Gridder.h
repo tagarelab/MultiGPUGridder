@@ -85,10 +85,13 @@ public:
 	void SetMaskRadius(float* maskRadius);
 
 	// Allocate all the required GPU arrays on each GPU and required CPU arrays  
-	void Forward_Project_Initilize();
+	void Projection_Initilize();
 
 	// Run the forward projection CUDA kernel
 	void Forward_Project();
+
+	// Run the back projection CUDA kernel
+	void Back_Project();
 
 	// Check the parameters before launching the forward or back project CUDA kernels
 	int ParameterChecking(

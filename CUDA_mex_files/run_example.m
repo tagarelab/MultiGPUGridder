@@ -102,30 +102,6 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Run the forward projection kernel
 
-
-%         interpFactor: 2
-%             padWidth: 3
-%            kerHWidth: 2
-%           kerTblSize: 501
-%              fftinfo: '(fftw-3.3.3 fftwf_wisdom #x706526c0 #x2f8b6c85 #x8cd1bb1a #x7c96e03d↵  (fftwf_codelet_n2fv_32_avx 0 #x11bdd #x11bdd #x0 #x12d24524 #x289b57fa #x2bd8cbf3 #xaac91103)↵  (fftwf_codelet_r2cf_8 2 #x11bdd #x11bdd #x0 #xaccb8bbb #x30a0e5a6 #xb8c0b6b6 #xd9c72532)↵  (fftwf_codelet_r2cfII_8 2 #x11bdd #x11bdd #x0 #x23fb2e26 #x3fe4d3f4 #x78d7c0db #xaba9deb1)↵  (fftwf_codelet_hc2cfdftv_8_sse2 0 #x11bdd #x11bdd #x0 #x444bab32 #xc5e77a42 #x1cbd9c50 #xa8060657)↵  (fftwf_codelet_r2cfII_8 2 #x11bdd #x11bdd #x0 #xd0595f70 #x0f49f59a #x2758e317 #x73323a52)↵  (fftwf_codelet_hc2cfdftv_8_sse2 0 #x11bdd #x11bdd #x0 #x4bb69ce7 #x4599107c #x14ecc846 #x282ba2c3)↵  (fftwf_rdft2_vrank_geq1_register 0 #x11bdd #x11bdd #x0 #xdc61852d #x527070fd #x78c84335 #x33a00be1)↵  (fftwf_codelet_n1fv_32_avx 0 #x11bdd #x11bdd #x0 #x6d48fbd0 #x4b53cd60 #xc80a864b #x3a848396)↵  (fftwf_codelet_r2cf_8 2 #x11bdd #x11bdd #x0 #xaae37515 #xc366903c #xc804fee2 #x44fc70a7)↵)↵'
-%               gpuIds: 1
-%               gpuDev: [1×1 parallel.gpu.CUDADevice]
-%          origVolSize: 128
-%              imgSize: 256
-%                nAxes: 5001
-%                 rMax: 127
-%              origBox: [1×1 struct]
-%            interpBox: [1×1 struct]
-%               CASBox: [1×1 struct]
-%     axesPerIteration: 5001
-%            cudaFPKer: [1×1 parallel.gpu.CUDAKernel]
-%            cudaBPKer: [1×1 parallel.gpu.CUDAKernel]
-%               gpuVol: [262×262×262 gpuArray]
-%            gpuKerTbl: [501×1 gpuArray]
-%         gpuCoordAxes: [45009×1 gpuArray]
-%           gpuCASImgs: [256×256×5001 gpuArray]
-%           gpuCpxImgs: []
-%           
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberBatches(4);
 obj.SetNumberGPUs(4);
@@ -141,13 +117,18 @@ obj.SetAxes(coordAxes)
 disp("SetImgSize()...")
 obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
 
-obj.Forward_Project_Initilize()
+obj.Projection_Initilize()
 
 
 disp("Forward_Project()...")
 obj.Forward_Project()
 
 
+%% Run the back projection kernel
+disp("Back_Project()...")
+obj.Back_Project()
+
+%%
 % obj.CUDA_disp_mem('all')
 % obj.disp_mem('all')
 

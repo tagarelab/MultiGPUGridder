@@ -454,17 +454,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
-    // Forward_Project_Initilize    
-    if (!strcmp("Forward_Project_Initilize", cmd)) {
+    // Projection_Initilize    
+    if (!strcmp("Projection_Initilize", cmd)) {
         // Check parameters
 
         if (nrhs != 2)
         {
-            mexErrMsgTxt("Forward_Project_Initilize: Unexpected arguments. ");
+            mexErrMsgTxt("Projection_Initilize: Unexpected arguments. ");
         }                 
 
         // Call the method
-        CUDA_Gridder_instance->Forward_Project_Initilize();
+        CUDA_Gridder_instance->Projection_Initilize();
         
         return;
     }
@@ -484,7 +484,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // Back_Project    
+    if (!strcmp("Back_Project", cmd)) {
+        // Check parameters
 
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("Back_Project: Unexpected arguments. ");
+        }                 
+
+        // Call the method
+        CUDA_Gridder_instance->Back_Project();
+        
+        return;
+    }
 
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)

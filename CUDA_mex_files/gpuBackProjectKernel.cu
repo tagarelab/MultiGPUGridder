@@ -240,7 +240,7 @@ void gpuBackProject(
 
     }
 
-    std::cout << "Done with gpuForwardProjectKernel" << '\n';
+    std::cout << "Done with gpuBackProjectKernel" << '\n';
 
     return; 
 
