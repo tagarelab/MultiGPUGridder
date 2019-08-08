@@ -1,20 +1,8 @@
 #include "gpuForwardProject.h"
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess) 
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
-
-
 __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* img,int imgSize, float *axes, int nAxes,float maskRadius,
     float* ker, int kerSize, float kerHWidth)
 {
-
     int i=blockIdx.x*blockDim.x+threadIdx.x;
     int j=blockIdx.y*blockDim.y+threadIdx.y;
     int volCenter= volSize/2;
@@ -32,8 +20,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     float wi,wj,wk;
     float kerCenter=((float)kerSize-1)/2;
     float kerScale=kerCenter/kerHWidth;
-    int kerIndex;
-   
+    int kerIndex;   
 
     __shared__ float locKer[1000];
 
@@ -43,8 +30,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
         for (kerIndex=0;kerIndex<kerSize;kerIndex++) 
         locKer[kerIndex]=*(ker+kerIndex);
     }
-    __syncthreads();   
-   
+    __syncthreads();      
 
     for(img_i=0;img_i<nAxes;img_i++)
     {
@@ -58,7 +44,6 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
             f_vol_i= (*(nx))*((float)(i-imgCenter))+(*(ny))*((float)(j-imgCenter))+(float)volCenter;
             f_vol_j= (*(nx+1))*((float)(i-imgCenter))+(*(ny+1))*((float)(j-imgCenter))+(float)volCenter;
             f_vol_k= (*(nx+2))*((float)(i-imgCenter))+(*(ny+2))*((float)(j-imgCenter))+(float)volCenter;
-
 
             int_vol_i= roundf(f_vol_i);
             int_vol_j= roundf(f_vol_j);
@@ -103,9 +88,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
             }//End i1
         }//End if r
     }//End img_i
-
 }
-
 
 void gpuForwardProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
@@ -126,7 +109,7 @@ void gpuForwardProject(
     { 
         int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
         cudaSetDevice(curr_GPU);         
-        gpuErrchk( cudaStreamCreate(&stream[i]) );
+        cudaStreamCreate(&stream[i]);
     }
 
     int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
@@ -193,7 +176,7 @@ void gpuForwardProject(
 
     cudaDeviceSynchronize();
 
-    std::cout << "Done with gpuForwardProjectKernel" << '\n';
+    std::cout << "Done with gpuForwardProjectKernel()" << '\n';
 
     return; 
 }

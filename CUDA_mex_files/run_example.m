@@ -165,12 +165,10 @@ size(imgs)
 % linkaxes(h, 'xy')
 % zoom on
 
+disp("easyMontage()...")
 easyMontage(imgs,2);
-obj.CUDA_Free('all')
-clear obj
 
 
-abc
 
 %% Run the back projection kernel
 disp("ResetVolume()...")
@@ -194,6 +192,7 @@ obj.ResetVolume();
 obj.SetImages(interpImgs)
 
 tic
+disp("Back_Project()...")
 obj.Back_Project()
 toc
 
@@ -232,6 +231,7 @@ volCAS=volCAS./(volWt+1e-6);
 % mean(volCAS(:))
                 
 % Reconstruct the volume from CASVol
+disp("volFromCAS()...")
 volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
 
 max(volReconstructed(:))
@@ -241,6 +241,7 @@ max(volReconstructed(:))
 % colormap gray
 % axis square
 % 
+disp("easyMontage()...")
 easyMontage(volReconstructed,3);
 
 % easyMontage(vol - volReconstructed,4);
