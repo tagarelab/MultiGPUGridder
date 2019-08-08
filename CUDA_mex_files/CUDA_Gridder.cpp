@@ -575,6 +575,13 @@ int CUDA_Gridder::ParameterChecking(
         return -1;
     }
 
+    // Checking parameters: gpuCASImgs_Vector, gpuCoordAxes_Vector
+    if (gpuCASImgs_Vector.size() > nStreams || gpuCoordAxes_Vector.size() > nStreams)
+    {
+        std::cerr << "gpuForwardProject(): Number of streams is greater than the number of gpu array pointers" << '\n';
+        return -1;
+    }
+
     // No errors were detected so return a flag of 0
     return 0;
 }

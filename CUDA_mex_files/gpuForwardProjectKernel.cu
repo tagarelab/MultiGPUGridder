@@ -115,9 +115,6 @@ void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
-   
-    std::cout << "nStreams: " << nStreams << '\n';
-
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
@@ -128,88 +125,50 @@ void gpuForwardProject(
     for (int i = 0; i < nStreams; i++) // Loop through the streams
     { 
         int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
-
-        cudaSetDevice(curr_GPU); // TO DO: Is this needed?        
+        cudaSetDevice(curr_GPU);         
         gpuErrchk( cudaStreamCreate(&stream[i]) );
-
     }
 
     int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
 
-    // Loop through the batches
-    for (int currBatch = 0; currBatch < nBatches; currBatch++)
+    for (int currBatch = 0; currBatch < nBatches; currBatch++) // Loop through the batches
     {   
         for (int i = 0; i < nStreams; i++) // Loop through the streams 
         {             
             int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
-            
-            std::cout << "curr_GPU: " << curr_GPU << '\n';
-
-            cudaSetDevice(curr_GPU); // TO DO: Is this needed?        
-
-            if (curr_GPU < 0 || curr_GPU > 3)
-            {
-                std::cerr << "Error in curr_GPU" << '\n';
-                return;
-            }
+        
+            cudaSetDevice(curr_GPU);     
 
             // How many coordinate axes to assign to this CUDA stream? 
             int nAxes_Stream = ceil((double)nAxes / (nBatches * nStreams)); // Ceil needed if nStreams is not a multiple of numGPUs            
 
-            std::cout << "nAxes: " << nAxes << '\n';
-            std::cout << "nStreams: " << nStreams << '\n';
-            std::cout << "nBatches: " << nBatches << '\n';
-            std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
-
-            // Check to make sure we dont try to process more coord axes than we have
+            // Check to make sure we don't try to process more coord axes than we have
             if (processed_nAxes + nAxes_Stream > nAxes) 
             {
                 // Process the remaining streams (at least one axes is left)
                 nAxes_Stream = nAxes_Stream - (processed_nAxes + nAxes_Stream - nAxes); // Remove the extra axes that are past the maximum nAxes
             }
             
-            // Is there at least one axes to process for this stream?
+            // Is there at least one coordinate axes to process for this stream?
             if (nAxes_Stream < 1)
             {
-                std::cerr << "nAxes_Stream < 1. Skipping this stream." << '\n';
-                continue; // Skip this stream
+                continue; // Otherwise skip this stream
             }  
                     
-            if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i)
-            {
-                std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
-                std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
-                std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
-                return;
-            }
-
             // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
             int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
             int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
 
             // Use unsigned long long int type to allow for array length larger than maximum int32 value 
             // Number of bytes of already processed images
+            // Have to use unsigned long long since the array may be longer than the max value int32 can represent
             unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
             CASImgs_CPU_Offset[0] = (unsigned long long)(imgSize);
             CASImgs_CPU_Offset[1] = (unsigned long long)(imgSize);
             CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
-                
-            int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float); // Copy the images which were processed
-
-            std::cout << "nAxes_Stream: " << nAxes_Stream << '\n';
-            std::cout << "gpuCoordAxes_Offset: " << gpuCoordAxes_Offset << '\n';
-            std::cout << "coord_Axes_streamBytes: " << coord_Axes_streamBytes << '\n';
             
-            std::cout << "CASImgs_CPU_Offset: " << CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2] << '\n';
-            std::cout << "gpuCASImgs_streamBytes: " << gpuCASImgs_streamBytes << '\n';
-
-            // Check to make sure the coord axes array has the requested memory
-            if ( (gpuCoordAxes_Offset + coord_Axes_streamBytes) >= nAxes * 9 * sizeof(float))
-            {
-                std::cerr << "(gpuCoordAxes_Offset + coord_Axes_streamBytes) >= nAxes * 9 * sizeof(float). Skipping this stream." << '\n';
-                continue; // Skip this stream
-            }
-           
+            // How many bytes are the output images?
+            int gpuCASImgs_streamBytes = imgSize * imgSize * nAxes_Stream * sizeof(float);          
             
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
@@ -221,28 +180,20 @@ void gpuForwardProject(
                 gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
                 imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
                 maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
-    
-            gpuErrchk( cudaPeekAtLastError() );
 
             // Copy the resulting gpuCASImgs to the host (CPU)
             cudaMemcpyAsync(
                 &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
                 gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
-            gpuErrchk( cudaPeekAtLastError() );
-
-            // Update the number of axes which have already been assigned to a CUDA stream
+            // Update the number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
-        }
-
-        std::cout << "cudaDeviceSynchronize()" << '\n';
-
-        gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
-
+        } 
     }
+
+    cudaDeviceSynchronize();
 
     std::cout << "Done with gpuForwardProjectKernel" << '\n';
 
     return; 
-
 }

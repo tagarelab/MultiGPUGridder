@@ -64,9 +64,9 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-volSize = 256;%256;%256%128;%64;
+volSize = 128;%256;%256%128;%64;
 n1_axes = 100;
-n2_axes = 10;
+n2_axes = 50;
 kernelHWidth = 2;
 
 interpFactor = 2.0;
@@ -114,7 +114,7 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberBatches(2);
 obj.SetNumberGPUs(4);
-obj.SetNumberStreams(64);
+obj.SetNumberStreams(32);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
@@ -140,37 +140,28 @@ InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 
 disp("imgsFromCASImgs()...")
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,:), interpBox, fftinfo); 
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); 
 
 GT_projection = sum(vol,3);
 size(GT_projection)
 size(vol)
 size(imgs)
 
-% figure
-% h(1) = subplot(1,3,1);
-% imagesc(imgs(:,:,1))
-% title("Calculated Projection")
-% axis square
-% h(2) = subplot(1,3,2);
-% imagesc(GT_projection(:,:,1))
-% title("GT Projection")
-% axis square
-% h(3) = subplot(1,3,3);
-% imagesc(GT_projection(:,:,1) - imgs(:,:,1))
-% title("Subtraction")
-% axis square
-% colorbar
-% colormap gray
-% linkaxes(h, 'xy')
-% zoom on
+figure
+subplot(1,3,1)
+imagesc(imgs(:,:,1))
+title("Calculated Projection")
+subplot(1,3,2)
+imagesc(GT_projection(:,:,1))
+title("GT Projection")
+subplot(1,3,3)
+imagesc(GT_projection(:,:,1) - imgs(:,:,1))
+colorbar
+colormap gray
+
 
 easyMontage(imgs,2);
-obj.CUDA_Free('all')
-clear obj
 
-
-abc
 
 %% Run the back projection kernel
 disp("ResetVolume()...")
