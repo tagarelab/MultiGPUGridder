@@ -132,6 +132,11 @@ SumVol = obj.GetVolume();
 
 max(SumVol(:))
 
+obj.disp_mem('all')
+
+
+test = obj.mem_Return('coordAxes_CPU_Pinned')
+
 
 
 obj.CUDA_Free('all')

@@ -410,6 +410,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Return a CPU array as a Matlab array
     if (!strcmp("mem_Return", cmd))
     {
+
         // Check parameters
         if (nrhs != 3)
         {
@@ -420,8 +421,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        int *vol_dims;
+        vol_dims = CUDA_Gridder_instance->Mem_obj->CPU_Get_Array_Size(varNameString);
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        mwSize dims[3]; 
+        dims[0] = vol_dims[0];
+        dims[1] = vol_dims[1];
+        dims[2] = vol_dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
         // Call the method
-        plhs[0] = CUDA_Gridder_instance->Mem_obj->mem_Return(varNameString, plhs[0]);
+        float *OutputArray = CUDA_Gridder_instance->Mem_obj->ReturnCPUFloatPtr(varNameString);
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
 
         return;
     }
