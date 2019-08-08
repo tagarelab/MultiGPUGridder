@@ -79,7 +79,6 @@ void CUDA_Gridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // Check each GPU to determine if the gpuVol arrays are already allocated
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
-        std::cout << "Setting gpuVol on GPU " << gpuDevice << "..." << '\n';
 
         // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
         // Has a gpuVol array already been allocated on this GPU?
@@ -158,8 +157,6 @@ void CUDA_Gridder::SetImages(float *newCASImgs)
     // Has the output CAS image array been allocated and pinned to the CPU?
     if (Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false)
     {
-        std::cout << "Allocating and pinning images array" << '\n';
-
         // Allocate the CAS images array
         Mem_obj->mem_alloc("CASImgs_CPU_Pinned", "float", this->imgSize);
 
@@ -178,8 +175,6 @@ void CUDA_Gridder::ResetVolume()
     // Loop through all of the GPUs and reset the volume on each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
-        std::cout << "Resetting gpuVol on GPU " << gpuDevice << "..." << '\n';
-
         // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
         // Has a gpuVol array already been allocated on this GPU?
         if (Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == true)
@@ -202,8 +197,6 @@ void CUDA_Gridder::ResetVolume()
 void CUDA_Gridder::SetAxes(float *coordAxes, int *axesSize)
 {
     // Set the coordinate axes array to pinned CPU memory
-
-    std::cout << "Setting coordAxes array to pinned CPU memory..." << '\n';
 
     // Has a coordAxes array already been allocated?
     if (Mem_obj->CPUArrayAllocated("coordAxes_CPU_Pinned") == false)
@@ -248,7 +241,6 @@ void CUDA_Gridder::Projection_Initilize()
     // Has the output image array been allocated and pinned to the CPU?
     if (Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false)
     {
-        std::cout << "Allocating and pinning CASImgs_CPU_Pinned" << '\n';
         // We need to allocate the coordAxes array on this axesSize
         Mem_obj->mem_alloc("CASImgs_CPU_Pinned", "float", this->imgSize);
 
@@ -259,8 +251,6 @@ void CUDA_Gridder::Projection_Initilize()
     // Check each GPU to determine if all the required pointers are already allocated
     for (int i = 0; i < this->nStreams; i++)
     {
-        std::cout << "Projection_Initilize():  Stream number " << i << '\n';
-
         int gpuDevice = i % this->numGPUs; // Use the remainder operator to split streams evenly between GPUs
 
         // Has the output array been allocated and defined already?
@@ -276,8 +266,6 @@ void CUDA_Gridder::Projection_Initilize()
             int nAxes = this->axesSize[0] / 9;
             int nImgsPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
             gpuCASImgs_Size[2] = std::max(nImgsPerStream, 2); // Must be at least two images (projections are sometimes missing if only 1 image is allocated)
-
-            std::cout << "nImgsPerStream: " << nImgsPerStream << '\n';
 
             Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(i), "float", gpuCASImgs_Size, gpuDevice);
         }
@@ -325,13 +313,11 @@ void CUDA_Gridder::Projection_Initilize()
         }
     }
 
-    std::cout << "Projection_Initilize() finished" << '\n';
 }
 
 void CUDA_Gridder::Forward_Project()
 {
     // Run the forward projection CUDA kernel
-    std::cout << "CUDA_Gridder::Forward_Project()" << '\n';
 
     // First check to make sure all the needed CPU and GPU required pointers exist
     Projection_Initilize();
@@ -405,7 +391,6 @@ void CUDA_Gridder::Forward_Project()
 void CUDA_Gridder::Back_Project()
 {
     // Run the back projection CUDA kernel
-    std::cout << "CUDA_Gridder::Back_Project()" << '\n';
 
     // First check to make sure all the needed CPU and GPU required pointers exist
     Projection_Initilize();

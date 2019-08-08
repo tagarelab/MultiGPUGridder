@@ -64,9 +64,13 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
+nBatches = 2;
+nGPUs = 4;
+nStreams = 32;
+
 volSize = 128;%256;%256%128;%64;
-n1_axes = 5;
-n2_axes = 1;
+n1_axes = 500;
+n2_axes = 10;
 kernelHWidth = 2;
 
 interpFactor = 2.0;
@@ -111,18 +115,25 @@ disp(["Volume size: " + num2str(volSize)])
 disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Run the forward projection kernel
-nBatches = 1;
-nGPUs = 1;
-nStreams = 10;
-
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
+
 disp("SetVolume()...")
 obj.SetVolume(single(CASVol))
+
+% x = obj.CUDA_Return(char("gpuVol_" + num2str(0)));
+
+% SumVol = obj.GetVolume();
+
+
+
+
+% SumVol = obj.GetVolume();
+
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)
@@ -146,6 +157,16 @@ InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 disp("imgsFromCASImgs()...")
 imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo); 
 
+
+obj.disp_mem('all')
+
+
+
+obj.CUDA_Free('all')
+clear obj
+clear all
+
+abc
 
 % 
 % GT_projection = sum(vol,3);
@@ -190,7 +211,7 @@ obj.Back_Project()
 disp("Get_Volume()...")
 % Get the volumes from all the GPUs and add them together
 volCAS  = single(zeros(size(CASVol)));
-for i = 0:3
+for i = 0:nGPUs-1
     volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 
@@ -212,7 +233,7 @@ obj.Back_Project()
 disp("Get_Volume()...")
 % Get the resulting volume from all the GPUs and add them together
 volWt  = single(zeros(size(CASVol)));
-for i = 0:3
+for i = 0:nGPUs-1
     volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 

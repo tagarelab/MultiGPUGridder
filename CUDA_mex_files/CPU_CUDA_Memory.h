@@ -31,7 +31,7 @@ public:
         // Free all the GPU memory
         CUDA_Free("all");
         std::cout << "CPU_CUDA_Memory() deconstructor" << '\n';
-     }
+    }
 
     bool GPUArrayAllocated(std::string varNameString, int GPU_Device);
 
@@ -39,11 +39,7 @@ public:
 
     int FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector);
 
-    int *ReturnCPUIntPtr(std::string varNameString);
-
     float *ReturnCPUFloatPtr(std::string varNameString);
-
-    int *ReturnCUDAIntPtr(std::string varNameString);
 
     float *ReturnCUDAFloatPtr(std::string varNameString);
 
@@ -74,24 +70,18 @@ public:
     float *CUDA_Return(std::string varNameString);
 
 private:
-    // Allow the vector of CPU pointers to be either int, float, or double type
-    union Ptr_Types {
-        int *i;
-        unsigned long long *un_int;
-        float *f;
-    };
 
     // Variables to hold the CPU arrays
     std::vector<std::string> cpu_arr_names; // Name of the variables, e.g. 'imgVol'
     std::vector<std::string> cpu_arr_types; // String of datatype, e.g. 'int', 'float', or 'double'
     std::vector<int *> cpu_arr_sizes;       // Size of the cpu array, e.g. [256, 256, 256]
-    std::vector<Ptr_Types> cpu_arr_ptrs;    // Memory pointer to the corresponding cpu array (supports int, float, or double)
+    std::vector<float *> cpu_arr_ptrs;      // Memory pointer to the corresponding cpu array (supports int, float, or double)
 
     // Variables to hold the CUDA GPU arrays
     std::vector<std::string> CUDA_arr_names;  // Name of the variables, e.g. 'gpuVol'
     std::vector<std::string> CUDA_arr_types;  // String of datatype, e.g. 'int', 'float', or 'double'
     std::vector<int *> CUDA_arr_sizes;        // Size of the float array, e.g. [256, 256, 256]
-    std::vector<Ptr_Types> CUDA_arr_ptrs;     // Memory pointer to the corresponding int array
+    std::vector<float *> CUDA_arr_ptrs;       // Memory pointer to the corresponding int array
     std::vector<int> CUDA_arr_GPU_Assignment; // Which GPU is the array assigned to? (e.g. integer from 0 to 4 for 4 GPUs)
 };
 

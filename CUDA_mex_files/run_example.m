@@ -69,7 +69,7 @@ nGPUs = 4;
 nStreams = 32;
 
 volSize = 128;%256;%256%128;%64;
-n1_axes = 500;
+n1_axes = 50;
 n2_axes = 10;
 kernelHWidth = 2;
 
@@ -123,34 +123,16 @@ obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1));
 
 
 disp("SetVolume()...")
-CASVol(1) = 2;
 obj.SetVolume(single(CASVol))
 
 % x = obj.CUDA_Return(char("gpuVol_" + num2str(0)));
 
-SumVol = obj.GetVolume();
-
-max(SumVol(:))
-
-obj.disp_mem('all')
-
-
-test = obj.mem_Return('coordAxes_CPU_Pinned')
+% SumVol = obj.GetVolume();
 
 
 
-obj.CUDA_Free('all')
-clear obj
-clear all
 
-abc
-
-
-
-SumVol = obj.GetVolume();
-
-max(SumVol(:))
-
+% SumVol = obj.GetVolume();
 
 
 disp("SetAxes()...")
@@ -175,6 +157,16 @@ InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 disp("imgsFromCASImgs()...")
 imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo); 
 
+
+obj.disp_mem('all')
+
+% 
+% 
+% obj.CUDA_Free('all')
+% clear obj
+% clear all
+% 
+% abc
 
 % 
 % GT_projection = sum(vol,3);
@@ -217,11 +209,8 @@ disp("Back_Project()...")
 obj.Back_Project()
 
 disp("Get_Volume()...")
-% Get the volumes from all the GPUs and add them together
-volCAS  = single(zeros(size(CASVol)));
-for i = 0:nGPUs-1
-    volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
-end
+% Get the volumes from all the GPUs added together
+SumVol = obj.GetVolume();
 
 % Get the density of inserted planes by backprojecting CASimages of values equal to one
 disp("Get Plane Density()...")
@@ -240,10 +229,7 @@ obj.Back_Project()
 
 disp("Get_Volume()...")
 % Get the resulting volume from all the GPUs and add them together
-volWt  = single(zeros(size(CASVol)));
-for i = 0:nGPUs-1
-    volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
-end
+volWt  = obj.GetVolume();
 
 % Divide the previous volume with the plane density volume
 volCAS=volCAS./(volWt+1e-6);

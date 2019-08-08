@@ -198,8 +198,6 @@ void gpuBackProject(
 
     cudaDeviceSynchronize();
 
-    std::cout << "Done with gpuBackProjectKernel" << '\n';
-
     return; 
 
 }

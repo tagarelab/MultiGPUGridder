@@ -71,32 +71,6 @@ int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::
     return arr_idx;
 }
 
-int *CPU_CUDA_Memory::ReturnCPUIntPtr(std::string varNameString)
-{
-    // Given the name of a variable, return the memory pointer (supports only CPU int pointers)
-
-    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name
-    int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
-
-    if (arr_idx < 0)
-    {
-        std::cerr << "Failed to locate variable. Please check spelling." << '\n';
-        return NULL; // Return null pointer since no pointer was found
-    }
-
-    if (cpu_arr_types[arr_idx] == "int")
-    {
-        // Return the CPU memory pointer
-        return cpu_arr_ptrs[arr_idx].i;
-    }
-    else
-    {
-        std::cerr << "This array is not of integer type. Please try ReturnCPUFloatPtr() instead." << '\n';
-    }
-
-    return NULL; // Return null pointer since no pointer was found
-}
-
 float *CPU_CUDA_Memory::ReturnCPUFloatPtr(std::string varNameString)
 {
     // Given the name of a variable, return the memory pointer (supports only CPU float pointers)
@@ -107,44 +81,11 @@ float *CPU_CUDA_Memory::ReturnCPUFloatPtr(std::string varNameString)
     if (arr_idx < 0)
     {
         std::cerr << "Failed to locate variable. Please check spelling." << '\n';
+        return NULL;
     }
 
-    if (cpu_arr_types[arr_idx] == "float")
-    {
-        // Return the CPU memory pointer
-        return cpu_arr_ptrs[arr_idx].f;
-    }
-    else
-    {
-        std::cerr << "This array is not of integer type. Please try ReturnCPUIntPtr instead." << '\n';
-    }
-
-    return NULL; // Return null pointer since no pointer was found
-}
-
-int *CPU_CUDA_Memory::ReturnCUDAIntPtr(std::string varNameString)
-{
-    // Given the name of a variable, return the memory pointer (supports only CUDA int pointers)
-
-    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name
-    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
-
-    if (arr_idx < 0)
-    {
-        std::cerr << "Failed to locate variable. Please check spelling." << '\n';
-    }
-
-    if (CUDA_arr_types[arr_idx] == "int")
-    {
-        // Return the CUDA memory pointer
-        return CUDA_arr_ptrs[arr_idx].i;
-    }
-    else
-    {
-        std::cerr << "This array is not of integer type. Please try ReturnCUDAFloatPtr instead." << '\n';
-    }
-
-    return NULL; // Return null pointer since no pointer was found
+    // Return the CPU memory pointer
+    return cpu_arr_ptrs[arr_idx];
 }
 
 float *CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString)
@@ -157,19 +98,11 @@ float *CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString)
     if (arr_idx < 0)
     {
         std::cerr << "Failed to locate variable. Please check spelling." << '\n';
+        return NULL; // Return null pointer since no pointer was found
     }
 
-    if (CUDA_arr_types[arr_idx] == "float")
-    {
-        // Return the CUDA memory pointer
-        return CUDA_arr_ptrs[arr_idx].f;
-    }
-    else
-    {
-        std::cerr << "This array is not of float type. Please try ReturnCUDAIntPtr instead." << '\n';
-    }
-
-    return NULL; // Return null pointer since no pointer was found
+    // Return the CUDA memory pointer
+    return CUDA_arr_ptrs[arr_idx];
 }
 
 void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
@@ -193,31 +126,7 @@ void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType,
     cpu_arr_sizes.push_back(new_dataSize_ptr);
 
     // Allocate the memory and save the pointer to the corresponding vector
-    Ptr_Types n;
-
-    if (dataType == "int")
-    {
-        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
-        unsigned long long *dataSizeLong = new unsigned long long[3];
-        dataSizeLong[0] = (unsigned long long)dataSize[0];
-        dataSizeLong[1] = (unsigned long long)dataSize[1];
-        dataSizeLong[2] = (unsigned long long)dataSize[2];
-
-        int *new_ptr = new int[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
-        n.i = new_ptr;
-    }
-    else if (dataType == "unint")
-    {
-        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
-        unsigned long long *dataSizeLong = new unsigned long long[3];
-        dataSizeLong[0] = (unsigned long long)dataSize[0];
-        dataSizeLong[1] = (unsigned long long)dataSize[1];
-        dataSizeLong[2] = (unsigned long long)dataSize[2];
-
-        unsigned long long *new_ptr = new unsigned long long[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
-        n.un_int = new_ptr;
-    }
-    else if (dataType == "float")
+    if (dataType == "float")
     {
         // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
         unsigned long long *dataSizeLong = new unsigned long long[3];
@@ -226,15 +135,14 @@ void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType,
         dataSizeLong[2] = (unsigned long long)dataSize[2];
 
         float *new_ptr = new float[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
-        n.f = new_ptr;
+
+        // Save the new pointer to the allocated CPU array
+        cpu_arr_ptrs.push_back(new_ptr);
     }
     else
     {
         std::cerr << "Unrecognized data type. Please choose either int, float, or double." << '\n';
     }
-
-    // Save the new pointer to the allocated CPU array
-    cpu_arr_ptrs.push_back(n);
 }
 
 void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
@@ -256,13 +164,9 @@ void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
     dim_size[1] = (unsigned long long)cpu_arr_sizes[arr_idx][1];
     dim_size[2] = (unsigned long long)cpu_arr_sizes[arr_idx][2];
 
-    if (cpu_arr_types[arr_idx] == "int")
+    if (cpu_arr_types[arr_idx] == "float")
     {
-        std::cerr << "Unrecognized data type. Only float is supported currently for mem_Copy()." << '\n';
-    }
-    else if (cpu_arr_types[arr_idx] == "float")
-    {
-        std::memcpy(cpu_arr_ptrs[arr_idx].f, New_Array, sizeof(float) * (dim_size[0] * dim_size[1] * dim_size[2]));
+        std::memcpy(cpu_arr_ptrs[arr_idx], New_Array, sizeof(float) * (dim_size[0] * dim_size[1] * dim_size[2]));
     }
     else
     {
@@ -273,8 +177,6 @@ void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
 void CPU_CUDA_Memory::pin_mem(std::string varNameString)
 {
     // Given a variable name, pin the associated CPU array (i.e. make it non-pageable on the RAM so the GPUs can directly access it)
-
-    std::cout << "pin_mem()..." << '\n';
 
     // Locate the index of the cpu_arr_names vector which correspondes to the given variable name
     int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
@@ -295,24 +197,14 @@ void CPU_CUDA_Memory::pin_mem(std::string varNameString)
     unsigned long long dim_size = dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2];
 
     // Register the CPU array as pinned memory using the CUDA function
-    if (cpu_arr_types[arr_idx] == "int")
+    if (cpu_arr_types[arr_idx] == "float")
     {
-        cudaHostRegister(cpu_arr_ptrs[arr_idx].i, sizeof(int) * dim_size, 0);
-        return;
-    }
-    else if (cpu_arr_types[arr_idx] == "un_int")
-    {
-        cudaHostRegister(cpu_arr_ptrs[arr_idx].un_int, sizeof(long long int) * dim_size, 0);
-        return;
-    }
-    else if (cpu_arr_types[arr_idx] == "float")
-    {
-        cudaHostRegister(cpu_arr_ptrs[arr_idx].f, sizeof(float) * dim_size, 0);
+        cudaHostRegister(cpu_arr_ptrs[arr_idx], sizeof(float) * dim_size, 0);
         return;
     }
     else
     {
-        std::cerr << "Unrecognized data type. Please choose either int, float, or double." << '\n';
+        std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
 }
 
@@ -382,17 +274,9 @@ void CPU_CUDA_Memory::mem_Free(std::string varNameString)
     }
 
     // Delete the arrays first from memory
-    if (cpu_arr_types[arr_idx] == "int")
+    if (cpu_arr_types[arr_idx] == "float")
     {
-        std::free(cpu_arr_ptrs[arr_idx].i);
-    }
-    else if (cpu_arr_types[arr_idx] == "un_int")
-    {
-        std::free(cpu_arr_ptrs[arr_idx].un_int);
-    }
-    else if (cpu_arr_types[arr_idx] == "float")
-    {
-        std::free(cpu_arr_ptrs[arr_idx].f);
+        std::free(cpu_arr_ptrs[arr_idx]);
     }
 
     // Delete the corresponding information from all the cpu vectors
@@ -444,30 +328,12 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
     size_t mem_tot_0 = 0;
     size_t mem_free_0 = 0;
     cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory before copy: " << mem_free_0 << " Device: " << GPU_Device << std::endl;
+    // std::cout << "Free memory before copy: " << mem_free_0 << " Device: " << GPU_Device << std::endl;
 
     // Allocate the memory and save the pointer to the corresponding vector
-    Ptr_Types n;
-
-    if (dataType == "int")
+    if (dataType == "float")
     {
-        int *devPtr = new int[dataSize[0] * dataSize[1] * dataSize[2]]; // Multiply the X,Y,Z dimensions of the array
-        n.i = devPtr;
-
-        std::cout << "CUDA Memory requested: " << sizeof(int) * (dataSize[0] * dataSize[1] * dataSize[2]) << " bytes" << '\n';
-
-        // Is there enough available memory on the device to allocate this array?
-        if (mem_free_0 < sizeof(int) * (dataSize[0] * dataSize[1] * dataSize[2]))
-        {
-            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()." << '\n';
-            return;
-        }
-
-        cudaMalloc(&n.i, sizeof(int) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
-    }
-    else if (dataType == "float")
-    {
-        std::cout << "CUDA Memory requested: " << sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2]) << " bytes" << '\n';
+        // std::cout << "CUDA Memory requested: " << sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2]) << " bytes" << '\n';
         // Is there enough available memory on the device to allocate this array?
         if (mem_free_0 < sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2]))
         {
@@ -476,17 +342,16 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
         }
 
         float *devPtr = new float[dataSize[0] * dataSize[1] * dataSize[2]]; // Multiply the X,Y,Z dimensions of the array
-        n.f = devPtr;
 
-        cudaMalloc(&n.f, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
+        cudaMalloc(&devPtr, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
+
+        // Save the new pointer to the allocated CUDA GPU array
+        CUDA_arr_ptrs.push_back(devPtr);
     }
     else
     {
-        std::cerr << "Unrecognized data type. Please choose either int, float, or double." << '\n';
+        std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
-
-    // Save the new pointer to the allocated CUDA GPU array
-    CUDA_arr_ptrs.push_back(n);
 }
 
 void CPU_CUDA_Memory::CUDA_Free(std::string varNameString)
@@ -526,17 +391,13 @@ void CPU_CUDA_Memory::CUDA_Free(std::string varNameString)
     cudaSetDevice(CUDA_arr_GPU_Assignment[arr_idx]);
 
     // Delete the array from the GPU memory
-    if (CUDA_arr_types[arr_idx] == "int")
+    if (CUDA_arr_types[arr_idx] == "float")
     {
-        cudaFree(CUDA_arr_ptrs[arr_idx].i);
-    }
-    else if (CUDA_arr_types[arr_idx] == "float")
-    {
-        cudaFree(CUDA_arr_ptrs[arr_idx].f);
+        cudaFree(CUDA_arr_ptrs[arr_idx]);
     }
     else
     {
-        std::cerr << "Unrecognized data type. Please choose either int, float, or double." << '\n';
+        std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
 
     // Delete the corresponding information from all the cpu vectors
@@ -598,14 +459,10 @@ void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, float *New_Array)
     // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
     int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
 
-    if (CUDA_arr_types[arr_idx] == "int")
-    {
-        std::cerr << "Only float type is currently supported." << '\n';
-    }
-    else if (CUDA_arr_types[arr_idx] == "float")
+    if (CUDA_arr_types[arr_idx] == "float")
     {
         // Sends data to device asynchronously
-        cudaMemcpy(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx], New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
     }
     else
     {
@@ -636,14 +493,10 @@ void CPU_CUDA_Memory::CUDA_Copy_Asyc(std::string varNameString, float *New_Array
     // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
     int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
 
-    if (CUDA_arr_types[arr_idx] == "int")
-    {
-        std::cerr << "Only float type is currently supported." << '\n';
-    }
-    else if (CUDA_arr_types[arr_idx] == "float")
+    if (CUDA_arr_types[arr_idx] == "float")
     {
         // Sends data to device asynchronously
-        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
+        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx], New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
     }
     else
     {
@@ -712,7 +565,7 @@ float *CPU_CUDA_Memory::CUDA_Return(std::string varNameString)
         int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
 
         float *CPU_Array = new float[dim_size];
-        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx], dim_size * sizeof(float), cudaMemcpyDeviceToHost);
 
         return CPU_Array;
     }

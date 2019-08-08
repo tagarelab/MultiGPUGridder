@@ -176,7 +176,5 @@ void gpuForwardProject(
 
     cudaDeviceSynchronize();
 
-    std::cout << "Done with gpuForwardProjectKernel()" << '\n';
-
     return; 
 }
