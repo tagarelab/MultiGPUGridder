@@ -65,7 +65,7 @@ reset(gpuDevice());
 tic
 
 volSize = 256;%256;%256%128;%64;
-n1_axes = 100;
+n1_axes = 10;
 n2_axes = 10;
 kernelHWidth = 2;
 
@@ -179,11 +179,14 @@ disp("Back_Project()...")
 obj.Back_Project()
 toc
 
+disp("Get_Volume()...")
 % Get the volumes from all the GPUs and add them together
 volCAS  = single(zeros(size(CASVol)));
 for i = 0:3
     volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
+
+disp("Get Plane Density()...")
 
 % Get the density of inserted planes by backprojecting CASimages of values equal to one
 nAxes = size(coordAxes,1)/9;
@@ -196,39 +199,15 @@ disp("Back_Project()...")
 obj.Back_Project()
 toc
 
+disp("Get_Volume()...")
 % Get the resulting volume from all the GPUs and add them together
 volWt  = single(zeros(size(CASVol)));
 for i = 0:3
     volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 
-% max(volWt(:))
-
-
 % Divide the previous volume with the plane density volume
 volCAS=volCAS./(volWt+1e-6);
-
-% max(volCAS(:))
-
-% volCAS = double(volCAS);
-
-% 
-% % Remove the precompensation
-% preComp=getPreComp(size(volCAS,1),kernelHWidth);
-% preComp=preComp';
-% 
-% temp = reshape(kron(preComp,kron(preComp,preComp)),...
-%                     size(volCAS,1),size(volCAS,1),size(volCAS,1));
-%                 
-% imagesc(temp(:,:,260))
-% 
-% 
-% volCAS=volCAS./(reshape(kron(preComp,kron(preComp,preComp)),...
-%                     size(volCAS,1),size(volCAS,1),size(volCAS,1)));
-
-
-% volCAS = volCAS./(ones(size(volCAS))*2);
-% mean(volCAS(:))
                 
 % Reconstruct the volume from CASVol
 disp("volFromCAS()...")
