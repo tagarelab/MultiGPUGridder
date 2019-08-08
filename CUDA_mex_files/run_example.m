@@ -121,19 +121,8 @@ obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
-
 disp("SetVolume()...")
 obj.SetVolume(single(CASVol))
-
-% x = obj.CUDA_Return(char("gpuVol_" + num2str(0)));
-
-% SumVol = obj.GetVolume();
-
-
-
-
-% SumVol = obj.GetVolume();
-
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)
@@ -144,6 +133,8 @@ obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCo
 disp("Projection_Initilize()...")
 obj.Projection_Initilize()
 
+disp("Displaying allocated memory()...")
+obj.CUDA_disp_mem('all')
 obj.disp_mem('all')
 
 disp("Forward_Project()...")
@@ -151,8 +142,7 @@ obj.Forward_Project()
 
 % Return the resulting projection images
 disp("mem_Return()...")
-InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
-
+InterpCASImgs = obj.GetImgs();
 
 disp("imgsFromCASImgs()...")
 imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo); 
@@ -210,7 +200,7 @@ obj.Back_Project()
 
 disp("Get_Volume()...")
 % Get the volumes from all the GPUs added together
-SumVol = obj.GetVolume();
+volCAS = obj.GetVolume();
 
 % Get the density of inserted planes by backprojecting CASimages of values equal to one
 disp("Get Plane Density()...")

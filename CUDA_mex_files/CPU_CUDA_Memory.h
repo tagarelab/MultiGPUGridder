@@ -22,7 +22,6 @@ public:
     // Class constructor
     CPU_CUDA_Memory()
     {
-        std::cout << "CPU_CUDA_Memory() constructor" << '\n';
     }
 
     // Class deconstructor
@@ -70,7 +69,6 @@ public:
     float *CUDA_Return(std::string varNameString);
 
 private:
-
     // Variables to hold the CPU arrays
     std::vector<std::string> cpu_arr_names; // Name of the variables, e.g. 'imgVol'
     std::vector<std::string> cpu_arr_types; // String of datatype, e.g. 'int', 'float', or 'double'

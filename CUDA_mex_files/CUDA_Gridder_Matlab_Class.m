@@ -72,6 +72,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = mem_Return(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_Return', this.objectHandle, varargin{:});
         end
+        %% GetImgs - Return CASImgs array
+        function varargout = GetImgs(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('GetImgs', this.objectHandle, varargin{:});
+        end      
         %% mem_Free - Free CPU memory
         function varargout = mem_Free(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_Free', this.objectHandle, varargin{:});

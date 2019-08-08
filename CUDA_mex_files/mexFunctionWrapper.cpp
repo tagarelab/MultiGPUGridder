@@ -448,6 +448,45 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // Return the CASImgs as a Matlab array
+    if (!strcmp("GetImgs", cmd))
+    {
+
+        // Check parameters
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("GetImgs: Unexpected arguments.");
+        }
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        int *vol_dims;
+
+        // The images are store in the following pinned CPU array: "CASImgs_CPU_Pinned"
+        vol_dims = CUDA_Gridder_instance->Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        mwSize dims[3]; 
+        dims[0] = vol_dims[0];
+        dims[1] = vol_dims[1];
+        dims[2] = vol_dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
+        // Call the method
+        float *OutputArray = CUDA_Gridder_instance->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
     // Allocate memory on the GPU
     if (!strcmp("CUDA_alloc", cmd))
     {
