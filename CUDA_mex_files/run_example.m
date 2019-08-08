@@ -32,7 +32,7 @@ addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
 cd("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/CUDA_mex_files")
 
-recompile = 0;
+recompile = 1;
 if (recompile == true)
     % cd('mex_files')
 
@@ -113,9 +113,9 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 %% Run the forward projection kernel
 
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(1);
-obj.SetNumberGPUs(1);
-obj.SetNumberStreams(2);
+obj.SetNumberBatches(4);
+obj.SetNumberGPUs(4);
+obj.SetNumberStreams(4);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")

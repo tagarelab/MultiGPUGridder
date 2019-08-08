@@ -250,8 +250,20 @@ void CUDA_Gridder::Projection_Initilize()
             gpuCASImgs_Size[1] = this->imgSize[1];
 
             // Each GPU only needs to hold a fraction of the total output images (based on number of streams and batches)
-            gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams));
-            gpuCASImgs_Size[2] = ceil(gpuCASImgs_Size[2] / (this->nBatches)) + 1; // Adding one byte speeds up computation
+            // double temp;
+            // temp = (double)this->imgSize[2] / (double)this->nStreams / (double)this->nBatches;
+            // std::cout << "temp: " << temp << '\n';
+
+            // gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams));
+            // gpuCASImgs_Size[2] = ceil(gpuCASImgs_Size[2] / (this->nBatches)); 
+
+            gpuCASImgs_Size[2] = (int)(ceil((double)this->imgSize[2] / (double)this->nStreams / (double)this->nBatches));
+
+            // std::cout << "gpuCASImgs_Size[2]: " << gpuCASImgs_Size[2] << '\n';
+
+            
+            
+            gpuCASImgs_Size[2] = gpuCASImgs_Size[2];
 
             Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(i), "float", gpuCASImgs_Size, gpuDevice);
         }
@@ -264,7 +276,11 @@ void CUDA_Gridder::Projection_Initilize()
             int *gpuCoordAxes_Size = new int[3];
 
             // Each GPU only needs to hold a fraction of the total axes vector (based on number of streams and batches)
-            gpuCoordAxes_Size[0] = ceil(this->axesSize[0] / this->nStreams) + 1; // Adding one byte speeds up computation
+            int nAxes = this->axesSize[0] / 9;
+
+            // Round up to the number of axes per stream and then multiply by 9 to get the length
+            int nAxesPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
+            gpuCoordAxes_Size[0] = nAxesPerStream * 9;
             gpuCoordAxes_Size[1] = this->axesSize[1];
             gpuCoordAxes_Size[2] = this->axesSize[2];
 
