@@ -119,6 +119,34 @@ float *CUDA_Gridder::GetVolume()
     // Get the volume from all the GPUs and add them together
     // Return a pointer to the volume
     // This is used after the back projection CUDA kernel
+
+    // Create the output array to hold the summed volumes from all of the GPUs
+    float *VolSum = new float [this->volSize[0] * this->volSize[1] * this->volSize[2]];
+
+    float *tempArray = new float [this->volSize[0] * this->volSize[1] * this->volSize[2]];
+
+    // Loop through each GPU
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
+    {
+        
+        // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
+        // Does this GPU array exist?
+        if (Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == true)
+        {
+            // Copy the corresponding GPU array back to the host to the tempArray pointer
+            Mem_obj->CUDA_Copy("gpuVol_" + std::to_string(gpuDevice), tempArray);
+
+            std::cout << "tempArray[0]: " << tempArray[0] << '\n';
+
+            // Add the volumes together
+            for (int i=0; i<10; i++) //this->volSize[0] * this->volSize[1] * this->volSize[2]
+            {
+                VolSum[i] = VolSum[i] + tempArray[i];
+            }
+        }
+    }
+    // VolSum[0] = 12; 
+    return VolSum;
 }
 
 void CUDA_Gridder::SetImages(float *newCASImgs)
@@ -249,7 +277,7 @@ void CUDA_Gridder::Projection_Initilize()
             gpuCASImgs_Size[0] = this->imgSize[0];
             gpuCASImgs_Size[1] = this->imgSize[1];
 
-            // How many images will this stream process? 
+            // How many images will this stream process?
             int nAxes = this->axesSize[0] / 9;
             int nImgsPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
             gpuCASImgs_Size[2] = std::max(nImgsPerStream, 2); // Must be at least two images (projections are sometimes missing if only 1 image is allocated)

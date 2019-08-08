@@ -657,7 +657,7 @@ void CPU_CUDA_Memory::CUDA_disp_mem(std::string varNameString)
 
 void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, float *New_Array)
 {
-    // Given a Matlab array, copy the data to the corresponding CUDA pointer
+    // Given a float array, copy the data to the corresponding CUDA pointer
     mexPrintf("\n");
     mexPrintf("Copying GPU memory: Name %s \n", varNameString.c_str()); 
 
@@ -753,7 +753,27 @@ void CPU_CUDA_Memory::CUDA_Copy_Asyc(std::string varNameString, float *New_Array
     }    
 }
 
-mxArray* CPU_CUDA_Memory::CUDA_Return(std::string varNameString, mxArray *Matlab_Pointer)
+int* CPU_CUDA_Memory::CUDA_Get_Array_Size(std::string varNameString)
+{
+    // Get the size of the array corresponding to the input array name (as a string)
+
+    // Locate the index of the CUDA_arr_names vector which correspondes to the given variable name 
+    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
+
+    if (arr_idx < 0)
+    {
+        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+    }     
+
+    int* dims = new int[3]; 
+    dims[0] = CUDA_arr_sizes[arr_idx][0]; 
+    dims[1] = CUDA_arr_sizes[arr_idx][1];
+    dims[2] = CUDA_arr_sizes[arr_idx][2];
+
+    return dims;
+}
+
+float* CPU_CUDA_Memory::CUDA_Return(std::string varNameString)
 {
     // Copy the data from the corresponding CUDA array back to the Matlab array
     mexPrintf("\n");
@@ -772,44 +792,34 @@ mxArray* CPU_CUDA_Memory::CUDA_Return(std::string varNameString, mxArray *Matlab
     // Set the GPU device to the device which contains the CUDA array
     cudaSetDevice(CUDA_arr_GPU_Assignment[arr_idx]);
 
-    // Create the output Matlab array (using the stored size of the corresponding C++ array)
-    mwSize dims[3]; // matlab is row major (not column major)
-    dims[0] = CUDA_arr_sizes[arr_idx][0]; 
-    dims[1] = CUDA_arr_sizes[arr_idx][1];
-    dims[2] = CUDA_arr_sizes[arr_idx][2];
-
     // Copy the Matlab array to the class pointer for deep copy
     // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
-    int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
+   // int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
 
     if ( CUDA_arr_types[arr_idx] == "int")
     {
-        // Create the output matlab array as type int
-        Matlab_Pointer = mxCreateNumericArray(3, dims, mxINT32_CLASS, mxREAL);   
+        // // Create the output matlab array as type int
+        // Matlab_Pointer = mxCreateNumericArray(3, dims, mxINT32_CLASS, mxREAL);   
 
-        // Get a pointer to the output matrix created above
-        int* matlabArrayPtr = (int*)mxGetData(Matlab_Pointer);
+        // // Get a pointer to the output matrix created above
+        // int* matlabArrayPtr = (int*)mxGetData(Matlab_Pointer);
 
-        // CUDA function to copy the data from device to host
-        cudaMemcpy(matlabArrayPtr, CUDA_arr_ptrs[arr_idx].i, dim_size*sizeof(int), cudaMemcpyDeviceToHost);            
-        //cudaDeviceSynchronize();
+        // // CUDA function to copy the data from device to host
+        // cudaMemcpy(matlabArrayPtr, CUDA_arr_ptrs[arr_idx].i, dim_size*sizeof(int), cudaMemcpyDeviceToHost);            
+        // //cudaDeviceSynchronize();
 
-        return Matlab_Pointer;
+        // return Matlab_Pointer;
+        mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
 
     } else if ( CUDA_arr_types[arr_idx] == "float")
     {
-        
-        // Create the output matlab array as type float
-        Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);   
+        // Copy from the GPU to the CPU
+        int dim_size = CUDA_arr_sizes[arr_idx][0]*CUDA_arr_sizes[arr_idx][1]*CUDA_arr_sizes[arr_idx][2];
 
-        // Get a pointer to the output matrix created above
-        float* matlabArrayPtr = (float*)mxGetData(Matlab_Pointer);
+        float* CPU_Array = new float[dim_size];
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size*sizeof(float), cudaMemcpyDeviceToHost);            
 
-        // CUDA function to copy the data from device to host
-        cudaMemcpy(matlabArrayPtr, CUDA_arr_ptrs[arr_idx].f, dim_size*sizeof(float), cudaMemcpyDeviceToHost);
-        //cudaDeviceSynchronize();
-
-        return Matlab_Pointer;
+        return CPU_Array;
 
     } else 
     {

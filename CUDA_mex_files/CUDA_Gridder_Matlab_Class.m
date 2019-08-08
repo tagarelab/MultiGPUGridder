@@ -20,6 +20,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = SetVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, varargin{:});
         end
+        %% GetVolume - Get the summed volume from all of the GPUs
+        function varargout = GetVolume(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('GetVolume', this.objectHandle, varargin{:});
+        end
         %% SetImages - Set CAS Imgs
         function varargout = SetImages(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetImages', this.objectHandle, varargin{:});

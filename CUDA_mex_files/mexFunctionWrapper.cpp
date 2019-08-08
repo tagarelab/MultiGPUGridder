@@ -85,6 +85,47 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // Return the summed volume from all of the GPUs (for getting the back projection kernel result)
+    if (!strcmp("GetVolume", cmd))
+    {
+        // Check parameters
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("GetVolume: Unexpected arguments. Please provide a Matlab array.");
+        }
+
+        // Get the matrix size of the GPU volume
+        mwSize dims[3];
+        dims[0] = CUDA_Gridder_instance->volSize[0];
+        dims[1] = CUDA_Gridder_instance->volSize[1];
+        dims[2] = CUDA_Gridder_instance->volSize[2];
+
+        // const mwSize *dims_mwSize;
+        // dims_mwSize[0] = dims[0];
+        // dims_mwSize[1] = dims[1];
+        // dims_mwSize[2] = dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // float* matlabArrayPtr = (float*)mxGetData(Matlab_Pointer);
+        // matlabArrayPtr[0] = 1;
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
+        // Call the method
+        float *VolSum;
+        VolSum = CUDA_Gridder_instance->GetVolume();
+
+        // Copy the memory to the Matlab array
+        std::memcpy(matlabArrayPtr, VolSum, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
     // Set the CASImgs array to pinned CPU memory
     if (!strcmp("SetImages", cmd))
     {
@@ -447,14 +488,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Unique name of the array given as a string or use "all" to show information on all of the GPU arrays
         char varNameString[64];
-        mxGetString(prhs[2], varNameString, sizeof(varNameString));        
+        mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
         CUDA_Gridder_instance->Mem_obj->CUDA_disp_mem(varNameString);
         return;
     }
 
-    // Copy a Matlab array to a specified GPU array 
+    // Copy a Matlab array to a specified GPU array
     if (!strcmp("CUDA_Copy", cmd))
     {
         // Check parameters
@@ -488,8 +529,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        int *vol_dims;
+        vol_dims = CUDA_Gridder_instance->Mem_obj->CUDA_Get_Array_Size(varNameString);
+
+        mwSize dims[3];
+        dims[0] = vol_dims[0];
+        dims[1] = vol_dims[1];
+        dims[2] = vol_dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
         // Call the method
-        plhs[0] = CUDA_Gridder_instance->Mem_obj->CUDA_Return(varNameString, plhs[0]);
+        float *GPUVol = CUDA_Gridder_instance->Mem_obj->CUDA_Return(varNameString);
+
+        std::cout << "GPUVol: " << GPUVol[0] << '\n';
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, GPUVol, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
         return;
     }
 

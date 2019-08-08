@@ -64,13 +64,13 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-nBatches = 1;
-nGPUs = 1;
-nStreams = 10;
+nBatches = 2;
+nGPUs = 4;
+nStreams = 32;
 
 volSize = 128;%256;%256%128;%64;
-n1_axes = 5;
-n2_axes = 1;
+n1_axes = 500;
+n2_axes = 10;
 kernelHWidth = 2;
 
 interpFactor = 2.0;
@@ -121,8 +121,28 @@ obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
+
 disp("SetVolume()...")
+CASVol(1) = 2;
 obj.SetVolume(single(CASVol))
+
+x = obj.CUDA_Return(char("gpuVol_" + num2str(0)));
+max(x(:))
+size(x)
+
+obj.CUDA_Free('all')
+clear obj
+clear all
+
+abc
+
+
+
+SumVol = obj.GetVolume();
+
+max(SumVol(:))
+
+
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)

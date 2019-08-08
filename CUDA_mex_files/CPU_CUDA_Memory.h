@@ -69,7 +69,9 @@ public:
 
     void CUDA_Copy_Asyc(std::string varNameString, float *New_Array, cudaStream_t stream);
 
-    mxArray* CUDA_Return(std::string varNameString, mxArray *Matlab_Pointer);
+    int* CUDA_Get_Array_Size(std::string varNameString);
+
+    float* CUDA_Return(std::string varNameString);
 
 private:
 
