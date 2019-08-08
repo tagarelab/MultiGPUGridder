@@ -126,9 +126,13 @@ disp("SetVolume()...")
 CASVol(1) = 2;
 obj.SetVolume(single(CASVol))
 
-x = obj.CUDA_Return(char("gpuVol_" + num2str(0)));
-max(x(:))
-size(x)
+% x = obj.CUDA_Return(char("gpuVol_" + num2str(0)));
+
+SumVol = obj.GetVolume();
+
+max(SumVol(:))
+
+
 
 obj.CUDA_Free('all')
 clear obj

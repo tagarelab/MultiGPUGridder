@@ -123,8 +123,6 @@ float *CUDA_Gridder::GetVolume()
     // Create the output array to hold the summed volumes from all of the GPUs
     float *VolSum = new float [this->volSize[0] * this->volSize[1] * this->volSize[2]];
 
-    float *tempArray = new float [this->volSize[0] * this->volSize[1] * this->volSize[2]];
-
     // Loop through each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
@@ -133,19 +131,16 @@ float *CUDA_Gridder::GetVolume()
         // Does this GPU array exist?
         if (Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == true)
         {
-            // Copy the corresponding GPU array back to the host to the tempArray pointer
-            Mem_obj->CUDA_Copy("gpuVol_" + std::to_string(gpuDevice), tempArray);
-
-            std::cout << "tempArray[0]: " << tempArray[0] << '\n';
+            // Get a float pointer to the GPU array after copying back to the host
+            float* tempArray = Mem_obj->CUDA_Return("gpuVol_" + std::to_string(gpuDevice));
 
             // Add the volumes together
-            for (int i=0; i<10; i++) //this->volSize[0] * this->volSize[1] * this->volSize[2]
+            for (int i=0; i<this->volSize[0] * this->volSize[1] * this->volSize[2]; i++) //
             {
                 VolSum[i] = VolSum[i] + tempArray[i];
             }
         }
     }
-    // VolSum[0] = 12; 
     return VolSum;
 }
 

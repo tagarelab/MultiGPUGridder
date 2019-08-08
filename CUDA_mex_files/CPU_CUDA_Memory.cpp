@@ -775,43 +775,20 @@ int* CPU_CUDA_Memory::CUDA_Get_Array_Size(std::string varNameString)
 
 float* CPU_CUDA_Memory::CUDA_Return(std::string varNameString)
 {
-    // Copy the data from the corresponding CUDA array back to the Matlab array
-    mexPrintf("\n");
-    mexPrintf("Returning memory: Name %s \n", varNameString.c_str()); 
+    // Copy the data from the corresponding CUDA array back to a float array
 
     // Locate the index of the CUDA_arr_names vector which correspondes to the given variable name 
     int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
 
     if (arr_idx < 0)
     {
-        mexErrMsgTxt("Failed to locate variable. Please check spelling.");
+        std::cerr << "Failed to locate variable. Please check spelling." << '\n';     
     }     
-
-    // TO DO: Check if the allocated memory is the same size as the input array       
 
     // Set the GPU device to the device which contains the CUDA array
     cudaSetDevice(CUDA_arr_GPU_Assignment[arr_idx]);
 
-    // Copy the Matlab array to the class pointer for deep copy
-    // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
-   // int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
-
-    if ( CUDA_arr_types[arr_idx] == "int")
-    {
-        // // Create the output matlab array as type int
-        // Matlab_Pointer = mxCreateNumericArray(3, dims, mxINT32_CLASS, mxREAL);   
-
-        // // Get a pointer to the output matrix created above
-        // int* matlabArrayPtr = (int*)mxGetData(Matlab_Pointer);
-
-        // // CUDA function to copy the data from device to host
-        // cudaMemcpy(matlabArrayPtr, CUDA_arr_ptrs[arr_idx].i, dim_size*sizeof(int), cudaMemcpyDeviceToHost);            
-        // //cudaDeviceSynchronize();
-
-        // return Matlab_Pointer;
-        mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
-
-    } else if ( CUDA_arr_types[arr_idx] == "float")
+    if ( CUDA_arr_types[arr_idx] == "float")
     {
         // Copy from the GPU to the CPU
         int dim_size = CUDA_arr_sizes[arr_idx][0]*CUDA_arr_sizes[arr_idx][1]*CUDA_arr_sizes[arr_idx][2];
@@ -823,6 +800,8 @@ float* CPU_CUDA_Memory::CUDA_Return(std::string varNameString)
 
     } else 
     {
-        mexErrMsgTxt("Unrecognized data type. Please choose either int, float, or double.");
+         std::cerr << "Only float type is currently supported." << '\n';
     }   
+
+    return NULL;   
 }
