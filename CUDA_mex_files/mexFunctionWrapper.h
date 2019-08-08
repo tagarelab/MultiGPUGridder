@@ -2,7 +2,7 @@
 #define __CLASS_HANDLE_H__
 
 #include <mex.h>
-#include "CUDA_Gridder.h"
+#include "MultiGPUGridder.h"
 
 #include <iostream>
 #include <stdint.h>
@@ -11,21 +11,27 @@
 #include <typeinfo>
 
 #define CLASS_HANDLE_SIGNATURE 0xFF00F0A5
-template<class base> class class_handle
+template <class base>
+class class_handle
 {
 public:
     class_handle(base *ptr) : signature_m(CLASS_HANDLE_SIGNATURE), name_m(typeid(base).name()), ptr_m(ptr) {}
-    ~class_handle() { signature_m = 0; delete ptr_m; }
+    ~class_handle()
+    {
+        signature_m = 0;
+        delete ptr_m;
+    }
     bool isValid() { return ((signature_m == CLASS_HANDLE_SIGNATURE) && !strcmp(name_m.c_str(), typeid(base).name())); }
-    base* ptr() { return ptr_m; }
+    base *ptr() { return ptr_m; }
 
 private:
     uint32_t signature_m;
     const std::string name_m;
-    base* const ptr_m;
+    base *const ptr_m;
 };
 
-template<class base> inline mxArray *convertPtr2Mat(base *ptr)
+template <class base>
+inline mxArray *convertPtr2Mat(base *ptr)
 {
     mexLock();
     mxArray *out = mxCreateNumericMatrix(1, 1, mxUINT64_CLASS, mxREAL);
@@ -34,7 +40,8 @@ template<class base> inline mxArray *convertPtr2Mat(base *ptr)
     return out;
 }
 
-template<class base> inline class_handle<base> *convertMat2HandlePtr(const mxArray *in)
+template <class base>
+inline class_handle<base> *convertMat2HandlePtr(const mxArray *in)
 {
     if (mxGetNumberOfElements(in) != 1 || mxGetClassID(in) != mxUINT64_CLASS || mxIsComplex(in))
         mexErrMsgTxt("Input must be a real uint64 scalar.");
@@ -44,12 +51,14 @@ template<class base> inline class_handle<base> *convertMat2HandlePtr(const mxArr
     return ptr;
 }
 
-template<class base> inline base *convertMat2Ptr(const mxArray *in)
+template <class base>
+inline base *convertMat2Ptr(const mxArray *in)
 {
     return convertMat2HandlePtr<base>(in)->ptr();
 }
 
-template<class base> inline void destroyObject(const mxArray *in)
+template <class base>
+inline void destroyObject(const mxArray *in)
 {
     delete convertMat2HandlePtr<base>(in);
     mexUnlock();

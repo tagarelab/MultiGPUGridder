@@ -1,11 +1,11 @@
-%CUDA_Gridder_Matlab_Class Example MATLAB class wrapper to an underlying C++ class
-classdef CUDA_Gridder_Matlab_Class < handle
+%MultiGPUGridder_Matlab_Class Example MATLAB class wrapper to an underlying C++ class
+classdef MultiGPUGridder_Matlab_Class < handle
     properties (SetAccess = private, Hidden = true)
         objectHandle; % Handle to the underlying C++ class instance
     end
     methods
         %% Constructor - Create a new C++ class instance 
-        function this = CUDA_Gridder_Matlab_Class(varargin)
+        function this = MultiGPUGridder_Matlab_Class(varargin)
             this.objectHandle = mexFunctionWrapper('new', varargin{:});
         end        
         %% Destructor - Destroy the C++ class instance
@@ -19,6 +19,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         %% SetVolume - Set GPU volume
         function varargout = SetVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, varargin{:});
+        end
+        %% GetVolume - Get the summed volume from all of the GPUs
+        function varargout = GetVolume(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('GetVolume', this.objectHandle, varargin{:});
         end
         %% SetImages - Set CAS Imgs
         function varargout = SetImages(this, varargin)
@@ -68,6 +72,10 @@ classdef CUDA_Gridder_Matlab_Class < handle
         function varargout = mem_Return(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_Return', this.objectHandle, varargin{:});
         end
+        %% GetImgs - Return CASImgs array
+        function varargout = GetImgs(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('GetImgs', this.objectHandle, varargin{:});
+        end      
         %% mem_Free - Free CPU memory
         function varargout = mem_Free(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('mem_Free', this.objectHandle, varargin{:});

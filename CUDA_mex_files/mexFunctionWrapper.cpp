@@ -1,19 +1,20 @@
 #include "mexFunctionWrapper.h"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{	
+{
+    // This is the wrapper for the corresponding Matlab class
+    // Which allows for calling the C++ and CUDA functions while maintaining the memory pointers
 
-    // Get the command string
+    // Get the input command string
     char cmd[64];
-	if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
+    if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
     {
-		mexErrMsgTxt("First input should be a command string less than 64 characters long.");
-    } 
+        mexErrMsgTxt("First input should be a command string less than 64 characters long.");
+    }
 
-    std::cout << "cmd: " << cmd << '\n';
-
-    // New
-    if (!strcmp("new", cmd)) {
+    // Create a new instance of the class
+    if (!strcmp("new", cmd))
+    {
         // Check parameters
         if (nlhs != 1)
         {
@@ -21,541 +22,641 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Return a handle to a new C++ instance
-        plhs[0] = convertPtr2Mat<CUDA_Gridder>(new CUDA_Gridder);
+        plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder);
         return;
-    }    
+    }
 
     // Get the class instance pointer from the second input
-    CUDA_Gridder* CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
+    MultiGPUGridder *MultiGPUGridder_instance = convertMat2Ptr<MultiGPUGridder>(prhs[1]);
 
-    // Delete
-    if (!strcmp("delete", cmd)) {
+    // Deleted the instance of the class
+    if (!strcmp("delete", cmd))
+    {
+        // Free the memory of all the CPU arrays
+        MultiGPUGridder_instance->Mem_obj->mem_Free("all");
 
-        // Delete all of the CPU arrays
-        CUDA_Gridder_instance->Mem_obj->mem_Free("all");
-
-        // Delete all of the CUDA arrays
-        CUDA_Gridder_instance->Mem_obj->CUDA_Free("all");
+        // Free the memory of all the GPU CUDA arrays
+        MultiGPUGridder_instance->Mem_obj->CUDA_Free("all");
 
         // Destroy the C++ object
-        destroyObject<CUDA_Gridder>(prhs[1]);
+        destroyObject<MultiGPUGridder>(prhs[1]);
+
         // Warn if other commands were ignored
         if (nlhs != 0 || nrhs != 2)
+        {
             mexWarnMsgTxt("Delete: Unexpected arguments ignored.");
+        }
+
         return;
-    }    
-          
-    // Call the various class methods    
-    // SetVolume 
-    if (!strcmp("SetVolume", cmd)) {
+    }
+
+    // Set the volume on all of the GPUs
+    if (!strcmp("SetVolume", cmd))
+    {
         // Check parameters
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("SetVolume: Unexpected arguments. Please provide a Matlab array.");
         }
-       
-        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get a pointer to the matlab array
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
 
         // Get the matrix size of the input GPU volume
         const mwSize *dims_mwSize;
-        dims_mwSize = mxGetDimensions( prhs[2] );
+        dims_mwSize = mxGetDimensions(prhs[2]);
 
         int dims[3];
-        dims[0] = (int) dims_mwSize[0];
-        dims[1] = (int) dims_mwSize[1];
-        dims[2] = (int) dims_mwSize[2];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
+        dims[2] = (int)dims_mwSize[2];
 
         mwSize numDims;
-        numDims = mxGetNumberOfDimensions( prhs[2] );
+        numDims = mxGetNumberOfDimensions(prhs[2]);
 
         if (numDims != 3)
         {
-            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");            
+            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");
         }
 
-
         // Call the method
-        CUDA_Gridder_instance->SetVolume(matlabArrayPtr, dims);
+        MultiGPUGridder_instance->SetVolume(matlabArrayPtr, dims);
 
         return;
-
     }
 
-    // SetImages 
-    if (!strcmp("SetImages", cmd)) {
+    // Return the summed volume from all of the GPUs (for getting the back projection kernel result)
+    if (!strcmp("GetVolume", cmd))
+    {
         // Check parameters
-        if (nrhs !=  3)
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("GetVolume: Unexpected arguments.");
+        }
+
+        // Get the matrix size of the GPU volume
+        mwSize dims[3];
+        dims[0] = MultiGPUGridder_instance->volSize[0];
+        dims[1] = MultiGPUGridder_instance->volSize[1];
+        dims[2] = MultiGPUGridder_instance->volSize[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
+        // Call the method
+        float *GPUVol = MultiGPUGridder_instance->GetVolume();
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, GPUVol, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
+    // Set the CASImgs array to pinned CPU memory
+    if (!strcmp("SetImages", cmd))
+    {
+        // Check parameters
+        if (nrhs != 3)
         {
             mexErrMsgTxt("SetImages: Unexpected arguments. Please provide a Matlab array.");
         }
-       
-        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get a pointer to the matlab array
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
 
         // Get the matrix size of the input GPU volume
         const mwSize *dims_mwSize;
-        dims_mwSize = mxGetDimensions( prhs[2] );
+        dims_mwSize = mxGetDimensions(prhs[2]);
 
         int dims[3];
-        dims[0] = (int) dims_mwSize[0];
-        dims[1] = (int) dims_mwSize[1];
-        dims[2] = (int) dims_mwSize[2];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
+        dims[2] = (int)dims_mwSize[2];
 
         mwSize numDims;
-        numDims = mxGetNumberOfDimensions( prhs[2] );
+        numDims = mxGetNumberOfDimensions(prhs[2]);
 
         if (numDims != 3)
         {
-            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");            
+            mexErrMsgTxt("SetVolume: Unexpected arguments. Array should be a matrix with 3 dimensions.");
         }
 
-
         // Call the method
-        CUDA_Gridder_instance->SetImages(matlabArrayPtr);
+        MultiGPUGridder_instance->SetImages(matlabArrayPtr);
 
         return;
-
     }
 
-    // ResetVolume 
-    if (!strcmp("ResetVolume", cmd)) {
-
+    // Reset the volume on all of the GPUs
+    if (!strcmp("ResetVolume", cmd))
+    {
         // Check parameters
-        if (nrhs !=  2)
+        if (nrhs != 2)
         {
             mexErrMsgTxt("ResetVolume: Unexpected arguments.");
         }
-       
+
         // Call the method
-        CUDA_Gridder_instance->ResetVolume();
+        MultiGPUGridder_instance->ResetVolume();
 
         return;
-
     }
 
-
-    // SetAxes 
-    if (!strcmp("SetAxes", cmd)) {
+    // Set the coordinate axes vector to pinned CPU memory
+    if (!strcmp("SetAxes", cmd))
+    {
         // Check parameters
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("SetAxes: Unexpected arguments. Please provide a Matlab array.");
         }
-       
-        float* matlabArrayPtr = (float*)mxGetData( prhs[2] );
+
+        // Get a pointer to the matlab array
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
 
         // Get the matrix size of the input GPU volume
         const mwSize *dims_mwSize;
-        dims_mwSize = mxGetDimensions( prhs[2] );
+        dims_mwSize = mxGetDimensions(prhs[2]);
 
         mwSize numDims;
-        numDims = mxGetNumberOfDimensions( prhs[2] );
-        
+        numDims = mxGetNumberOfDimensions(prhs[2]);
 
         int dims[3];
-        dims[0] = (int) dims_mwSize[0];
-        dims[1] = (int) dims_mwSize[1];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
         dims[2] = 1;
-
-        std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n'; 
-
 
         if (numDims != 2)
         {
-            mexErrMsgTxt("SetAxes: Unexpected arguments. Array should be a row vector.");            
+            mexErrMsgTxt("SetAxes: Unexpected arguments. Array should be a row vector.");
         }
 
         // Call the method
-        CUDA_Gridder_instance->SetAxes(matlabArrayPtr, dims);
+        MultiGPUGridder_instance->SetAxes(matlabArrayPtr, dims);
 
         return;
-
     }
 
-    // SetImgSize
-    if (!strcmp("SetImgSize", cmd)) {
+    // Set the size of the output images array
+    if (!strcmp("SetImgSize", cmd))
+    {
         // Check parameters
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("SetImgSize: Unexpected arguments. Please provide a row vector.");
         }
-       
-        int* matlabArrayPtr = (int*)mxGetData( prhs[2] );
+
+        // Get a pointer to the matlab array
+        int *matlabArrayPtr = (int *)mxGetData(prhs[2]);
 
         // Get the matrix size of the input GPU volume
         const mwSize *dims_mwSize;
-        dims_mwSize = mxGetDimensions( prhs[2] );
+        dims_mwSize = mxGetDimensions(prhs[2]);
 
         mwSize numDims;
-        numDims = mxGetNumberOfDimensions( prhs[2] );        
+        numDims = mxGetNumberOfDimensions(prhs[2]);
 
         int dims[3];
-        dims[0] = (int) dims_mwSize[0];
-        dims[1] = (int) dims_mwSize[1];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
         dims[2] = 1;
 
         if (numDims != 2)
         {
-            mexErrMsgTxt("SetImgSize: Unexpected arguments. Input should be a row vector.");            
+            mexErrMsgTxt("SetImgSize: Unexpected arguments. Input should be a row vector.");
         }
 
         // Call the method
-        CUDA_Gridder_instance->SetImgSize(matlabArrayPtr);
+        MultiGPUGridder_instance->SetImgSize(matlabArrayPtr);
 
         return;
-
     }
 
-   // SetMaskRadius
-    if (!strcmp("SetMaskRadius", cmd)) {
+    // Set the kernel mask radius
+    if (!strcmp("SetMaskRadius", cmd))
+    {
         // Check parameters
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("SetMaskRadius: Unexpected arguments. Please provide a row vector.");
         }
-       
-        float* MaskRadius = (float*)mxGetData( prhs[2] );
-  
+
+        // Get a pointer to the matlab array
+        float *MaskRadius = (float *)mxGetData(prhs[2]);
+
         // Call the method
-        CUDA_Gridder_instance->SetMaskRadius(MaskRadius);
+        MultiGPUGridder_instance->SetMaskRadius(MaskRadius);
 
         return;
-
     }
 
-    // SetNumberGPUs
-    if (!strcmp("SetNumberGPUs", cmd)) {
+    // Set the number of GPUs to use when calling the CUDA kernels
+    if (!strcmp("SetNumberGPUs", cmd))
+    {
         // Check parameters
         if (nrhs != 3)
         {
             mexErrMsgTxt("SetNumberGPUs: Unexpected arguments. Please provide a scalar value.");
         }
-       
-        int numGPUS = (int)mxGetScalar(prhs[2]);         
 
-        std::cout << "numGPUS: " << numGPUS << '\n';
+        int numGPUS = (int)mxGetScalar(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetNumberGPUs(numGPUS);
+        MultiGPUGridder_instance->SetNumberGPUs(numGPUS);
 
         return;
-
     }
 
-    // SetNumberStreams
-    if (!strcmp("SetNumberStreams", cmd)) {
+    // Set the number of CUDA streams to use when calling the CUDA kernels
+    if (!strcmp("SetNumberStreams", cmd))
+    {
         // Check parameters
         if (nrhs != 3)
         {
             mexErrMsgTxt("SetNumberStreams: Unexpected arguments. Please provide a scalar value.");
         }
-       
-        int nStreams = (int)mxGetScalar(prhs[2]);         
 
-        std::cout << "nStreams: " << nStreams << '\n';
+        int nStreams = (int)mxGetScalar(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetNumberStreams(nStreams);
+        MultiGPUGridder_instance->SetNumberStreams(nStreams);
 
         return;
-
     }
 
-    // SetNumberBatches
-    if (!strcmp("SetNumberBatches", cmd)) {
+    // Set the number of batches to use when calling the CUDA kernels
+    if (!strcmp("SetNumberBatches", cmd))
+    {
         // Check parameters
         if (nrhs != 3)
         {
             mexErrMsgTxt("SetNumberBatches: Unexpected arguments. Please provide a scalar value.");
         }
-       
-        int nBatches = (int)mxGetScalar(prhs[2]);         
 
-        std::cout << "nBatches: " << nBatches << '\n';
+        int nBatches = (int)mxGetScalar(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetNumberBatches(nBatches);
+        MultiGPUGridder_instance->SetNumberBatches(nBatches);
 
         return;
     }
 
-    // mem_alloc    
-    if (!strcmp("mem_alloc", cmd)) {
+    // Allocate memory on the CPU
+    if (!strcmp("mem_alloc", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  5)
+        if (nrhs != 5)
         {
             mexErrMsgTxt("mem_alloc: Unexpected arguments. Please provide (1) variable name as string, (2) data type as string, and (3) array size (i.e. [256, 256, 256]) as a Matlab vector.");
         }
 
-        char varNameString[64];      
-        char varDataType[64]; 
-        int * varDataSize; // e.g. [dim1, dim2, dim3]
+        char varNameString[64]; // Unique name for the array as a string
+        char varDataType[64];   // "int", "float", etc.
+        int *varDataSize;       // e.g. [dim1, dim2, dim3]
 
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
         mxGetString(prhs[3], varDataType, sizeof(varDataType));
-        varDataSize = (int*)mxGetData(prhs[4]);
+
+        // Get a pointer to the matlab array
+        varDataSize = (int *)mxGetData(prhs[4]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_alloc(varNameString, varDataType, varDataSize);
+        MultiGPUGridder_instance->Mem_obj->mem_alloc(varNameString, varDataType, varDataSize);
 
         return;
     }
 
-    // pin_mem    
-    if (!strcmp("pin_mem", cmd)) {
+    // Pin a CPU array to pinned memory
+    if (!strcmp("pin_mem", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("pin_mem: Unexpected arguments. Please provide (1) variable name as string.");
         }
 
-        char varNameString[64]; 
+        // Corresponding unique name of the array as a string (needs to have been previously allocated using mem_alloc() function)
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->pin_mem(varNameString);
+        MultiGPUGridder_instance->Mem_obj->pin_mem(varNameString);
         return;
     }
 
-    // disp_mem    
-    if (!strcmp("disp_mem", cmd)) {
+    // Display some information on the currently allocated CPU arrays to the Matlab console
+    if (!strcmp("disp_mem", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("disp_mem: Unexpected arguments. Please provide (1) variable name as string or 'all' to display information on all the arrays.");
         }
 
-        char varNameString[64]; 
+        // Get the unqiue name of the array as a string or an input of "all" will display information on all of the CPU arrays
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->disp_mem(varNameString);
+        MultiGPUGridder_instance->Mem_obj->disp_mem(varNameString);
         return;
     }
 
-    // mem_Free    
-    if (!strcmp("mem_Free", cmd)) {
+    // Free the CPU memory of a specified array
+    if (!strcmp("mem_Free", cmd))
+    {
         // Check parameters
-        char varNameString[64];   
+        char varNameString[64];
 
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("mem_Free: Unexpected arguments. Please provide (1) variable name as string.");
         }
 
+        // Unique name of the array given as a string
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_Free(varNameString);
+        MultiGPUGridder_instance->Mem_obj->mem_Free(varNameString);
         return;
     }
 
-    // mem_Copy    
-    if (!strcmp("mem_Copy", cmd)) {
+    // Copy an array from Matlab to a previously allocated CPU array
+    if (!strcmp("mem_Copy", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  4)
+        if (nrhs != 4)
         {
             mexErrMsgTxt("mem_Copy: Unexpected arguments. Please provide (1) variable name as string, (2) a Matlab array of same dimensions and type as previously allocated.");
         }
 
-        // Get the input variable name as a string
-        char varNameString[64];  
+        // Unique name of the array given as a string
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Get the pointer to the input Matlab array which should be float type (for now)
-        float* matlabArrayPtr = (float*)mxGetData( prhs[3] );
+        float *matlabArrayPtr = (float *)mxGetData(prhs[3]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_Copy(varNameString, matlabArrayPtr);
-
+        MultiGPUGridder_instance->Mem_obj->mem_Copy(varNameString, matlabArrayPtr);
         return;
     }
 
-    // mem_Return    
-    if (!strcmp("mem_Return", cmd)) {
-        // Check parameters
+    // Return a CPU array as a Matlab array
+    if (!strcmp("mem_Return", cmd))
+    {
 
-        if (nrhs !=  3)
+        // Check parameters
+        if (nrhs != 3)
         {
             mexErrMsgTxt("mem_Return: Unexpected arguments. Please provide (1) variable name as string.");
         }
 
-        char varNameString[64];              
-
-        // Get the input variable name as a string
+        // Unique name of the array given as a string
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
-        
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        int *vol_dims;
+        vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size(varNameString);
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        mwSize dims[3]; 
+        dims[0] = vol_dims[0];
+        dims[1] = vol_dims[1];
+        dims[2] = vol_dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
         // Call the method
-        plhs[0] = CUDA_Gridder_instance->Mem_obj->mem_Return(varNameString, plhs[0]);     
+        float *OutputArray = MultiGPUGridder_instance->Mem_obj->ReturnCPUFloatPtr(varNameString);
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
 
         return;
     }
 
-    // CUDA_alloc 
-    if (!strcmp("CUDA_alloc", cmd)) {
-        // Check parameters
+    // Return the CASImgs as a Matlab array
+    if (!strcmp("GetImgs", cmd))
+    {
 
-        if (nrhs !=  6)
+        // Check parameters
+        if (nrhs != 2)
+        {
+            mexErrMsgTxt("GetImgs: Unexpected arguments.");
+        }
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        int *vol_dims;
+
+        // The images are store in the following pinned CPU array: "CASImgs_CPU_Pinned"
+        vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        mwSize dims[3]; 
+        dims[0] = vol_dims[0];
+        dims[1] = vol_dims[1];
+        dims[2] = vol_dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
+        // Call the method
+        float *OutputArray = MultiGPUGridder_instance->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
+    // Allocate memory on the GPU
+    if (!strcmp("CUDA_alloc", cmd))
+    {
+        // Check parameters
+        if (nrhs != 6)
         {
             mexErrMsgTxt("CUDA_alloc: Unexpected arguments. Please provide (1) variable name as string, (2) data type as string ('int', 'float'), (3) data size as Matlab vector ([256, 256, 256]), (4) GPU to allocate memory to as an integer (0 to number of GPUs minus 1).");
         }
 
-        char varNameString[64];      
-        char varDataType[64]; 
-        int * varDataSize; // e.g. [dim1, dim2, dim3]
-        int GPU_Device = 0; // Default to the first GPU
+        char varNameString[64]; // Unique name of the array given as a string
+        char varDataType[64];   // "float", "int", etc.
+        int *varDataSize;       // e.g. [dim1, dim2, dim3]
+        int GPU_Device = 0;     // Default to the first GPU
 
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
         mxGetString(prhs[3], varDataType, sizeof(varDataType));
-        varDataSize = (int*)mxGetData(prhs[4]);
-        GPU_Device = (int)mxGetScalar(prhs[5]);         
-
-        std::cout << "GPU_Device: " << GPU_Device << '\n';
+        varDataSize = (int *)mxGetData(prhs[4]);
+        GPU_Device = (int)mxGetScalar(prhs[5]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_alloc(varNameString, varDataType, varDataSize, GPU_Device);
+        MultiGPUGridder_instance->Mem_obj->CUDA_alloc(varNameString, varDataType, varDataSize, GPU_Device);
         return;
     }
 
-    // CUDA_Free    
-    if (!strcmp("CUDA_Free", cmd)) {
+    // Free memory on the GPU
+    if (!strcmp("CUDA_Free", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("CUDA_Free: Unexpected arguments. Please provide (1) variable name as string.");
         }
 
-        char varNameString[64];             
-
-        // Get the input variable name as a string
+        // Unique name of the array given as a string
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_Free(varNameString);
+        MultiGPUGridder_instance->Mem_obj->CUDA_Free(varNameString);
         return;
     }
 
-    // CUDA_disp_mem    
-    if (!strcmp("CUDA_disp_mem", cmd)) {
+    // Display information of the previously allocated GPU arrays to the Matlab console
+    if (!strcmp("CUDA_disp_mem", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("CUDA_disp_mem: Unexpected arguments. Please provide (1) variable name as string or 'all' to display information on all the arrays.");
         }
 
-        char varNameString[64];              
-        if (nrhs >  2)
-        {
-            mxGetString(prhs[2], varNameString, sizeof(varNameString));
-        }
+        // Unique name of the array given as a string or use "all" to show information on all of the GPU arrays
+        char varNameString[64];
+        mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_disp_mem(varNameString);
+        MultiGPUGridder_instance->Mem_obj->CUDA_disp_mem(varNameString);
         return;
     }
 
-    // CUDA_Copy    
-    if (!strcmp("CUDA_Copy", cmd)) {
+    // Copy a Matlab array to a specified GPU array
+    if (!strcmp("CUDA_Copy", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  4)
+        if (nrhs != 4)
         {
             mexErrMsgTxt("CUDA_Copy: Unexpected arguments. Please provide (1) variable name as string, (2) a Matlab array of same dimensions and type as previously allocated.");
         }
 
-        // Get the input variable name as a string
-        char varNameString[64];  
+        // Unique name of the array given as a string
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
-        // TO DO: Check to see if the matrix size is the same as the previously allocated array size
-
-
-        // Get the pointer to the input Matlab array which should be float type (same as previously allocated)
-        float* matlabArrayPtr = (float*)mxGetData( prhs[3] );
-
+        // Get the pointer to the input Matlab array which should be float type (must be the same as previously allocated)
+        float *matlabArrayPtr = (float *)mxGetData(prhs[3]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_Copy(varNameString, matlabArrayPtr);
-
+        MultiGPUGridder_instance->Mem_obj->CUDA_Copy(varNameString, matlabArrayPtr);
         return;
     }
 
-    // CUDA_Return    
-    if (!strcmp("CUDA_Return", cmd)) {
+    // Return a GPU array to Matlab as a Matlab array
+    if (!strcmp("CUDA_Return", cmd))
+    {
         // Check parameters
-
-        if (nrhs !=  3)
+        if (nrhs != 3)
         {
             mexErrMsgTxt("CUDA_Return: Unexpected arguments. Please provide (1) variable name as string.");
         }
 
-        char varNameString[64];              
-
-        // Get the input variable name as a string
+        // Unique name of the array given as a string
+        char varNameString[64];
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
-        
+
+        // Create the output Matlab array (using the stored size of the corresponding C++ array)
+        int *vol_dims;
+        vol_dims = MultiGPUGridder_instance->Mem_obj->CUDA_Get_Array_Size(varNameString);
+
+        mwSize dims[3];
+        dims[0] = vol_dims[0];
+        dims[1] = vol_dims[1];
+        dims[2] = vol_dims[2];
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
         // Call the method
-        plhs[0] = CUDA_Gridder_instance->Mem_obj->CUDA_Return(varNameString, plhs[0]);     
+        float *GPUVol = MultiGPUGridder_instance->Mem_obj->CUDA_Return(varNameString);
+
+        std::cout << "GPUVol: " << GPUVol[0] << '\n';
+
+        // Copy the data to the Matlab array
+        std::memcpy(matlabArrayPtr, GPUVol, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
 
         return;
     }
 
-    // Projection_Initilize    
-    if (!strcmp("Projection_Initilize", cmd)) {
+    // Initilize the inputs of the forward and backwards kernels
+    if (!strcmp("Projection_Initilize", cmd))
+    {
         // Check parameters
-
         if (nrhs != 2)
         {
             mexErrMsgTxt("Projection_Initilize: Unexpected arguments. ");
-        }                 
+        }
 
         // Call the method
-        CUDA_Gridder_instance->Projection_Initilize();
-        
+        MultiGPUGridder_instance->Projection_Initilize();
         return;
     }
 
-    // Forward_Project    
-    if (!strcmp("Forward_Project", cmd)) {
+    // Run the forward projection CUDA kernel
+    if (!strcmp("Forward_Project", cmd))
+    {
         // Check parameters
-
         if (nrhs != 2)
         {
             mexErrMsgTxt("Forward_Project: Unexpected arguments. ");
-        }                 
+        }
 
         // Call the method
-        CUDA_Gridder_instance->Forward_Project();
-        
+        MultiGPUGridder_instance->Forward_Project();
         return;
     }
 
-    // Back_Project    
-    if (!strcmp("Back_Project", cmd)) {
+    // Run the back projection CUDA kernel
+    if (!strcmp("Back_Project", cmd))
+    {
         // Check parameters
-
         if (nrhs != 2)
         {
             mexErrMsgTxt("Back_Project: Unexpected arguments. ");
-        }                 
+        }
 
         // Call the method
-        CUDA_Gridder_instance->Back_Project();
-        
+        MultiGPUGridder_instance->Back_Project();
         return;
     }
 
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)
     {
-		mexErrMsgTxt("Second input should be a class instance handle.");
-    }   
-    
+        mexErrMsgTxt("Second input should be a class instance handle.");
+    }
+
     // Got here, so command was not recognized
     mexErrMsgTxt("Command not recognized. Please check the associated .m file.");
 }
