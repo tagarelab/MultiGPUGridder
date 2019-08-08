@@ -22,24 +22,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Return a handle to a new C++ instance
-        plhs[0] = convertPtr2Mat<CUDA_Gridder>(new CUDA_Gridder);
+        plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder);
         return;
     }
 
     // Get the class instance pointer from the second input
-    CUDA_Gridder *CUDA_Gridder_instance = convertMat2Ptr<CUDA_Gridder>(prhs[1]);
+    MultiGPUGridder *MultiGPUGridder_instance = convertMat2Ptr<MultiGPUGridder>(prhs[1]);
 
     // Deleted the instance of the class
     if (!strcmp("delete", cmd))
     {
         // Free the memory of all the CPU arrays
-        CUDA_Gridder_instance->Mem_obj->mem_Free("all");
+        MultiGPUGridder_instance->Mem_obj->mem_Free("all");
 
         // Free the memory of all the GPU CUDA arrays
-        CUDA_Gridder_instance->Mem_obj->CUDA_Free("all");
+        MultiGPUGridder_instance->Mem_obj->CUDA_Free("all");
 
         // Destroy the C++ object
-        destroyObject<CUDA_Gridder>(prhs[1]);
+        destroyObject<MultiGPUGridder>(prhs[1]);
 
         // Warn if other commands were ignored
         if (nlhs != 0 || nrhs != 2)
@@ -80,7 +80,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->SetVolume(matlabArrayPtr, dims);
+        MultiGPUGridder_instance->SetVolume(matlabArrayPtr, dims);
 
         return;
     }
@@ -96,9 +96,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Get the matrix size of the GPU volume
         mwSize dims[3];
-        dims[0] = CUDA_Gridder_instance->volSize[0];
-        dims[1] = CUDA_Gridder_instance->volSize[1];
-        dims[2] = CUDA_Gridder_instance->volSize[2];
+        dims[0] = MultiGPUGridder_instance->volSize[0];
+        dims[1] = MultiGPUGridder_instance->volSize[1];
+        dims[2] = MultiGPUGridder_instance->volSize[2];
 
         // Create the output matlab array as type float
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
@@ -107,7 +107,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
 
         // Call the method
-        float *GPUVol = CUDA_Gridder_instance->GetVolume();
+        float *GPUVol = MultiGPUGridder_instance->GetVolume();
 
         // Copy the data to the Matlab array
         std::memcpy(matlabArrayPtr, GPUVol, sizeof(float) * dims[0] * dims[1] * dims[2]);
@@ -147,7 +147,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->SetImages(matlabArrayPtr);
+        MultiGPUGridder_instance->SetImages(matlabArrayPtr);
 
         return;
     }
@@ -162,7 +162,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->ResetVolume();
+        MultiGPUGridder_instance->ResetVolume();
 
         return;
     }
@@ -197,7 +197,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->SetAxes(matlabArrayPtr, dims);
+        MultiGPUGridder_instance->SetAxes(matlabArrayPtr, dims);
 
         return;
     }
@@ -232,7 +232,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->SetImgSize(matlabArrayPtr);
+        MultiGPUGridder_instance->SetImgSize(matlabArrayPtr);
 
         return;
     }
@@ -250,7 +250,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *MaskRadius = (float *)mxGetData(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetMaskRadius(MaskRadius);
+        MultiGPUGridder_instance->SetMaskRadius(MaskRadius);
 
         return;
     }
@@ -267,7 +267,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int numGPUS = (int)mxGetScalar(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetNumberGPUs(numGPUS);
+        MultiGPUGridder_instance->SetNumberGPUs(numGPUS);
 
         return;
     }
@@ -284,7 +284,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int nStreams = (int)mxGetScalar(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetNumberStreams(nStreams);
+        MultiGPUGridder_instance->SetNumberStreams(nStreams);
 
         return;
     }
@@ -301,7 +301,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int nBatches = (int)mxGetScalar(prhs[2]);
 
         // Call the method
-        CUDA_Gridder_instance->SetNumberBatches(nBatches);
+        MultiGPUGridder_instance->SetNumberBatches(nBatches);
 
         return;
     }
@@ -326,7 +326,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         varDataSize = (int *)mxGetData(prhs[4]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_alloc(varNameString, varDataType, varDataSize);
+        MultiGPUGridder_instance->Mem_obj->mem_alloc(varNameString, varDataType, varDataSize);
 
         return;
     }
@@ -345,7 +345,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->pin_mem(varNameString);
+        MultiGPUGridder_instance->Mem_obj->pin_mem(varNameString);
         return;
     }
 
@@ -363,7 +363,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->disp_mem(varNameString);
+        MultiGPUGridder_instance->Mem_obj->disp_mem(varNameString);
         return;
     }
 
@@ -382,7 +382,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_Free(varNameString);
+        MultiGPUGridder_instance->Mem_obj->mem_Free(varNameString);
         return;
     }
 
@@ -403,7 +403,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *matlabArrayPtr = (float *)mxGetData(prhs[3]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->mem_Copy(varNameString, matlabArrayPtr);
+        MultiGPUGridder_instance->Mem_obj->mem_Copy(varNameString, matlabArrayPtr);
         return;
     }
 
@@ -423,7 +423,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Create the output Matlab array (using the stored size of the corresponding C++ array)
         int *vol_dims;
-        vol_dims = CUDA_Gridder_instance->Mem_obj->CPU_Get_Array_Size(varNameString);
+        vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size(varNameString);
 
         // Create the output Matlab array (using the stored size of the corresponding C++ array)
         mwSize dims[3]; 
@@ -438,7 +438,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
 
         // Call the method
-        float *OutputArray = CUDA_Gridder_instance->Mem_obj->ReturnCPUFloatPtr(varNameString);
+        float *OutputArray = MultiGPUGridder_instance->Mem_obj->ReturnCPUFloatPtr(varNameString);
 
         // Copy the data to the Matlab array
         std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
@@ -462,7 +462,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int *vol_dims;
 
         // The images are store in the following pinned CPU array: "CASImgs_CPU_Pinned"
-        vol_dims = CUDA_Gridder_instance->Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
+        vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
 
         // Create the output Matlab array (using the stored size of the corresponding C++ array)
         mwSize dims[3]; 
@@ -477,7 +477,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
 
         // Call the method
-        float *OutputArray = CUDA_Gridder_instance->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+        float *OutputArray = MultiGPUGridder_instance->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
 
         // Copy the data to the Matlab array
         std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
@@ -507,7 +507,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         GPU_Device = (int)mxGetScalar(prhs[5]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_alloc(varNameString, varDataType, varDataSize, GPU_Device);
+        MultiGPUGridder_instance->Mem_obj->CUDA_alloc(varNameString, varDataType, varDataSize, GPU_Device);
         return;
     }
 
@@ -525,7 +525,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_Free(varNameString);
+        MultiGPUGridder_instance->Mem_obj->CUDA_Free(varNameString);
         return;
     }
 
@@ -543,7 +543,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxGetString(prhs[2], varNameString, sizeof(varNameString));
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_disp_mem(varNameString);
+        MultiGPUGridder_instance->Mem_obj->CUDA_disp_mem(varNameString);
         return;
     }
 
@@ -564,7 +564,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *matlabArrayPtr = (float *)mxGetData(prhs[3]);
 
         // Call the method
-        CUDA_Gridder_instance->Mem_obj->CUDA_Copy(varNameString, matlabArrayPtr);
+        MultiGPUGridder_instance->Mem_obj->CUDA_Copy(varNameString, matlabArrayPtr);
         return;
     }
 
@@ -583,7 +583,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Create the output Matlab array (using the stored size of the corresponding C++ array)
         int *vol_dims;
-        vol_dims = CUDA_Gridder_instance->Mem_obj->CUDA_Get_Array_Size(varNameString);
+        vol_dims = MultiGPUGridder_instance->Mem_obj->CUDA_Get_Array_Size(varNameString);
 
         mwSize dims[3];
         dims[0] = vol_dims[0];
@@ -597,7 +597,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
 
         // Call the method
-        float *GPUVol = CUDA_Gridder_instance->Mem_obj->CUDA_Return(varNameString);
+        float *GPUVol = MultiGPUGridder_instance->Mem_obj->CUDA_Return(varNameString);
 
         std::cout << "GPUVol: " << GPUVol[0] << '\n';
 
@@ -619,7 +619,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->Projection_Initilize();
+        MultiGPUGridder_instance->Projection_Initilize();
         return;
     }
 
@@ -633,7 +633,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->Forward_Project();
+        MultiGPUGridder_instance->Forward_Project();
         return;
     }
 
@@ -647,7 +647,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
 
         // Call the method
-        CUDA_Gridder_instance->Back_Project();
+        MultiGPUGridder_instance->Back_Project();
         return;
     }
 

@@ -2,7 +2,7 @@
 #define __CLASS_HANDLE_H__
 
 #include <mex.h>
-#include "CUDA_Gridder.h"
+#include "MultiGPUGridder.h"
 
 #include <iostream>
 #include <stdint.h>

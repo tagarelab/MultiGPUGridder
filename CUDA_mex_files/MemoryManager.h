@@ -1,7 +1,7 @@
-#ifndef CPU_CUDA_MEMORY_H // Only define the header once
-#define CPU_CUDA_MEMORY_H
+#ifndef MemoryManager_H // Only define the header once
+#define MemoryManager_H
 
-#include "CPU_CUDA_Memory.h"
+#include "MemoryManager.h"
 #include <iostream>
 #include <vector>
 #include <limits>
@@ -16,20 +16,20 @@
 #include <cuda_profiler_api.h>
 
 // The class that we are interfacing to
-class CPU_CUDA_Memory
+class MemoryManager
 {
 public:
     // Class constructor
-    CPU_CUDA_Memory()
+    MemoryManager()
     {
     }
 
     // Class deconstructor
-    ~CPU_CUDA_Memory()
+    ~MemoryManager()
     {
         // Free all the GPU memory
         CUDA_Free("all");
-        std::cout << "CPU_CUDA_Memory() deconstructor" << '\n';
+        std::cout << "MemoryManager() deconstructor" << '\n';
     }
 
     bool GPUArrayAllocated(std::string varNameString, int GPU_Device);

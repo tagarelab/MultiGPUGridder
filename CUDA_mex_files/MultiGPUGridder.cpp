@@ -1,14 +1,14 @@
-#include "CUDA_Gridder.h"
+#include "MultiGPUGridder.h"
 
-CUDA_Gridder::CUDA_Gridder()
+MultiGPUGridder::MultiGPUGridder()
 {
-    // Constructor for the CUDA_Gridder class
+    // Constructor for the MultiGPUGridder class
 
-    // Create a new instance of the CPU_CUDA_Memory class
-    this->Mem_obj = new CPU_CUDA_Memory;
+    // Create a new instance of the MemoryManager class
+    this->Mem_obj = new MemoryManager;
 }
 
-void CUDA_Gridder::SetNumberGPUs(int numGPUs)
+void MultiGPUGridder::SetNumberGPUs(int numGPUs)
 {
     // Set the number of GPUs to use with the CUDA kernels
 
@@ -39,7 +39,7 @@ void CUDA_Gridder::SetNumberGPUs(int numGPUs)
     this->numGPUs = numGPUs;
 }
 
-void CUDA_Gridder::SetNumberStreams(int nStreams)
+void MultiGPUGridder::SetNumberStreams(int nStreams)
 {
     // Set the number of streams to use with the CUDA kernels
     // Need at least as many streams as numGPUs to use
@@ -54,7 +54,7 @@ void CUDA_Gridder::SetNumberStreams(int nStreams)
     this->nStreams = nStreams;
 }
 
-void CUDA_Gridder::SetNumberBatches(int nBatches)
+void MultiGPUGridder::SetNumberBatches(int nBatches)
 {
     // Set the number of batches to use with the CUDA kernels
 
@@ -68,7 +68,7 @@ void CUDA_Gridder::SetNumberBatches(int nBatches)
     this->nBatches = nBatches;
 }
 
-void CUDA_Gridder::SetVolume(float *gpuVol, int *gpuVolSize)
+void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
 {
     // Set the volume for forward and back projection
 
@@ -113,7 +113,7 @@ void CUDA_Gridder::SetVolume(float *gpuVol, int *gpuVolSize)
     this->volSize[2] = gpuVolSize[2];
 }
 
-float *CUDA_Gridder::GetVolume()
+float *MultiGPUGridder::GetVolume()
 {
     // Get the volume from all the GPUs and add them together
     // Return a pointer to the volume
@@ -143,7 +143,7 @@ float *CUDA_Gridder::GetVolume()
     return VolSum;
 }
 
-void CUDA_Gridder::SetImages(float *newCASImgs)
+void MultiGPUGridder::SetImages(float *newCASImgs)
 {
     // Set the CAS Images array to pinned CPU memory
 
@@ -168,7 +168,7 @@ void CUDA_Gridder::SetImages(float *newCASImgs)
     Mem_obj->mem_Copy("CASImgs_CPU_Pinned", newCASImgs);
 }
 
-void CUDA_Gridder::ResetVolume()
+void MultiGPUGridder::ResetVolume()
 {
     // Reset the volume on all GPUs to zeros
 
@@ -194,7 +194,7 @@ void CUDA_Gridder::ResetVolume()
     }
 }
 
-void CUDA_Gridder::SetAxes(float *coordAxes, int *axesSize)
+void MultiGPUGridder::SetAxes(float *coordAxes, int *axesSize)
 {
     // Set the coordinate axes array to pinned CPU memory
 
@@ -218,7 +218,7 @@ void CUDA_Gridder::SetAxes(float *coordAxes, int *axesSize)
     this->axesSize[2] = axesSize[2];
 }
 
-void CUDA_Gridder::SetImgSize(int *imgSize)
+void MultiGPUGridder::SetImgSize(int *imgSize)
 {
     // Set the output CAS image size parameter
     this->imgSize = new int[3];
@@ -227,13 +227,13 @@ void CUDA_Gridder::SetImgSize(int *imgSize)
     this->imgSize[2] = imgSize[2];
 }
 
-void CUDA_Gridder::SetMaskRadius(float *maskRadius)
+void MultiGPUGridder::SetMaskRadius(float *maskRadius)
 {
     // Set the maskRadius parameter (used in the forward and back projection CUDA kernels)
     this->maskRadius = maskRadius;
 }
 
-void CUDA_Gridder::Projection_Initilize()
+void MultiGPUGridder::Projection_Initilize()
 {
     // Initialize all the needed CPU and GPU pointers for running the CUDA kernels
     // Then check that all the required pointers exist
@@ -315,7 +315,7 @@ void CUDA_Gridder::Projection_Initilize()
 
 }
 
-void CUDA_Gridder::Forward_Project()
+void MultiGPUGridder::Forward_Project()
 {
     // Run the forward projection CUDA kernel
 
@@ -388,7 +388,7 @@ void CUDA_Gridder::Forward_Project()
     return;
 }
 
-void CUDA_Gridder::Back_Project()
+void MultiGPUGridder::Back_Project()
 {
     // Run the back projection CUDA kernel
 
@@ -461,7 +461,7 @@ void CUDA_Gridder::Back_Project()
     return;
 }
 
-int CUDA_Gridder::ParameterChecking(
+int MultiGPUGridder::ParameterChecking(
     std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,          // Vector of GPU array pointers
     std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,    // Vector of GPU array pointers
     float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,                              // Pointers to pinned CPU arrays for input / output

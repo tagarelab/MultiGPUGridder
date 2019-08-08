@@ -1,7 +1,7 @@
-#include "CPU_CUDA_Memory.h"
+#include "MemoryManager.h"
 
-// The CPU_CUDA_Memory class functions
-bool CPU_CUDA_Memory::GPUArrayAllocated(std::string varNameString, int GPU_Device)
+// The MemoryManager class functions
+bool MemoryManager::GPUArrayAllocated(std::string varNameString, int GPU_Device)
 {
     // Given the name of some GPU array, check if it is already allocated on the given GPU
 
@@ -29,7 +29,7 @@ bool CPU_CUDA_Memory::GPUArrayAllocated(std::string varNameString, int GPU_Devic
     }
 }
 
-bool CPU_CUDA_Memory::CPUArrayAllocated(std::string varNameString)
+bool MemoryManager::CPUArrayAllocated(std::string varNameString)
 {
     // Given the name of some CPU array check to see if it is already allocated
 
@@ -45,7 +45,7 @@ bool CPU_CUDA_Memory::CPUArrayAllocated(std::string varNameString)
     }
 }
 
-int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector)
+int MemoryManager::FindArrayIndex(std::string varNameString, std::vector<std::string> NameVector)
 {
     // Find the index in the NameVector vector which is equal to a given string
 
@@ -71,7 +71,7 @@ int CPU_CUDA_Memory::FindArrayIndex(std::string varNameString, std::vector<std::
     return arr_idx;
 }
 
-float *CPU_CUDA_Memory::ReturnCPUFloatPtr(std::string varNameString)
+float *MemoryManager::ReturnCPUFloatPtr(std::string varNameString)
 {
     // Given the name of a variable, return the memory pointer (supports only CPU float pointers)
 
@@ -88,7 +88,7 @@ float *CPU_CUDA_Memory::ReturnCPUFloatPtr(std::string varNameString)
     return cpu_arr_ptrs[arr_idx];
 }
 
-float *CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString)
+float *MemoryManager::ReturnCUDAFloatPtr(std::string varNameString)
 {
     // Given the name of a variable, return the memory pointer (supports only CUDA float pointers)
 
@@ -105,7 +105,7 @@ float *CPU_CUDA_Memory::ReturnCUDAFloatPtr(std::string varNameString)
     return CUDA_arr_ptrs[arr_idx];
 }
 
-void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
+void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
 {
     // Allocate memory based on the dataType (i.e. int, float, etc.)
 
@@ -145,7 +145,7 @@ void CPU_CUDA_Memory::mem_alloc(std::string varNameString, std::string dataType,
     }
 }
 
-void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
+void MemoryManager::mem_Copy(std::string varNameString, float *New_Array)
 {
     // Given a float array, copy the data to the corresponding C++ pointer
 
@@ -174,7 +174,7 @@ void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
     }
 }
 
-void CPU_CUDA_Memory::pin_mem(std::string varNameString)
+void MemoryManager::pin_mem(std::string varNameString)
 {
     // Given a variable name, pin the associated CPU array (i.e. make it non-pageable on the RAM so the GPUs can directly access it)
 
@@ -208,7 +208,7 @@ void CPU_CUDA_Memory::pin_mem(std::string varNameString)
     }
 }
 
-void CPU_CUDA_Memory::disp_mem(std::string varNameString)
+void MemoryManager::disp_mem(std::string varNameString)
 {
     // Display in the console the size of a given matrix
 
@@ -240,7 +240,7 @@ void CPU_CUDA_Memory::disp_mem(std::string varNameString)
     std::cout << "\n";
 }
 
-void CPU_CUDA_Memory::mem_Free(std::string varNameString)
+void MemoryManager::mem_Free(std::string varNameString)
 {
     // Free the memory of the corresponding array
 
@@ -286,7 +286,7 @@ void CPU_CUDA_Memory::mem_Free(std::string varNameString)
     cpu_arr_ptrs.erase(cpu_arr_ptrs.begin() + arr_idx);
 }
 
-void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType, int *dataSize, int GPU_Device)
+void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, int *dataSize, int GPU_Device)
 {
     // Allocate memory on the GPU based on the dataType (i.e. int, float, etc.)
 
@@ -354,7 +354,7 @@ void CPU_CUDA_Memory::CUDA_alloc(std::string varNameString, std::string dataType
     }
 }
 
-void CPU_CUDA_Memory::CUDA_Free(std::string varNameString)
+void MemoryManager::CUDA_Free(std::string varNameString)
 {
     // Free the memory of the corresponding CUDA GPU array
 
@@ -408,7 +408,7 @@ void CPU_CUDA_Memory::CUDA_Free(std::string varNameString)
     CUDA_arr_GPU_Assignment.erase(CUDA_arr_GPU_Assignment.begin() + arr_idx);
 }
 
-void CPU_CUDA_Memory::CUDA_disp_mem(std::string varNameString)
+void MemoryManager::CUDA_disp_mem(std::string varNameString)
 {
     // Display in the Matlab console the size of a given GPU CUDA array
 
@@ -439,7 +439,7 @@ void CPU_CUDA_Memory::CUDA_disp_mem(std::string varNameString)
     std::cout << '\n';
 }
 
-void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, float *New_Array)
+void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
 {
     // Given a float array, copy the data to the corresponding CUDA pointer
 
@@ -470,7 +470,7 @@ void CPU_CUDA_Memory::CUDA_Copy(std::string varNameString, float *New_Array)
     }
 }
 
-void CPU_CUDA_Memory::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, cudaStream_t stream)
+void MemoryManager::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, cudaStream_t stream)
 {
     // Given a Matlab array, copy the data to the corresponding CUDA pointer using the given cudaStream
 
@@ -504,7 +504,7 @@ void CPU_CUDA_Memory::CUDA_Copy_Asyc(std::string varNameString, float *New_Array
     }
 }
 
-int *CPU_CUDA_Memory::CPU_Get_Array_Size(std::string varNameString)
+int *MemoryManager::CPU_Get_Array_Size(std::string varNameString)
 {
     // Get the size of the CPU array corresponding to the input array name (as a string)
 
@@ -524,7 +524,7 @@ int *CPU_CUDA_Memory::CPU_Get_Array_Size(std::string varNameString)
     return dims;
 }
 
-int *CPU_CUDA_Memory::CUDA_Get_Array_Size(std::string varNameString)
+int *MemoryManager::CUDA_Get_Array_Size(std::string varNameString)
 {
     // Get the size of the CUDA GPU array corresponding to the input array name (as a string)
 
@@ -544,7 +544,7 @@ int *CPU_CUDA_Memory::CUDA_Get_Array_Size(std::string varNameString)
     return dims;
 }
 
-float *CPU_CUDA_Memory::CUDA_Return(std::string varNameString)
+float *MemoryManager::CUDA_Return(std::string varNameString)
 {
     // Copy the data from the corresponding CUDA array back to a float array
 
