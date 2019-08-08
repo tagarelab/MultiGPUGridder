@@ -32,7 +32,7 @@ addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
 
 cd("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/CUDA_mex_files")
 
-recompile = 1;
+recompile = 0;
 if (recompile == true)
     % cd('mex_files')
 
@@ -64,7 +64,7 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-volSize = 256;%256;%256%128;%64;
+volSize = 128;%256;%256%128;%64;
 n1_axes = 10;
 n2_axes = 10;
 kernelHWidth = 2;
@@ -90,6 +90,7 @@ img = squeeze(D);
 img = imresize3(img,[volSize, volSize, volSize]);
 vol = single(img);
 easyMontage(vol,1);
+
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
@@ -112,9 +113,9 @@ disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
 %% Run the forward projection kernel
 
 obj = CUDA_Gridder_Matlab_Class();
-obj.SetNumberBatches(2);
-obj.SetNumberGPUs(4);
-obj.SetNumberStreams(64);
+obj.SetNumberBatches(1);
+obj.SetNumberGPUs(1);
+obj.SetNumberStreams(2);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
@@ -129,10 +130,10 @@ obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCo
 disp("Projection_Initilize()...")
 obj.Projection_Initilize()
 
-tic
+obj.disp_mem('all')
+
 disp("Forward_Project()...")
 obj.Forward_Project()
-toc
 
 % Return the resulting projection images
 disp("mem_Return()...")
@@ -140,12 +141,14 @@ InterpCASImgs  = obj.mem_Return('CASImgs_CPU_Pinned');
 
 
 disp("imgsFromCASImgs()...")
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,:), interpBox, fftinfo); 
+imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo); 
 
-GT_projection = sum(vol,3);
-size(GT_projection)
-size(vol)
-size(imgs)
+
+% 
+% GT_projection = sum(vol,3);
+% size(GT_projection)
+% size(vol)
+% size(imgs)
 
 % figure
 % h(1) = subplot(1,3,1);
@@ -168,16 +171,18 @@ size(imgs)
 disp("easyMontage()...")
 easyMontage(imgs,2);
 
+obj.CUDA_Free('all')
+clear obj
+clear all
 
+abc
 
 %% Run the back projection kernel
 disp("ResetVolume()...")
 obj.ResetVolume()
 
-tic
 disp("Back_Project()...")
 obj.Back_Project()
-toc
 
 disp("Get_Volume()...")
 % Get the volumes from all the GPUs and add them together
@@ -186,18 +191,20 @@ for i = 0:3
     volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 
-disp("Get Plane Density()...")
-
 % Get the density of inserted planes by backprojecting CASimages of values equal to one
+disp("Get Plane Density()...")
 nAxes = size(coordAxes,1)/9;
 interpImgs=ones([interpBox.size interpBox.size nAxes],'single');
+% interpImgs = single(ones([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]));
+
+disp("Get Plane Density ResetVolume()...")
 obj.ResetVolume();
+
+disp("Get Plane Density SetImages()...")
 obj.SetImages(interpImgs)
 
-tic
-disp("Back_Project()...")
+disp("Get Plane Density Back_Project()...")
 obj.Back_Project()
-toc
 
 disp("Get_Volume()...")
 % Get the resulting volume from all the GPUs and add them together
@@ -223,15 +230,14 @@ max(volReconstructed(:))
 disp("easyMontage()...")
 easyMontage(volReconstructed,3);
 
+toc
+
 % easyMontage(vol - volReconstructed,4);
 % colorbar
 
 obj.CUDA_Free('all')
 clear obj
-
-
-
-
+clear all
 
 
 

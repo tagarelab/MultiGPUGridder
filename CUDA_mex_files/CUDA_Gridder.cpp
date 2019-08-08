@@ -20,7 +20,7 @@ void CUDA_Gridder::SetNumberGPUs(int numGPUs)
     if (numGPUDetected == 0)
     {
         std::cerr << "No NVIDIA graphic cards identified on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';
-   
+
         this->numGPUs = -1; // Set error value for numGPUs
 
         return;
@@ -60,7 +60,7 @@ void CUDA_Gridder::SetNumberBatches(int nBatches)
 
     if (nBatches <= 0)
     {
-        std::cerr << "Please choose a positive integer value for number of batches." << '\n';        
+        std::cerr << "Please choose a positive integer value for number of batches." << '\n';
         return;
     }
 
@@ -100,7 +100,7 @@ void CUDA_Gridder::SetVolume(float *gpuVol, int *gpuVolSize)
         // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
         Mem_obj->CUDA_Copy_Asyc("gpuVol_" + std::to_string(gpuDevice), gpuVol, stream[gpuDevice]);
     }
-    
+
     // Synchronize all of the CUDA streams
     cudaDeviceSynchronize();
 
@@ -112,6 +112,13 @@ void CUDA_Gridder::SetVolume(float *gpuVol, int *gpuVolSize)
     this->volSize[0] = gpuVolSize[0];
     this->volSize[1] = gpuVolSize[1];
     this->volSize[2] = gpuVolSize[2];
+}
+
+float *CUDA_Gridder::GetVolume()
+{
+    // Get the volume from all the GPUs and add them together
+    // Return a pointer to the volume
+    // This is used after the back projection CUDA kernel
 }
 
 void CUDA_Gridder::SetImages(float *newCASImgs)
@@ -143,7 +150,7 @@ void CUDA_Gridder::SetImages(float *newCASImgs)
 
 void CUDA_Gridder::ResetVolume()
 {
-    // Reset the volume on all GPUs to zeros 
+    // Reset the volume on all GPUs to zeros
 
     // Loop through all of the GPUs and reset the volume on each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
@@ -265,7 +272,7 @@ void CUDA_Gridder::Projection_Initilize()
         }
     }
 
-    // One copy of the Kaiser Bessel look up table is needed for each GPU 
+    // One copy of the Kaiser Bessel look up table is needed for each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
         // Has the Kaiser bessel vector been allocated and defined?
@@ -333,8 +340,8 @@ void CUDA_Gridder::Forward_Project()
     int nAxes = this->axesSize[0] / 9;
 
     // NOTE: gridSize times blockSize needs to equal imgSize
-    int gridSize = 32;                          
-    int blockSize = this->imgSize[0] / gridSize; 
+    int gridSize = 32;
+    int blockSize = this->imgSize[0] / gridSize;
 
     // Before launching the kernel, first verify that all parameters and inputs are valid
     int parameter_check = ParameterChecking(
@@ -408,7 +415,7 @@ void CUDA_Gridder::Back_Project()
 
     // NOTE: gridSize times blockSize needs to equal imgSize
     int gridSize = this->imgSize[0] / 4;
-    int blockSize = 4;                  
+    int blockSize = 4;
 
     // Before launching the kernel, first verify that all parameters and inputs are valid
     int parameter_check = ParameterChecking(
@@ -452,14 +459,14 @@ int CUDA_Gridder::ParameterChecking(
     cudaGetDeviceCount(&numGPUDetected);
 
     if (numGPUs < 0 || numGPUs >= numGPUDetected + 1) //  An invalid numGPUs selection was chosen
-    {         
+    {
         std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer. Use SetNumberGPUs() function." << '\n';
         return -1;
     }
 
     if (numGPUDetected == 0) // No GPUs were found (i.e. all cards are busy)
     {
-        std::cerr << "No NVIDIA graphic cards identified on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';        
+        std::cerr << "No NVIDIA graphic cards identified on your computer. All cards may be busy and unavailable. Try restarting the program and/or your computer." << '\n';
         return -1;
     }
 
@@ -475,7 +482,7 @@ int CUDA_Gridder::ParameterChecking(
         return -1;
     }
 
-    if (volSize <= 0) 
+    if (volSize <= 0)
     {
         std::cerr << "Invalid volSize parameter. Please use SetVolume() to define the input volume." << '\n';
         return -1;

@@ -247,30 +247,22 @@ void CPU_CUDA_Memory::mem_Copy(std::string varNameString, float *New_Array)
         return;
     }     
 
-    // TO DO: Check if the allocated memory is the same size as the input array
-
-
-
-    // Copy the Matlab array to the class pointer for deep copy
-    // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
-    int dim_size = cpu_arr_sizes[arr_idx][0] * cpu_arr_sizes[arr_idx][1] * cpu_arr_sizes[arr_idx][2];
+    // Need to convert the dims to long long int type to allow for array length larger than maximum int32 value
+    unsigned long long *dim_size = new  unsigned long long[3];
+    dim_size[0] = (unsigned long long)cpu_arr_sizes[arr_idx][0];
+    dim_size[1] = (unsigned long long)cpu_arr_sizes[arr_idx][1];
+    dim_size[2] = (unsigned long long)cpu_arr_sizes[arr_idx][2];
 
     if ( cpu_arr_types[arr_idx] == "int")
-    {
-
-        // Get the pointer to the input Matlab array which should be int type (same as previously allocated)
-        //int* matlabArray = (int*)mxGetData(Matlab_Pointer);
-
-        //std::memcpy(cpu_arr_ptrs[arr_idx].i, matlabArray, sizeof(int)*(dim_size));
+    {   
+        mexErrMsgTxt("Unrecognized data type. Only float is supported currently for mem_Copy().");
     } else if ( cpu_arr_types[arr_idx] == "float")
     {
-        std::memcpy(cpu_arr_ptrs[arr_idx].f, New_Array, sizeof(float)*(dim_size));
+        std::memcpy(cpu_arr_ptrs[arr_idx].f, New_Array, sizeof(float)*(dim_size[0] * dim_size[1] * dim_size[2]));
     } else 
     {
         mexErrMsgTxt("Unrecognized data type. Only float is supported currently for mem_Copy().");
-    }      
-    
-
+    }         
 }
 
 mxArray* CPU_CUDA_Memory::mem_Return(std::string varNameString, mxArray *Matlab_Pointer)

@@ -74,6 +74,9 @@ public:
 	// Set GPU volume
 	void SetVolume(float *gpuVol, int *gpuVolSize);
 
+	// Get the volume from all the GPUs and return their summation
+	float *GetVolume();
+
 	// Reset the GPU volumes on all the GPUs
 	void ResetVolume();
 
