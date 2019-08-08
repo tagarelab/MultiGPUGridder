@@ -1,11 +1,11 @@
-%CUDA_Gridder_Matlab_Class Example MATLAB class wrapper to an underlying C++ class
-classdef CUDA_Gridder_Matlab_Class < handle
+%MultiGPUGridder_Matlab_Class Example MATLAB class wrapper to an underlying C++ class
+classdef MultiGPUGridder_Matlab_Class < handle
     properties (SetAccess = private, Hidden = true)
         objectHandle; % Handle to the underlying C++ class instance
     end
     methods
         %% Constructor - Create a new C++ class instance 
-        function this = CUDA_Gridder_Matlab_Class(varargin)
+        function this = MultiGPUGridder_Matlab_Class(varargin)
             this.objectHandle = mexFunctionWrapper('new', varargin{:});
         end        
         %% Destructor - Destroy the C++ class instance

@@ -36,7 +36,7 @@ recompile = 1;
 if (recompile == true)
     % cd('mex_files')
 
-    fprintf('Compiling CUDA_Gridder mex file \n');
+    fprintf('Compiling MultiGPUGridder_Matlab_Class mex file \n');
 
     % Compile the forward projection CUDA kernel first
     status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
@@ -108,7 +108,7 @@ disp(["Volume size: " + num2str(volSize)])
 disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Initialize the multi GPU gridder
-obj = CUDA_Gridder_Matlab_Class();
+obj = MultiGPUGridder_Matlab_Class();
 obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
