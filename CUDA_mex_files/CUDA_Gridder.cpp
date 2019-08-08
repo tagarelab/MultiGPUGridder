@@ -249,21 +249,12 @@ void CUDA_Gridder::Projection_Initilize()
             gpuCASImgs_Size[0] = this->imgSize[0];
             gpuCASImgs_Size[1] = this->imgSize[1];
 
-            // Each GPU only needs to hold a fraction of the total output images (based on number of streams and batches)
-            // double temp;
-            // temp = (double)this->imgSize[2] / (double)this->nStreams / (double)this->nBatches;
-            // std::cout << "temp: " << temp << '\n';
+            // How many images will this stream process? 
+            int nAxes = this->axesSize[0] / 9;
+            int nImgsPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
+            gpuCASImgs_Size[2] = std::max(nImgsPerStream, 2); // Must be at least two images (projections are sometimes missing if only 1 image is allocated)
 
-            // gpuCASImgs_Size[2] = ceil(this->imgSize[2] / (this->nStreams));
-            // gpuCASImgs_Size[2] = ceil(gpuCASImgs_Size[2] / (this->nBatches)); 
-
-            gpuCASImgs_Size[2] = (int)(ceil((double)this->imgSize[2] / (double)this->nStreams / (double)this->nBatches));
-
-            // std::cout << "gpuCASImgs_Size[2]: " << gpuCASImgs_Size[2] << '\n';
-
-            
-            
-            gpuCASImgs_Size[2] = gpuCASImgs_Size[2];
+            std::cout << "nImgsPerStream: " << nImgsPerStream << '\n';
 
             Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(i), "float", gpuCASImgs_Size, gpuDevice);
         }
@@ -280,6 +271,8 @@ void CUDA_Gridder::Projection_Initilize()
 
             // Round up to the number of axes per stream and then multiply by 9 to get the length
             int nAxesPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
+            nAxesPerStream = std::max(nAxesPerStream, 1); // Must be at least one axes
+
             gpuCoordAxes_Size[0] = nAxesPerStream * 9;
             gpuCoordAxes_Size[1] = this->axesSize[1];
             gpuCoordAxes_Size[2] = this->axesSize[2];

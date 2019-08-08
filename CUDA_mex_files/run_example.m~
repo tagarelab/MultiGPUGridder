@@ -64,10 +64,6 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-nBatches = 1;
-nGPUs = 1;
-nStreams = 10;
-
 volSize = 128;%256;%256%128;%64;
 n1_axes = 5;
 n2_axes = 1;
@@ -115,6 +111,10 @@ disp(["Volume size: " + num2str(volSize)])
 disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Run the forward projection kernel
+nBatches = 1;
+nGPUs = 1;
+nStreams = 10;
+
 obj = CUDA_Gridder_Matlab_Class();
 obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
@@ -190,7 +190,7 @@ obj.Back_Project()
 disp("Get_Volume()...")
 % Get the volumes from all the GPUs and add them together
 volCAS  = single(zeros(size(CASVol)));
-for i = 0:nGPUs-1
+for i = 0:3
     volCAS  = volCAS + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 
@@ -212,7 +212,7 @@ obj.Back_Project()
 disp("Get_Volume()...")
 % Get the resulting volume from all the GPUs and add them together
 volWt  = single(zeros(size(CASVol)));
-for i = 0:nGPUs-1
+for i = 0:3
     volWt  = volWt + obj.CUDA_Return(char("gpuVol_" + num2str(i)));
 end
 
