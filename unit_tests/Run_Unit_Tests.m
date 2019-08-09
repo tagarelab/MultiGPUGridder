@@ -10,6 +10,6 @@ addpath('../utils')
 reset(gpuDevice())
 
 run(TestSuite.fromFile('ForwardProjectTests.m'))
-
+run(TestSuite.fromFile('BackProjectTests.m'))
 
 reset(gpuDevice())
