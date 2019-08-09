@@ -7,6 +7,7 @@ For many applications, it is needed to perform many iterations of forward and ba
 * CUDA Toolkit 10.1
 * MATLAB R2018a
 * NVCC (NVIDIA CUDA Compiler)
+* A compatible Matlab mex C++ compiler 
 * At least one NVIDIA graphics card
 
 ### Compile Mex File - Ubuntu 16.04
