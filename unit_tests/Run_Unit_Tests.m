@@ -4,6 +4,8 @@ close all
 
 import matlab.unittest.TestSuite
 
-dir = ['/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/'];
+addpath('../src')
+addpath('../utils')
 
-run(TestSuite.fromFile([dir 'unit_tests/ForwardProjectTests.m']))
+
+run(TestSuite.fromFile('ForwardProjectTests.m'))
