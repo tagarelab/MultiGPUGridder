@@ -83,7 +83,8 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
             % Calculate the mean difference between the ground truth and the projected image
             MeanDifference = mean(imgs(:) - GT_Projection(:));
             
-            % Free the memory
+            % Free the memory 
+            obj.CUDA_Free('all')
             clear obj
             
             testCase.verifyLessThanOrEqual(MeanDifference, 2);
@@ -146,9 +147,10 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
             % Calculate the mean difference between the ground truth and the projected image
             MeanDifference = mean(imgs(:) - GT_Projection(:));
             
-            % Free the memory
+            % Free the memory 
+            obj.CUDA_Free('all')
             clear obj
-            
+
             testCase.verifyLessThanOrEqual(MeanDifference, 2);
 
 
