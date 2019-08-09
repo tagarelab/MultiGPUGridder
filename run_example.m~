@@ -1,3 +1,27 @@
+% How to run this script from the terminal (needed in order to use the NVIDIA profiling tools)
+% "/usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB" -nodisplay -nosplash -nodesktop -r "run('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/CUDA_mex_files/run_example.m');exit;"
+
+% -nodisplay -nosplash -nodesktop -r "run('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/testGpuObj.m');exit;"
+
+
+% "C:\<a long path here>\matlab.exe" -nodisplay -nosplash -nodesktop -r "run('C:\<a long path here>\mfile.m');
+% sudo '/usr/local/cuda/NsightSystems-2019.3/Host-x86_64/nsight-sys' 
+% /usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB
+
+% To launch Nsight Systems
+% sudo /usr/local/cuda/NsightSystems-2019.3/Host-x86_64/nsight-sys
+
+% To launch nvidia visual profiler
+% sudo /usr/local/cuda/bin/nvvp
+
+% To launch nvidia nsight compute
+% sudo /usr/local/cuda/NsightCompute-2019.3/nv-nsight-cu
+% "/usr/local/MATLAB/R2018a/bin/glnxa64/MATLAB" -nodisplay -nosplash -nodesktop -r run('/home/brent/Documents/MATLAB/CUDA/Tutorials/July 15 2019/Example 1/Brent_Script.m')
+
+% To watch the GPU usage
+% watch nvidia-smi
+
+
 clc
 close all
 clear obj 

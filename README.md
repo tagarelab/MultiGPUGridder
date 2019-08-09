@@ -1,20 +1,31 @@
 # MultiGPUGridder Class
 
-# Usage
-#### Utilize multiple NVIDIA GPUs for fast forward and back projection
+# Utilize multiple NVIDIA GPUs for fast forward and back projection
+
+For many applications, it is needed to perform many iterations of forward and back projection in the Fourier domain. Here we provide a class for fast forward and back projection which utilizes multiple NVIDIA GPUs, CUDA, and C++ along with a wrapper for calling all the functions from within Matlab.
+
+# Dependencies
+
+* CUDA Toolkit 10.1
+* MATLAB R2018a
+* NVCC (NVIDIA CUDA Compiler)
+* At least one NVIDIA graphics card
 
 ### Compile Mex File - Ubuntu 16.04
 
 ```sh
-%% Within Matlab Console
+%% Within the Matlab Console
 
 % Compile the forward projection CUDA kernel
-$ system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/cuda/tarets/x86_64-linux/include/'")
+system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/cuda/tarets/x86_64-linux/include/'")
 
 % Compile the back projection CUDA kernel
-$ system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu -I'/usr/local/cuda/tarets/x86_64-linux/include/'")
+system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu -I'/usr/local/cuda/tarets/x86_64-linux/include/'")
 
 % Compile the C++ and matlab mex wrappers along with the CUDA kernels
-$mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
+mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
 
 ```
+
+### Example
+Please see the run_example.m file for a complete example using an example Matlab MRI dataset.
