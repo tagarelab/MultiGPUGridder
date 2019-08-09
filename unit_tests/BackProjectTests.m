@@ -15,14 +15,12 @@ classdef BackProjectTests < matlab.unittest.TestCase
         n2_axes = 50;
 
         kernelHWidth = 2;
-
         interpFactor = 2.0;
-
-        origSize   = 128; % volSize
+        
+        origSize   = 128; 
         volCenter  = 128/2  + 1;
         origCenter = 128/2  + 1;
         origHWidth = (128/2 + 1)- 1;
-
 
     end
     
@@ -173,9 +171,6 @@ classdef BackProjectTests < matlab.unittest.TestCase
             
             testCase.verifyGreaterThanOrEqual(max(volReconstructed(:)), 0);
 
-
         end
-
-    end
-    
+    end    
 end
