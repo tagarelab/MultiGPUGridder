@@ -10,7 +10,7 @@ For many applications, it is needed to perform many iterations of forward and ba
 * A compatible Matlab mex C++ compiler 
 * At least one NVIDIA graphics card
 
-### Compile Mex File - Ubuntu 16.04
+# Compile CUDA, C++, and Mex Files - Ubuntu 16.04
 
 ```sh
 %% Within the Matlab Console
