@@ -1,4 +1,4 @@
-function [times] = RunExample(volSize, n1_axes, n2_axes, nStreams, nGPUs)
+function [times] = RunBatchTest(volSize, n1_axes, n2_axes, nStreams, nGPUs, nBatches)
     
   
 
@@ -10,6 +10,7 @@ function [times] = RunExample(volSize, n1_axes, n2_axes, nStreams, nGPUs)
     times.nCoordAxes = [];
     times.nStreams = nStreams;
     times.nGPUs = nGPUs;
+    times.nBatches = nBatches;
     times.Vol_Preprocessing = [];
     times.create_uniform_axes = [];
     times.mem_allocation = [];
@@ -62,10 +63,10 @@ function [times] = RunExample(volSize, n1_axes, n2_axes, nStreams, nGPUs)
     %% Run the forward projection kernel
     tic
     obj = CUDA_Gridder_Matlab_Class();
-    if (nGPUs ~= 4)
-    obj.SetNumberBatches(3);
+%     if (nGPUs ~= 4)
+%         obj.SetNumberBatches(3);
 %     else 
-%        obj.SetNumberBatches(1); 
+       obj.SetNumberBatches(nBatches); 
 %     end
     
     obj.SetNumberGPUs(nGPUs);

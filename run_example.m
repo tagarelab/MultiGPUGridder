@@ -26,17 +26,14 @@ clc
 close all
 clear obj 
 
-addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj')
-addpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/utils')
-
-
-cd("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/CUDA_mex_files")
+addpath('./CUDA_mex_files')
+addpath('./utils')
 
 recompile = 1;
 if (recompile == true)
-    % cd('mex_files')
+    cd('CUDA_mex_files')
 
-    fprintf('Compiling CUDA_Gridder mex file \n');
+    fprintf('Compiling MultiGPUGridder_Matlab_Class mex file \n');
 
     % Compile the forward projection CUDA kernel first
     status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/MATLAB/R2018a/extern/include/' -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
@@ -53,8 +50,9 @@ if (recompile == true)
     end
     
     % Compile the mex files second
-    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp CUDA_Gridder.cpp CPU_CUDA_Memory.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
-
+    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
+    
+    cd('..')
 end
 
 
@@ -66,11 +64,11 @@ tic
 
 nBatches = 2;
 nGPUs = 4;
-nStreams = 32;
-
-volSize = 128;%256;%256%128;%64;
+nStreams = 64;
+volSize = 128; %256;%256%128;%64;
 n1_axes = 50;
 n2_axes = 10;
+
 kernelHWidth = 2;
 
 interpFactor = 2.0;
@@ -84,9 +82,6 @@ origHWidth = origCenter - 1;
 disp("fuzzymask()...")
 vol=fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
 size(vol)
-% Change the sphere a bit so the projections are not all the same
-% vol(:,:,1:volSize/2) = 2 * vol(:,:,1:volSize/2);
-
 
 % Use the example matlab MRI image to take projections of
 load mri;
@@ -111,11 +106,12 @@ disp(["Volume size: " + num2str(volSize)])
 disp(["Number of coordinate axes: " + num2str(nCoordAxes)])
  
 %% Initialize the multi GPU gridder
-obj = CUDA_Gridder_Matlab_Class();
+obj = MultiGPUGridder_Matlab_Class();
 obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
+
 
 disp("SetVolume()...")
 obj.SetVolume(single(CASVol))
@@ -140,7 +136,7 @@ disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
 
 disp("imgsFromCASImgs()...")
-imgs=imgsFromCASImgs(InterpCASImgs, interpBox, fftinfo); 
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
 
 disp("easyMontage()...")
 easyMontage(imgs,2);
@@ -162,7 +158,7 @@ interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
 obj.ResetVolume();
 obj.SetImages(interpImgs)
 obj.Back_Project()
-volWt  = obj.GetVolume();
+volWt = obj.GetVolume();
 
 %% Normalize the back projection result with the plane density
 

@@ -172,6 +172,8 @@ void gpuForwardProject(
             // Update the number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
         } 
+
+        // cudaDeviceSynchronize();
     }
 
     cudaDeviceSynchronize();
