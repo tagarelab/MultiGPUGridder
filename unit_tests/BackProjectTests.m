@@ -1,4 +1,4 @@
-classdef ForwardProjectTests < matlab.unittest.TestCase
+classdef BackProjectTests < matlab.unittest.TestCase
     % SolverTest tests solutions to the forward project CUDA gridder
 
     % Class variables
@@ -67,27 +67,38 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
 
             imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); % Just use the first projection
             
-            % Create a ground truth by simply summing the MRI volume in the 3 directions
-            GT_Projection = squeeze(sum(vol,3));       
-                     
-%             figure
-%             subplot(1,3,1)
-%             imagesc(imgs)
-%             subplot(1,3,2)
-%             imagesc(GT_Projection)     
-%             subplot(1,3,3)
-%             imagesc(imgs - GT_Projection)   
-%             colormap gray
-%             colorbar
-            
-            % Calculate the mean difference between the ground truth and the projected image
-            MeanDifference = mean(imgs(:) - GT_Projection(:));
-            
+
+            % Run the back projection kernel
+            disp("ResetVolume()...")
+            obj.ResetVolume()
+
+            disp("Back_Project()...")
+            obj.Back_Project()
+
+            disp("Get_Volume()...") % Get the volumes from all the GPUs added together
+            volCAS = obj.GetVolume();
+
+            % Get the density of inserted planes by backprojecting CASimages of values equal to one
+            disp("Get Plane Density()...")
+            interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
+            obj.ResetVolume();
+            obj.SetImages(interpImgs)
+            obj.Back_Project()
+            volWt = obj.GetVolume();
+
+            % Normalize the back projection result with the plane density
+            % Divide the previous volume with the plane density volume
+            volCAS=volCAS./(volWt+1e-6);
+
+            % Reconstruct the volume from CASVol
+            disp("volFromCAS()...")
+            volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,testCase.kernelHWidth);
+
             % Free the memory 
             obj.CUDA_Free('all')
             clear obj
             
-            testCase.verifyLessThanOrEqual(MeanDifference, 2);
+            testCase.verifyGreaterThanOrEqual(max(volReconstructed(:)), 0);
 
         end
 
@@ -128,30 +139,39 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
             obj.Forward_Project()
 
             InterpCASImgs = obj.GetImgs();
+            imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); % Just use the first projection            
 
-            imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); % Just use the first projection
-            
-            % Create a ground truth by simply summing the MRI volume in the 3 directions
-            GT_Projection = squeeze(sum(vol,3));       
-                     
-%             figure
-%             subplot(1,3,1)
-%             imagesc(imgs)
-%             subplot(1,3,2)
-%             imagesc(GT_Projection)     
-%             subplot(1,3,3)
-%             imagesc(imgs - GT_Projection)   
-%             colormap gray
-%             colorbar
-            
-            % Calculate the mean difference between the ground truth and the projected image
-            MeanDifference = mean(imgs(:) - GT_Projection(:));
-            
+            % Run the back projection kernel
+            disp("ResetVolume()...")
+            obj.ResetVolume()
+
+            disp("Back_Project()...")
+            obj.Back_Project()
+
+            disp("Get_Volume()...") % Get the volumes from all the GPUs added together
+            volCAS = obj.GetVolume();
+
+            % Get the density of inserted planes by backprojecting CASimages of values equal to one
+            disp("Get Plane Density()...")
+            interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
+            obj.ResetVolume();
+            obj.SetImages(interpImgs)
+            obj.Back_Project()
+            volWt = obj.GetVolume();
+
+            % Normalize the back projection result with the plane density
+            % Divide the previous volume with the plane density volume
+            volCAS=volCAS./(volWt+1e-6);
+
+            % Reconstruct the volume from CASVol
+            disp("volFromCAS()...")
+            volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,testCase.kernelHWidth);
+
             % Free the memory 
             obj.CUDA_Free('all')
             clear obj
-
-            testCase.verifyLessThanOrEqual(MeanDifference, 2);
+            
+            testCase.verifyGreaterThanOrEqual(max(volReconstructed(:)), 0);
 
 
         end
