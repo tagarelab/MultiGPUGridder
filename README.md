@@ -1,6 +1,6 @@
 # Build Status
 
-[![Build Status](http://127.0.0.1:8080/buildStatus/icon?job=CUDA_Gridding)](http://127.0.0.1:8080/job/CUDA_Gridding/)
+[![Build Status](http://130.132.173.30:8080/buildStatus/icon?job=CUDA_Gridding)](http://127.0.0.1:8080/job/CUDA_Gridding/)
 
 # Utilize multiple NVIDIA GPUs for fast forward and back projection
 
