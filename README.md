@@ -1,3 +1,7 @@
+# Build Status
+
+[![Build Status](http://127.0.0.1:8080/buildStatus/icon?job=CUDA_Gridding)](http://127.0.0.1:8080/job/CUDA_Gridding/)
+
 # Utilize multiple NVIDIA GPUs for fast forward and back projection
 
 For many applications, it is needed to perform many iterations of forward and back projection in the Fourier domain. Here we provide a class for fast forward and back projection which utilizes multiple NVIDIA GPUs, CUDA, and C++ along with a wrapper for calling all the functions from within Matlab.
