@@ -2,12 +2,12 @@ clc
 close all
 clear obj 
 
-addpath('./CUDA_mex_files')
+addpath('./src')
 addpath('./utils')
 
 recompile = 1;
 if (recompile == true)
-    cd('CUDA_mex_files')
+    cd('src')
 
     fprintf('Compiling MultiGPUGridder_Matlab_Class mex file \n');
 
