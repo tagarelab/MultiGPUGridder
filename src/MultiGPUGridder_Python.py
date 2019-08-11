@@ -12,6 +12,12 @@ class MultiGPUGridder(object):
 
         lib.SetNumberGPUs.argtypes = [ctypes.c_void_p, ctypes.c_int]
         lib.SetNumberGPUs.restype = ctypes.c_void_p
+        
+        lib.SetNumberStreams.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        lib.SetNumberStreams.restype = ctypes.c_void_p
+
+        lib.Projection_Initilize.argtypes = [ctypes.c_void_p]
+        lib.Projection_Initilize.restype = ctypes.c_void_p
 
         #lib.Foo_foobar.argtypes = [ctypes.c_void_p, ctypes.c_int]
         #lib.Foo_foobar.restype = ctypes.c_int        
@@ -22,8 +28,14 @@ class MultiGPUGridder(object):
         self.obj = lib.Gridder_new()
 
     def SetNumberGPUs(self, numGPUs):
-            lib.SetNumberGPUs(self.obj, numGPUs)
-    
+        lib.SetNumberGPUs(self.obj, numGPUs)
+
+    def SetNumberStreams(self, nStreams):
+        lib.SetNumberStreams(self.obj, nStreams) 
+
+    def Projection_Initilize(self):
+        lib.Projection_Initilize(self.obj) 
+
         #  def foobar(self, val):
         #     return lib.Foo_foobar(self.obj, val)
 
@@ -35,6 +47,12 @@ class MultiGPUGridder(object):
 gridder=MultiGPUGridder()
 
 gridder.SetNumberGPUs(1)
+gridder.SetNumberStreams(4)
+#gridder.Projection_Initilize()
+
+
+
+
 
 # Calling f.bar() will print a message including the value...
 #f.bar()

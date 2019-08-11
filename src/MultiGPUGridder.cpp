@@ -68,6 +68,8 @@ void MultiGPUGridder::SetNumberStreams(int nStreams)
 
     // Save the user requested number of streams to use
     this->nStreams = nStreams;
+
+	std::cout << "Number of streams: " << this->nStreams << '\n';
 }
 
 void MultiGPUGridder::SetNumberBatches(int nBatches)
@@ -255,7 +257,7 @@ void MultiGPUGridder::Projection_Initilize()
 {
     // Initialize all the needed CPU and GPU pointers for running the CUDA kernels
     // Then check that all the required pointers exist
-
+	
     // Has the output image array been allocated and pinned to the CPU?
     if (Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false)
     {
@@ -309,7 +311,7 @@ void MultiGPUGridder::Projection_Initilize()
             Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(i), "float", gpuCoordAxes_Size, gpuDevice);
         }
     }
-
+	
     // One copy of the Kaiser Bessel look up table is needed for each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
@@ -595,6 +597,11 @@ extern "C"
 {
 	EXPORT MultiGPUGridder* Gridder_new() { return new MultiGPUGridder(); }
 	EXPORT void SetNumberGPUs(MultiGPUGridder* gridder, int numGPUs) { gridder->SetNumberGPUs(numGPUs);  }
+	EXPORT void SetNumberStreams(MultiGPUGridder* gridder, int nStreams) { gridder->SetNumberStreams(nStreams); }
+
+
+
+	EXPORT void Projection_Initilize(MultiGPUGridder* gridder) { gridder->Projection_Initilize(); }
 
 	//EXPORT void Foo_bar(Foo* foo) { foo->bar(); }
 	//EXPORT int Foo_foobar(Foo* foo, int n) { return foo->foobar(n); }
