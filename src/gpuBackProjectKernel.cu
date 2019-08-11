@@ -118,7 +118,8 @@ void gpuBackProject(
     dim3 dimBlock(blockSize, blockSize, blockSize);
     
     // Create the CUDA streams
-    cudaStream_t stream[nStreams]; 		
+	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
+    //cudaStream_t stream[nStreams]; 		
 
     for (int i = 0; i < nStreams; i++) // Loop through the streams
     { 

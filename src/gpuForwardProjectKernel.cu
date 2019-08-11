@@ -98,12 +98,14 @@ void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
+	
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
 
     // Create the CUDA streams
-    cudaStream_t stream[nStreams]; 		
+	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
+    //cudaStream_t stream[nStreams]; 		
 
     for (int i = 0; i < nStreams; i++) // Loop through the streams
     { 

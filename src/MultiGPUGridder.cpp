@@ -1,5 +1,21 @@
 #include "MultiGPUGridder.h"
 
+// Are we compiling on a windows or linux machine?
+#if defined(_MSC_VER)
+	//  Microsoft 
+#define EXPORT __declspec(dllexport)
+#define IMPORT __declspec(dllimport)
+#elif defined(__GNUC__)
+	//  GCC
+#define EXPORT __attribute__((visibility("default")))
+#define IMPORT
+#else
+	//  Do nothing and provide a warning to the user
+#define EXPORT
+#define IMPORT
+#pragma warning Unknown dynamic link import/export semantics.
+#endif
+
 MultiGPUGridder::MultiGPUGridder()
 {
     // Constructor for the MultiGPUGridder class
@@ -91,7 +107,9 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
 
     // Create CUDA streams for asyc memory copying of the gpuVols
     int nStreams = this->numGPUs;
-    cudaStream_t stream[nStreams];
+    //cudaStream_t stream[nStreams];
+	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
+
 
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
@@ -565,3 +583,21 @@ int MultiGPUGridder::ParameterChecking(
     // No errors were detected so return a flag of 0
     return 0;
 }
+
+
+
+// Define C functions for the C++ class since Python ctypes can only talk to C (not C++)
+
+# define USE_EXTERN_C true
+#if USE_EXTERN_C == true
+
+extern "C"
+{
+	EXPORT MultiGPUGridder* Gridder_new() { return new MultiGPUGridder(); }
+	EXPORT void SetNumberGPUs(MultiGPUGridder* gridder, int numGPUs) { gridder->SetNumberGPUs(numGPUs);  }
+
+	//EXPORT void Foo_bar(Foo* foo) { foo->bar(); }
+	//EXPORT int Foo_foobar(Foo* foo, int n) { return foo->foobar(n); }
+	//EXPORT float* Foo_foosquare(Foo* foo, float*  n, int size_arr) { return foo->foosquare(n, size_arr); }
+}
+#endif
