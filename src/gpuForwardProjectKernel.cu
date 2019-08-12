@@ -225,29 +225,50 @@ void gpuForwardProject(
               
     // imgSize = 5;
 
-    // int nRows = imgSize;
-    // int nCols = imgSize;
+    int nRows = 5;
+    int nCols = 5;
     // int n[2] = {nRows, nCols};
     // int howMany = 1; //nAxes_Stream
 
     int IMAGE_DIM = 5;
-    int num_real_elements = IMAGE_DIM * IMAGE_DIM;    
+    int NUM_IMGS = 2;
+
+    int num_real_elements = NUM_IMGS * IMAGE_DIM * IMAGE_DIM; 
+    
+    int batch = NUM_IMGS;           // --- Number of batched executions
+    int rank = 2;                   // --- 2D FFTs
+    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    int idist = nRows*nCols;        // --- Distance between batches
+    int odist = nRows*nCols;        // --- Distance between batches
+
+    int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    int onembed[] = {nRows, nCols}; // --- Output size with pitch
+
+    int istride = 1;                // --- Distance between two successive input/output elements
+    int ostride = 1;                // --- Distance between two successive input/output elements
+
+
+
+
     //int num_complex_elements = IMAGE_DIM * (IMAGE_DIM / 2 + 1); //Output memory is N1(N/2+1), not (N1/2)(N2/2+1)
     
 
     // cufftPlanMany(&forwardFFTPlan,
     //     2, //rank
-    //     n, //dimensions = {nRows, nCols}
+    //     &IMAGE_DIM, //dimensions = {nRows, nCols}
     //     0, //inembed
-    //     howMany, //istride
-    //     imgSize*imgSize, //idist
+    //     NUM_IMGS, //istride
+    //     IMAGE_DIM*IMAGE_DIM, //idist
     //     0, //onembed
-    //     howMany, //ostride
+    //     NUM_IMGS, //ostride
     //     1, //odist
-    //     CUFFT_R2C, //cufftType
-    //     howMany /*batch*/);
+    //     CUFFT_C2C, //cufftType
+    //     NUM_IMGS /*batch*/);
 
-    cufftPlan2d(&forwardFFTPlan, IMAGE_DIM, IMAGE_DIM, CUFFT_C2C);
+    cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
+
+
+    //cufftPlan2d(&forwardFFTPlan, IMAGE_DIM, IMAGE_DIM, CUFFT_C2C);
 
     // ALLOCATE HOST MEMORY
     float *h_img;
@@ -266,6 +287,20 @@ void gpuForwardProject(
             h_complex_img[y*IMAGE_DIM+x].x = x * IMAGE_DIM + y ;
 
             std::cout << "h_complex_img[" << x << "][" << y << "].x: " <<  h_complex_img[y*IMAGE_DIM+x].x << '\n';
+
+
+        }
+    }
+
+    for (int x=0; x < IMAGE_DIM; x++)
+    {
+        int temp_x = x + IMAGE_DIM*IMAGE_DIM; // offset for image two
+        for (int y=0; y < IMAGE_DIM; y++)
+        {
+            // initialize the input image memory somehow
+            h_complex_img[y*IMAGE_DIM+temp_x].x = x * IMAGE_DIM + y ;
+
+            std::cout << "h_complex_img[" << temp_x << "][" << y << "].x: " <<  h_complex_img[y*IMAGE_DIM+temp_x].x << '\n';
 
 
         }
@@ -291,7 +326,7 @@ void gpuForwardProject(
      cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_imgSpec, (cufftComplex *) d_output, CUFFT_FORWARD);
      
      
-
+     cudaDeviceSynchronize();
     // cufftExecR2C(forwardFFTPlan, d_img, d_complex_imgSpec, CUFFT_FORWARD);
 
     // copy the DEVICE complex data to the HOST
@@ -304,6 +339,7 @@ void gpuForwardProject(
     std::cout << "" << '\n';
     std::cout << "" << '\n';
     std::cout << "OUTPUT" << '\n';
+    std::cout << "IMAGE ONE" << '\n';
     for (int x=0; x < (IMAGE_DIM); x++)
     {
         std::cout << "h_complex_img[" << x << "]: ";
@@ -321,7 +357,32 @@ void gpuForwardProject(
         std::cout << '\n';
     }
 
+    std::cout << '\n';
+    std::cout << '\n';
+    std::cout << '\n';
+    std::cout << "IMAGE TWO" << '\n';
+    for (int x=0; x < (IMAGE_DIM); x++)
+    {
+        // Offset is IMAGE_DIM * IMAGE_DIM since we are on image two now
+        int temp_x = x + IMAGE_DIM * IMAGE_DIM;
+        
+        std::cout << "h_complex_img[" << x << "]: ";
+        for (int y=0; y < IMAGE_DIM; y++)
+        {     
+            //std::cout << "y*IMAGE_DIM+temp_x: " << y*IMAGE_DIM+temp_x << '\n';
 
+            
+            if ((h_complex_img[y*IMAGE_DIM+temp_x].x*h_complex_img[y*IMAGE_DIM+temp_x].x) < 0.001)
+            {
+                std::cout << " "   <<  0  << " + " << h_complex_img[y*IMAGE_DIM+temp_x].y << "i   ";
+            } else
+            {
+                std::cout << " "   <<  h_complex_img[y*IMAGE_DIM+temp_x].x  << " + " << h_complex_img[y*IMAGE_DIM+temp_x].y << "i   ";
+            }
+          
+        }
+        std::cout << '\n';
+    }
 
 
 

@@ -6,26 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/gpuBackProject.h
-cstdlib
--
-stdio.h
--
-iostream
--
-vector
--
-cuda_runtime.h
--
-cuda.h
--
-cuda_profiler_api.h
--
-
-/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/gpuBackProjectKernel.cu
-gpuBackProject.h
-/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/gpuBackProject.h
-
 /home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/gpuForwardProject.h
 cstdlib
 -
@@ -45,4 +25,6 @@ cuda_profiler_api.h
 /home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/gpuForwardProjectKernel.cu
 gpuForwardProject.h
 /home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/gpuForwardProject.h
+math.h
+-
 
