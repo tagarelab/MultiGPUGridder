@@ -4,13 +4,30 @@ For many applications, it is needed to perform many iterations of forward and ba
 
 # Dependencies
 
+* CMAKE Version >3.10
 * CUDA Toolkit 10.1
-* MATLAB R2018a
 * NVCC (NVIDIA CUDA Compiler)
-* A compatible Matlab mex C++ compiler 
 * At least one NVIDIA graphics card
 
-# Compile CUDA, C++, and Mex Files - Ubuntu 16.04
+ ## Matlab Wrapper
+* MATLAB R2018a
+* A compatible Matlab mex C++ compiler 
+
+## Python Wrapper
+* Python 3.*
+* Numpy 
+* Matplotlib
+
+
+# Compile Using CMake - Linux and Windows
+## Easy method for compiling CUDA, C++, Python wrapper, and MEX files
+
+* Use CMake to create the project files (Visual Studio for Windows and Make for Linux)
+* For Windows, click on Open Project then build using the Visual Studio project
+* For Linux, run "make" in the build location
+
+
+# Less Robust Compiling within Matlab - Ubuntu 16.04
 
 ```sh
 %% Within the Matlab Console
@@ -24,7 +41,7 @@ system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu
 % Compile the C++ and matlab mex wrappers along with the CUDA kernels
 mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
 
-```
+
 
 ### Example
 Please see the run_example.m file for a complete example using an example Matlab MRI dataset.
