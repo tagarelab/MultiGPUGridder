@@ -4,6 +4,7 @@ clear obj
 
 addpath('./src')
 addpath('./utils')
+addpath('./bin') % The compiled mex file is stored in the bin folder
 
 recompile = 0;
 if (recompile == true)
