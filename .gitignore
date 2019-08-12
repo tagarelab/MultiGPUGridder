@@ -5,3 +5,7 @@
 *.mat
 *.m~
 
+# Ignore build folders
+bin/
+build/
+

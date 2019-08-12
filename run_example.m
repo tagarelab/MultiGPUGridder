@@ -5,7 +5,7 @@ clear obj
 addpath('./src')
 addpath('./utils')
 
-recompile = 1;
+recompile = 0;
 if (recompile == true)
     cd('src')
 
@@ -27,7 +27,8 @@ if (recompile == true)
     end
 
     % Compile the mex files second
-    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
+    % -lnvToolsExt
+    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
 
     cd('..')
 end
@@ -43,8 +44,8 @@ nBatches = 2;
 nGPUs = 4;
 nStreams = 64;
 volSize = 128;
-n1_axes = 50;
-n2_axes = 50;
+n1_axes = 100;
+n2_axes = 100;
 
 kernelHWidth = 2;
 
