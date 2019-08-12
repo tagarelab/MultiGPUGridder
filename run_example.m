@@ -44,8 +44,8 @@ nBatches = 2;
 nGPUs = 4;
 nStreams = 64;
 volSize = 128;
-n1_axes = 5;
-n2_axes = 5;
+n1_axes = 100;
+n2_axes = 100;
 
 kernelHWidth = 2;
 
