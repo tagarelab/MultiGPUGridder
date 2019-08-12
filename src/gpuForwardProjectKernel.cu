@@ -90,6 +90,48 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     }//End img_i
 }
 
+__global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
+{
+    // CUDA kernel for converting the CASImgs to imgs
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+    int k = blockIdx.z * blockDim.z + threadIdx.z; // Which image?
+
+    // For now, CASimgs is the same dimensions as imgs
+    int ndx_1 = i + j * imgSize + k * imgSize * imgSize;
+    
+    // Skip the first row and first column
+    if (i == 0 || j == 0)
+    {
+        // Real component
+        imgs[ndx_1].x = 0;
+
+        // Imaginary component
+        imgs[ndx_1].y = 0;
+
+        return;
+    }
+
+    // Are we outside the bounds of the image?
+    if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
+        return;
+    }
+
+    // Offset to skip the first row then subtract from the end of the matrix and add the offset where the particular image starts in CASimgs
+    int ndx_2 = imgSize + imgSize * imgSize - ndx_1 + k * imgSize * imgSize;
+
+    // Real component
+    imgs[ndx_1].x = 0.5*(CASimgs[ndx_1] + CASimgs[ndx_2]);
+
+    // Imaginary component
+    imgs[ndx_1].y = 0.5*(CASimgs[ndx_1] - CASimgs[ndx_2]);
+
+    return;
+}
+
+
+
+
 void gpuForwardProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
@@ -158,6 +200,46 @@ void gpuForwardProject(
             
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
+            
+              // Define CUDA kernel dimensions for converting CASImgs to imgs
+            // dim3 dimGrid_CAS_to_Imgs(gridSize, gridSize, 1);
+            // dim3 dimBlock_CAS_to_Imgs(blockSize, blockSize, nAxes_Stream);
+            
+            // // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
+            // CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
+            //     gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
+            // );
+            
+                /*
+            // Transform the CASImgs to complex float2 type
+            int size = 100;
+            cufftComplex *h_complex_array, *h_imgs, *d_imgs;
+            float * d_CASImgs_test;
+            float * h_CASImgs_test;
+
+
+            h_CASImgs_test = (float *) malloc(sizeof(float) * size);
+            cudaMalloc(&d_CASImgs_test, sizeof(float) * size);
+
+            for (int k = 0; k < size; k++) {
+                h_CASImgs_test[k] = k;
+            }
+
+            cudaMalloc(&d_imgs, sizeof(cufftComplex) * size);
+
+
+            h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+            h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+
+            for (int k = 0; k < size; k++) {
+                h_complex_array[k].x = k;//rand() / (float) RAND_MAX;
+                h_complex_array[k].y = 0;
+              }
+ 
+            // Example output array (cufftReal)
+            cufftComplex *output_test = (cufftComplex*)malloc(size*sizeof(cufftComplex));
+
+
             
             // Run the forward projection kernel
             // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
