@@ -29,7 +29,7 @@ Please see the MultiGPUGridder_Python.py file for a complete example using the P
 
 
 # Compile Using CMake - Linux and Windows
-## Easy method for compiling CUDA, C++, Python wrapper, and MEX files
+### Easy method for compiling CUDA, C++, Python wrapper, and MEX files
 
 * Use CMake to create the project files (Visual Studio for Windows and Make for Linux)
 * For Windows, click on Open Project then build using the Visual Studio project
