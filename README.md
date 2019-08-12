@@ -3,20 +3,29 @@
 For many applications, it is needed to perform many iterations of forward and back projection in the Fourier domain. Here we provide a class for fast forward and back projection which utilizes multiple NVIDIA GPUs, CUDA, and C++ along with a wrapper for calling all the functions from within Matlab.
 
 # Dependencies
-
 * CMAKE Version >3.10
 * CUDA Toolkit 10.1
 * NVCC (NVIDIA CUDA Compiler)
 * At least one NVIDIA graphics card
 
- ## Matlab Wrapper
-* MATLAB R2018a
-* A compatible Matlab mex C++ compiler 
+* MATLAB R2018a (Matlab wrapper)
 
-## Python Wrapper
-* Python 3.*
-* Numpy 
-* Matplotlib
+* Python 3.* (Python wrapper)
+* Numpy (Python wrapper)
+* Matplotlib (Python wrapper)
+
+
+## Matlab Wrapper 
+This wrapper allows the MultiGPUGridder functions to be called from within Matlab. 
+
+Please see the run_example.m file for a complete example using the Matlab wrapper.
+
+
+## Python Wrapper 
+This wrapper allows the MultiGPUGridder functions to be called from within Python. 
+
+Please see the MultiGPUGridder_Python.py file for a complete example using the Python wrapper.
+
 
 
 # Compile Using CMake - Linux and Windows
@@ -27,7 +36,8 @@ For many applications, it is needed to perform many iterations of forward and ba
 * For Linux, run "make" in the build location
 
 
-# Less Robust Compiling within Matlab - Ubuntu 16.04
+
+### Compiling fully within Matlab - (Less Robust and only for Ubuntu 16.04)
 
 ```sh
 %% Within the Matlab Console
@@ -41,7 +51,5 @@ system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu
 % Compile the C++ and matlab mex wrappers along with the CUDA kernels
 mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -lnvToolsExt -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
 
+```
 
-
-### Example
-Please see the run_example.m file for a complete example using an example Matlab MRI dataset.
