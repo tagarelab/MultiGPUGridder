@@ -130,21 +130,84 @@ __global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 }
 
 
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
 
+=======
+__global__ void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
+{
+    // CUDA kernel for converting the CASImgs to imgs
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+    int k = blockIdx.z * blockDim.z + threadIdx.z; // Which image?
+
+    // For now, CASimgs is the same dimensions as imgs
+    int ndx_1 = i + j * imgSize + k * imgSize * imgSize;
+    
+    // Skip the first row and first column
+    if (i == 0 || j == 0)
+    {
+        // Real component
+        imgs[ndx_1].x = 0;
+
+        // Imaginary component
+        imgs[ndx_1].y = 0;
+
+        return;
+    }
+
+    // Are we outside the bounds of the image?
+    if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
+        return;
+    }
+
+    // Offset to skip the first row then subtract from the end of the matrix and add the offset where the particular image starts in CASimgs
+    int ndx_2 = imgSize + imgSize * imgSize - ndx_1 + k * imgSize * imgSize;
+
+    // Real component
+    imgs[ndx_1].x = 0.5*(CASimgs[ndx_1] + CASimgs[ndx_2]);
+
+    // Imaginary component
+    imgs[ndx_1].y = 0.5*(CASimgs[ndx_1] - CASimgs[ndx_2]);
+
+    return;
+}
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
 
 void gpuForwardProject(
-    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
-    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,    // Vector of GPU array pointers
+    std::vector<cufftComplex*> gpuImgs_Vector, std::vector<float*> gpuCoordAxes_Vector, // Vector of GPU array pointers
+    std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
     std::cout << "Running gpuForwardProject()..." << '\n';
     
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
+=======
+
+    // Verify all parameters and inputs are valid
+    int parameter_check = ParameterChecking(    
+        gpuVol_Vector, gpuCASImgs_Vector, gpuImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector, // Vector of GPU array pointers
+        CASImgs_CPU_Pinned, coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+        volSize, imgSize, nAxes, maskRadius, kerSize, kerHWidth, // kernel Parameters and constants
+        numGPUs, nStreams, gridSize, blockSize, nBatches // Streaming parameters)
+    );
+
+    // If an error was detected return
+    if (parameter_check != 0)
+    {
+        std::cerr << "Error detected in input parameters. Stopping the gpuForwardProjection now." << '\n';
+        return;
+    }    
+    
+    std::cout << "nStreams: " << nStreams << '\n';
+
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
 
     // Create the CUDA streams
 	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
@@ -183,6 +246,18 @@ void gpuForwardProject(
                 continue; // Otherwise skip this stream
             }  
                     
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
+=======
+            if (gpuCASImgs_Vector.size() <= i || gpuCoordAxes_Vector.size() <= i || gpuImgs_Vector.size() <= i)
+            {
+                std::cout << "gpuCASImgs_Vector.size(): " << gpuCASImgs_Vector.size() << '\n';
+                std::cout << "gpuCoordAxes_Vector.size(): " << gpuCoordAxes_Vector.size() << '\n';
+                std::cout << "gpuImgs_Vector.size(): " << gpuImgs_Vector.size() << '\n';
+                std::cerr << "Number of streams is greater than the number of gpu array pointers." << '\n';
+                return;
+            }
+
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
             // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
             int gpuCoordAxes_Offset    = processed_nAxes * 9 * 1;          // Each axes has 9 elements (X, Y, Z)
             int coord_Axes_streamBytes = nAxes_Stream * 9 * sizeof(float); // Copy the entire vector for now
@@ -200,8 +275,69 @@ void gpuForwardProject(
             
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
             
               // Define CUDA kernel dimensions for converting CASImgs to imgs
+            // dim3 dimGrid_CAS_to_Imgs(gridSize, gridSize, 1);
+            // dim3 dimBlock_CAS_to_Imgs(blockSize, blockSize, nAxes_Stream);
+            
+            // // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
+            // CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
+            //     gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
+            // );
+            
+                /*
+            // Transform the CASImgs to complex float2 type
+            int size = 100;
+            cufftComplex *h_complex_array, *h_imgs, *d_imgs;
+            float * d_CASImgs_test;
+            float * h_CASImgs_test;
+
+
+            h_CASImgs_test = (float *) malloc(sizeof(float) * size);
+            cudaMalloc(&d_CASImgs_test, sizeof(float) * size);
+
+            for (int k = 0; k < size; k++) {
+                h_CASImgs_test[k] = k;
+            }
+
+            cudaMalloc(&d_imgs, sizeof(cufftComplex) * size);
+
+
+            h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+            h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+=======
+               
+            // Define CUDA kernel dimensions
+            dim3 dimGrid(gridSize, gridSize, 1);
+            dim3 dimBlock(blockSize, blockSize, 1);
+
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
+
+            for (int k = 0; k < size; k++) {
+                h_complex_array[k].x = k;//rand() / (float) RAND_MAX;
+                h_complex_array[k].y = 0;
+              }
+ 
+            // Example output array (cufftReal)
+            cufftComplex *output_test = (cufftComplex*)malloc(size*sizeof(cufftComplex));
+
+
+            
+            // Run the forward projection kernel
+            // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
+            // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
+            gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
+                gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
+                imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
+                maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
+=======
+                63, ker_bessel_Vector[curr_GPU], 501, 2);        
+    
+            gpuErrchk( cudaPeekAtLastError() );
+            
+            // Define CUDA kernel dimensions for converting CASImgs to imgs
             // dim3 dimGrid_CAS_to_Imgs(gridSize, gridSize, 1);
             // dim3 dimBlock_CAS_to_Imgs(blockSize, blockSize, nAxes_Stream);
             
@@ -240,14 +376,77 @@ void gpuForwardProject(
             cufftComplex *output_test = (cufftComplex*)malloc(size*sizeof(cufftComplex));
 
 
+            cudaMemcpy(d_CASImgs_test, h_CASImgs_test, sizeof(float) * size, cudaMemcpyHostToDevice);
+*/
+
+// gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
+//     gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
+//     imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
+//     63, ker_bessel_Vector[curr_GPU], 501, 2);        
+
+
+        // void CASImgsToImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
             
-            // Run the forward projection kernel
-            // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
-            // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
-            gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
-                gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
-                imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
-                maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
+            dim3 dimGrid_CAS_to_Imgs(32, 32, nAxes_Stream);
+            dim3 dimBlock_CAS_to_Imgs(imgSize/32,imgSize/32,1); 
+
+            std::cout << "gpuImgs_Vector.size(): " << gpuImgs_Vector.size() << '\n';
+            std::cout << "stream " << i << '\n';
+            
+            // cufftComplex *d_imgs; // TEST
+            // cudaMalloc(&d_imgs, sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream); // TEST
+
+            float * d_CASImgs_test;
+            cudaMalloc(&d_CASImgs_test, sizeof(float) * imgSize * imgSize * nAxes_Stream);
+
+            // Run the CUDA kernel for transforming the CASImgs to complex imgs (in order to apply the inverse FFT)
+            CASImgsToImgs<<< dimGrid_CAS_to_Imgs, dimBlock_CAS_to_Imgs, 0, stream[i] >>>(
+                gpuCASImgs_Vector[i], gpuImgs_Vector[i], imgSize
+            );
+     
+
+            // Plan the inverse FFT operation (for transforming the CASImgs back to imgs)
+            // https://arcb.csc.ncsu.edu/~mueller/cluster/nvidia/0.8/NVIDIA_CUFFT_Library_0.8.pdf
+            // https://docs.nvidia.com/cuda/cufft/index.html
+
+            cufftHandle plan;           
+              
+            int nRows = imgSize;
+            int nCols = imgSize;
+            int n[2] = {nRows, nCols};
+            int howMany = nAxes_Stream;
+
+            cufftPlanMany(&plan,
+                2, //rank
+                n, //dimensions = {nRows, nCols}
+                0, //inembed
+                howMany, //istride
+                imgSize*imgSize, //idist
+                0, //onembed
+                howMany, //ostride
+                1, //odist
+                CUFFT_C2C, //cufftType
+                howMany /*batch*/);
+
+            cufftSetStream(plan,stream[i]);
+
+            // TO DO: Need to apply fftshift before the inverse FFT https://github.com/OrangeOwlSolutions/FFT/wiki/The-fftshift-in-CUDA
+            // http://www.orangeowlsolutions.com/archives/251
+
+            // Execute the inverse FFT on each 2D slice of the gpuCASImgs
+            //cufftExecC2C(plan, (cufftComplex *) gpuImgs_Vector[i], (cufftComplex *) gpuImgs_Vector[i], CUFFT_INVERSE);
+
+
+            //cudaMemcpy(h_imgs, d_imgs, sizeof(cufftComplex) * size, cudaMemcpyDeviceToHost);
+            
+            //for (int z = 0; z < size; z ++)
+            //{
+            //    std::cout << "cufftComplex h_imgs.x[" << z << "]: " << h_imgs[z].x << '\n';
+            //    std::cout << "cufftComplex h_imgs.y[" << z << "]: " << h_imgs[z].y << '\n';
+   
+           // }
+
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
 
             // Copy the resulting gpuCASImgs to the host (CPU)
             cudaMemcpyAsync(
@@ -256,7 +455,37 @@ void gpuForwardProject(
 
             // Update the number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
         } 
+=======
+        }
+
+        std::cout << "cudaDeviceSynchronize()" << '\n';
+
+        gpuErrchk( cudaDeviceSynchronize() ); // Synchronize all the streams before reusing them (if number of batches > 1)
+
+    }
+
+
+
+    std::cout << "Done with gpuForwardProjectKernel" << '\n';
+
+    return; 
+
+}
+
+
+int ParameterChecking(
+    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,    // Vector of GPU array pointers
+    std::vector<cufftComplex*> gpuImgs_Vector, std::vector<float*> gpuCoordAxes_Vector, // Vector of GPU array pointers
+    std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
+    float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
+)
+{
+    // Check all the input parameters to verify they are all valid
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
 
         // cudaDeviceSynchronize();
     }
@@ -265,5 +494,75 @@ void gpuForwardProject(
 
     std::cout << "Done with gpuForwardProject()..." << '\n';
 
+<<<<<<< HEAD:src/gpuForwardProjectKernel.cu
     return; 
+=======
+    
+
+    // Checking parameter: volSize
+    if (volSize <= 0)
+    {
+        std::cerr << "Invalid volSize parameter. Please use SetVolume() to define the input volume." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: imgSize
+    if (imgSize <= 0)
+    {
+        std::cout << "imgSize: " << imgSize << '\n';
+        std::cerr << "Invalid imgSize parameter." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: nAxes
+    if (nAxes <= 0)
+    {
+        std::cerr << "Invalid nAxes parameter. Please use SetAxes() to define the input coordinate axes." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: maskRadius
+    if (maskRadius <= 0)
+    {
+        std::cerr << "Invalid maskRadius parameter." << '\n';
+        return -1;
+    }
+    
+    // Checking parameter: kerSize
+    if (kerSize <= 0)
+    {
+        std::cerr << "Invalid kerSize parameter." << '\n';
+        return -1;
+    }
+    // Checking parameter: kerHWidth
+    if (kerHWidth <= 0)
+    {
+        std::cerr << "Invalid kerHWidth parameter." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: gridSize
+    if (gridSize <= 0)
+    {
+        std::cerr << "Invalid gridSize parameter." << '\n';
+        return -1;
+    }
+
+    // Checking parameter: blockSize
+    if (blockSize <= 0 || imgSize != gridSize * blockSize) // NOTE: gridSize times blockSize needs to equal imgSize
+    {
+        std::cerr << "Invalid blockSize parameter. gridSize * blockSize must equal imgSize" << '\n';
+        return -1;
+    }
+
+    // Checking parameters: gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, and ker_bessel_Vector
+    if (gpuVol_Vector.size() <= 0 ||  gpuCASImgs_Vector.size() <= 0 || gpuImgs_Vector.size() <=0 || gpuCoordAxes_Vector.size() <= 0 || ker_bessel_Vector.size() <= 0)
+    {
+        std::cerr << "gpuForwardProject(): Input GPU pointer vectors are empty. Has SetVolume() and SetAxes() been run?" << '\n';
+        return -1;
+    }
+
+    // No errors were detected so return a flag of 0
+    return 0;
+>>>>>>> CASImgs:CUDA_mex_files/gpuForwardProjectKernel.cu
 }
