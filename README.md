@@ -15,13 +15,13 @@ For many applications, it is needed to perform many iterations of forward and ba
 * Matplotlib (Python wrapper)
 
 
-## Matlab Wrapper 
+# Matlab Wrapper 
 This wrapper allows the MultiGPUGridder functions to be called from within Matlab. 
 
 Please see the run_example.m file for a complete example using the Matlab wrapper.
 
 
-## Python Wrapper 
+# Python Wrapper 
 This wrapper allows the MultiGPUGridder functions to be called from within Python. 
 
 Please see the MultiGPUGridder_Python.py file for a complete example using the Python wrapper.
