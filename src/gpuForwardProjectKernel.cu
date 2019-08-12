@@ -98,7 +98,8 @@ void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
-	
+    std::cout << "Running gpuForwardProject()..." << '\n';
+    
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
@@ -179,6 +180,8 @@ void gpuForwardProject(
     }
 
     cudaDeviceSynchronize();
+
+    std::cout << "Done with gpuForwardProject()..." << '\n';
 
     return; 
 }

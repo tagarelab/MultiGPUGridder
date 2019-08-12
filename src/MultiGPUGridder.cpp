@@ -2,18 +2,18 @@
 
 // Are we compiling on a windows or linux machine?
 #if defined(_MSC_VER)
-	//  Microsoft 
+//  Microsoft
 #define EXPORT __declspec(dllexport)
 #define IMPORT __declspec(dllimport)
 #elif defined(__GNUC__)
-	//  GCC
+//  GCC
 #define EXPORT __attribute__((visibility("default")))
 #define IMPORT
 #else
-	//  Do nothing and provide a warning to the user
+//  Do nothing and provide a warning to the user
 #define EXPORT
 #define IMPORT
-#pragma warning Unknown dynamic link import/export semantics.
+#pragma warning Unknown dynamic link import / export semantics.
 #endif
 
 MultiGPUGridder::MultiGPUGridder()
@@ -53,6 +53,8 @@ void MultiGPUGridder::SetNumberGPUs(int numGPUs)
 
     // Save the user requested number of GPUs to use
     this->numGPUs = numGPUs;
+
+    std::cout << "Number of GPUs: " << this->nStreams << '\n';
 }
 
 void MultiGPUGridder::SetNumberStreams(int nStreams)
@@ -69,7 +71,7 @@ void MultiGPUGridder::SetNumberStreams(int nStreams)
     // Save the user requested number of streams to use
     this->nStreams = nStreams;
 
-	std::cout << "Number of streams: " << this->nStreams << '\n';
+    std::cout << "Number of streams: " << this->nStreams << '\n';
 }
 
 void MultiGPUGridder::SetNumberBatches(int nBatches)
@@ -84,11 +86,15 @@ void MultiGPUGridder::SetNumberBatches(int nBatches)
 
     // Save the user requested number of batches to use
     this->nBatches = nBatches;
+
+    std::cout << "Number of batches: " << this->nBatches << '\n';
 }
 
 void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
 {
     // Set the volume for forward and back projection
+
+    std::cout << "GPU Volume Size: " << gpuVolSize[0] << " " << gpuVolSize[1] << " " << gpuVolSize[2] << " " << '\n';
 
     // Pin gpuVol to host (i.e. CPU) memory in order to enable the async CUDA stream copying
     // This will let us copy the volume to all GPUs at the same time
@@ -110,8 +116,7 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // Create CUDA streams for asyc memory copying of the gpuVols
     int nStreams = this->numGPUs;
     //cudaStream_t stream[nStreams];
-	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
-
+    cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t) * nStreams);
 
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
@@ -131,6 +136,8 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     this->volSize[0] = gpuVolSize[0];
     this->volSize[1] = gpuVolSize[1];
     this->volSize[2] = gpuVolSize[2];
+
+    std::cout << "GPU Volume Set" << '\n';
 }
 
 float *MultiGPUGridder::GetVolume()
@@ -140,21 +147,21 @@ float *MultiGPUGridder::GetVolume()
     // This is used after the back projection CUDA kernel
 
     // Create the output array to hold the summed volumes from all of the GPUs
-    float *VolSum = new float [this->volSize[0] * this->volSize[1] * this->volSize[2]];
+    float *VolSum = new float[this->volSize[0] * this->volSize[1] * this->volSize[2]];
 
     // Loop through each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
-        
+
         // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
         // Does this GPU array exist?
         if (Mem_obj->GPUArrayAllocated("gpuVol_" + std::to_string(gpuDevice), gpuDevice) == true)
         {
             // Get a float pointer to the GPU array after copying back to the host
-            float* tempArray = Mem_obj->CUDA_Return("gpuVol_" + std::to_string(gpuDevice));
+            float *tempArray = Mem_obj->CUDA_Return("gpuVol_" + std::to_string(gpuDevice));
 
             // Add the volumes together
-            for (int i=0; i<this->volSize[0] * this->volSize[1] * this->volSize[2]; i++) //
+            for (int i = 0; i < this->volSize[0] * this->volSize[1] * this->volSize[2]; i++) //
             {
                 VolSum[i] = VolSum[i] + tempArray[i];
             }
@@ -186,6 +193,24 @@ void MultiGPUGridder::SetImages(float *newCASImgs)
 
     // After allocating the CAS images array, lets copy newCASImgs to the pointer
     Mem_obj->mem_Copy("CASImgs_CPU_Pinned", newCASImgs);
+}
+
+float *MultiGPUGridder::GetImages()
+{
+    // Return the CASImgs as a float array
+    // First get the stored size of the corresponding C++ array)
+    //int *vol_dims;
+
+    // The images are store in the following pinned CPU array: "CASImgs_CPU_Pinned"
+    //vol_dims = Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
+
+    // Call the method
+    float *OutputArray = Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+
+    // Copy the data to the Matlab array
+    //std::memcpy(matlabArrayPtr, OutputArray, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+    return OutputArray;
 }
 
 void MultiGPUGridder::ResetVolume()
@@ -236,6 +261,8 @@ void MultiGPUGridder::SetAxes(float *coordAxes, int *axesSize)
     this->axesSize[0] = axesSize[0];
     this->axesSize[1] = axesSize[1];
     this->axesSize[2] = axesSize[2];
+
+    std::cout << "Coordinate axes size: " << this->axesSize[0] << " " << this->axesSize[1] << " " << this->axesSize[2] << '\n';
 }
 
 void MultiGPUGridder::SetImgSize(int *imgSize)
@@ -257,7 +284,13 @@ void MultiGPUGridder::Projection_Initilize()
 {
     // Initialize all the needed CPU and GPU pointers for running the CUDA kernels
     // Then check that all the required pointers exist
-	
+    std::cout << "this->imgSize[0]: " << this->imgSize[0] << '\n';
+    if (this->imgSize[0] <= 0 || this->imgSize[0] > 1000000)
+    {
+        std::cerr << "The image size parameter has not be set. Please use SetImgSize() first." << '\n';
+        return;
+    }
+
     // Has the output image array been allocated and pinned to the CPU?
     if (Mem_obj->CPUArrayAllocated("CASImgs_CPU_Pinned") == false)
     {
@@ -311,7 +344,7 @@ void MultiGPUGridder::Projection_Initilize()
             Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(i), "float", gpuCoordAxes_Size, gpuDevice);
         }
     }
-	
+
     // One copy of the Kaiser Bessel look up table is needed for each GPU
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
     {
@@ -332,7 +365,6 @@ void MultiGPUGridder::Projection_Initilize()
             Mem_obj->CUDA_Copy("ker_bessel_" + std::to_string(gpuDevice), this->ker_bessel_Vector);
         }
     }
-
 }
 
 void MultiGPUGridder::Forward_Project()
@@ -586,25 +618,26 @@ int MultiGPUGridder::ParameterChecking(
     return 0;
 }
 
-
-
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)
-
-# define USE_EXTERN_C true
+#define USE_EXTERN_C true
 #if USE_EXTERN_C == true
 
 extern "C"
 {
-	EXPORT MultiGPUGridder* Gridder_new() { return new MultiGPUGridder(); }
-	EXPORT void SetNumberGPUs(MultiGPUGridder* gridder, int numGPUs) { gridder->SetNumberGPUs(numGPUs);  }
-	EXPORT void SetNumberStreams(MultiGPUGridder* gridder, int nStreams) { gridder->SetNumberStreams(nStreams); }
+    EXPORT MultiGPUGridder *Gridder_new() { return new MultiGPUGridder(); }
+    EXPORT void SetNumberGPUs(MultiGPUGridder *gridder, int numGPUs) { gridder->SetNumberGPUs(numGPUs); }
+    EXPORT void SetNumberStreams(MultiGPUGridder *gridder, int nStreams) { gridder->SetNumberStreams(nStreams); }
+    EXPORT void SetNumberBatches(MultiGPUGridder *gridder, int nBatches) { gridder->SetNumberBatches(nBatches); }
+    EXPORT void SetVolume(MultiGPUGridder *gridder, float *gpuVol, int *gpuVolSize) { gridder->SetVolume(gpuVol, gpuVolSize); }
+    EXPORT float *GetVolume(MultiGPUGridder *gridder) { gridder->GetVolume(); }
 
-
-
-	EXPORT void Projection_Initilize(MultiGPUGridder* gridder) { gridder->Projection_Initilize(); }
-
-	//EXPORT void Foo_bar(Foo* foo) { foo->bar(); }
-	//EXPORT int Foo_foobar(Foo* foo, int n) { return foo->foobar(n); }
-	//EXPORT float* Foo_foosquare(Foo* foo, float*  n, int size_arr) { return foo->foosquare(n, size_arr); }
+    EXPORT void ResetVolume(MultiGPUGridder *gridder) { gridder->ResetVolume(); }
+    EXPORT void SetImages(MultiGPUGridder *gridder, float *newCASImgs) { gridder->SetImages(newCASImgs); }
+    EXPORT void GetImages(MultiGPUGridder *gridder, float *CASImgs) { gridder->GetImages(); }
+    EXPORT void SetAxes(MultiGPUGridder *gridder, float *coordAxes, int *axesSize) { gridder->SetAxes(coordAxes, axesSize); }
+    EXPORT void SetImgSize(MultiGPUGridder *gridder, int *imgSize) { gridder->SetImgSize(imgSize); }
+    EXPORT void SetMaskRadius(MultiGPUGridder *gridder, float *maskRadius) { gridder->SetMaskRadius(maskRadius); }
+    EXPORT void Forward_Project(MultiGPUGridder *gridder) { gridder->Forward_Project(); }
+    EXPORT void Back_Project(MultiGPUGridder *gridder) { gridder->Back_Project(); }
 }
 #endif

@@ -1,9 +1,9 @@
 import ctypes
 import numpy as np
+from matplotlib import pyplot as plt # For plotting resulting images
 
-# c_float_p = ctypes.POINTER(ctypes.c_float)
-
-lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Release/MultiGPUGridder.dll") 
+# lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Release/MultiGPUGridder.dll") 
+lib = ctypes.cdll.LoadLibrary("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/bin/libMultiGPUGridder.so") 
 
 class MultiGPUGridder(object):
     def __init__(self):
@@ -16,14 +16,38 @@ class MultiGPUGridder(object):
         lib.SetNumberStreams.argtypes = [ctypes.c_void_p, ctypes.c_int]
         lib.SetNumberStreams.restype = ctypes.c_void_p
 
-        lib.Projection_Initilize.argtypes = [ctypes.c_void_p]
-        lib.Projection_Initilize.restype = ctypes.c_void_p
+        lib.SetNumberBatches.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        lib.SetNumberBatches.restype = ctypes.c_void_p
 
-        #lib.Foo_foobar.argtypes = [ctypes.c_void_p, ctypes.c_int]
-        #lib.Foo_foobar.restype = ctypes.c_int        
+        lib.SetVolume.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_int)]
+        lib.SetVolume.restype = ctypes.c_void_p
 
-       # lib.Foo_foosquare.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.c_int]
-       # lib.Foo_foosquare.restype = ctypes.POINTER(ctypes.c_float)
+        lib.GetVolume.argtypes = [ctypes.c_void_p]
+        lib.GetVolume.restype = ctypes.POINTER(ctypes.c_float)
+
+        lib.ResetVolume.argtypes = [ctypes.c_void_p]
+        lib.ResetVolume.restype = ctypes.c_void_p
+        
+        lib.SetImages.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+        lib.SetImages.restype = ctypes.c_void_p
+
+        lib.GetImages.argtypes = [ctypes.c_void_p]
+        lib.GetImages.restype = ctypes.POINTER(ctypes.c_float)
+
+        lib.SetAxes.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_int)]
+        lib.SetAxes.restype = ctypes.c_void_p
+
+        lib.SetImgSize.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+        lib.SetImgSize.restype = ctypes.c_void_p
+
+        lib.SetMaskRadius.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+        lib.SetMaskRadius.restype = ctypes.c_void_p
+
+        lib.Forward_Project.argtypes = [ctypes.c_void_p]
+        lib.Forward_Project.restype = ctypes.c_void_p
+
+        lib.Back_Project.argtypes = [ctypes.c_void_p]
+        lib.Back_Project.restype = ctypes.c_void_p
 
         self.obj = lib.Gridder_new()
 
@@ -33,50 +57,88 @@ class MultiGPUGridder(object):
     def SetNumberStreams(self, nStreams):
         lib.SetNumberStreams(self.obj, nStreams) 
 
-    def Projection_Initilize(self):
-        lib.Projection_Initilize(self.obj) 
+    def SetNumberBatches(self, nBatches):
+        lib.SetNumberBatches(self.obj, nBatches) 
 
-        #  def foobar(self, val):
-        #     return lib.Foo_foobar(self.obj, val)
+    def SetVolume(self, gpuVol, gpuVolSize):
+        lib.SetVolume(self.obj, gpuVol, gpuVolSize) 
 
-        #   def foosquare(self, val, size):
-        #      return lib.Foo_foosquare(self.obj, val, size)
+    def GetVolume(self):
+        return lib.GetVolume(self.obj) 
 
-# from foo import Foo
-# We'll create a Foo object with a value of 5...
+    def ResetVolume(self):
+        lib.ResetVolume(self.obj)
+
+    def SetImages(self, newCASImgs):
+        lib.SetImages(self.obj, newCASImgs) 
+
+    def GetImages(self):
+        return lib.GetImages(self.obj)
+
+    def SetAxes(self, coordAxes, axesSize):
+        lib.SetAxes(self.obj, coordAxes, axesSize) 
+
+    def SetImgSize(self, imgSize):
+        lib.SetImgSize(self.obj, imgSize) 
+
+    def SetMaskRadius(self, maskRadius):
+        return lib.SetMaskRadius(self.obj, maskRadius) 
+
+    def Forward_Project(self):
+        return lib.Forward_Project(self.obj) 
+    
+    def Back_Project(self):
+        return lib.Back_Project(self.obj) 
+
+
+
+# Create the initial parameters and test data
+py_Vol = np.ones((128,128,128)) #[1, 2, 3, 4]
+float_Vol = (ctypes.c_float * len(py_Vol.flatten()))(*py_Vol.flatten())
+
+py_VolSize = [128, 128, 128]
+int_VolSize = (ctypes.c_int * len(py_VolSize))(*py_VolSize)
+
+
+py_CoordAxes = [1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1]
+float_CoordAxes = (ctypes.c_float * len(py_CoordAxes))(*py_CoordAxes)
+
+py_AxesSize = [90,1,1]
+int_AxesSize = (ctypes.c_int * len(py_AxesSize))(*py_AxesSize)
+
+
+py_ImgSize = [128,128,128]
+int_ImgSize = (ctypes.c_int * len(py_ImgSize))(*py_ImgSize)
+
+
+# Create an instance of the multi GPU gridder object
 gridder=MultiGPUGridder()
-
 gridder.SetNumberGPUs(1)
 gridder.SetNumberStreams(4)
-#gridder.Projection_Initilize()
+gridder.SetNumberBatches(1)
+gridder.SetAxes(float_CoordAxes, int_AxesSize)
+gridder.SetVolume(float_Vol, int_VolSize)
+gridder.SetImgSize(int_ImgSize)
+gridder.SetMaskRadius(ctypes.c_float(128/2 - 1)) 
+
+gridder.Forward_Project()
+
+outputImgs = gridder.GetImages()
+
+print("outputImgs")
+print(outputImgs)
+
+# for i in range(0,10 ): #len(py_Vol.flatten())
+#    print(outputImgs[i])
 
 
+outputImgs_numpy_arr = np.ctypeslib.as_array((ctypes.c_float * 128 * 128 * 10).from_address(ctypes.addressof(outputImgs.contents)))
+print("outputImgs_numpy_arr")
+print(outputImgs_numpy_arr)
 
+print("Max: ")
+print(np.amax(outputImgs_numpy_arr))
 
-
-# Calling f.bar() will print a message including the value...
-#f.bar()
-# Now we'll use foobar to add a value to that stored in our Foo object, f
-#print (f.foobar(7))
-# Now we'll do the same thing - but this time demonstrate that it's a normal
-# Python integer...
-#x = f.foobar(2)
-#print (type(x))
-
-#pyarr = [1, 2, 3, 4]
-#arr = (ctypes.c_float * len(pyarr))(*pyarr)
-
-#print ("type(arr)")
-#print (type(arr))
-#print(arr)
-
-#output =  f.foosquare(arr, len(pyarr))
-
-#print("")
-#print ("output")
-#print (output)
-#print (type(output))
-#print(output.contents)
-
-#for i in range(0,len(pyarr)):
-#    print(output[i])
+# Plot the forward projections
+plt.imshow(outputImgs_numpy_arr[:][:][1], interpolation='nearest')
+plt.show()

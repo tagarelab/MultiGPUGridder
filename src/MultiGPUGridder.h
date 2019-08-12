@@ -33,7 +33,7 @@ public:
 	int nBatches = 1;
 
 	// Output image size parameter
-	int *imgSize;
+	int *imgSize = new int[3];
 
 	// Mask radius parameter
 	float *maskRadius;
@@ -84,6 +84,9 @@ public:
 	// Set CAS Imgs array
 	void SetImages(float *newCASImgs);
 
+	// Get the CAS Imgs array
+	float *GetImages();
+
 	// Set coordinate axes
 	void SetAxes(float *coordAxes, int *axesSize);
 
@@ -105,7 +108,7 @@ public:
 	// Check the parameters before launching the forward or back project CUDA kernels
 	int ParameterChecking(
 		std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,			 // Vector of GPU array pointers
-		std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,	 // Vector of GPU array pointers
+		std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,	// Vector of GPU array pointers
 		float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,								 // Pointers to pinned CPU arrays for input / output
 		int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
 		int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches				 // Streaming parameters
