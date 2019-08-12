@@ -45,15 +45,7 @@ public:
 
     float *ReturnCUDAFloatPtr(std::string varNameString);
 
-<<<<<<< 1b4adfc5986cf104df88b8bf83462fd6e2ddbe70:src/MemoryManager.h
     void mem_alloc(std::string varNameString, std::string dataType, int *dataSize);
-=======
-    float* ReturnCUDAFloatPtr(std::string varNameString);
-
-    cufftComplex* ReturnCUDAComplexPtr(std::string varNameString);
-
-    void mem_alloc(std::string varNameString, std::string dataType, int * dataSize);
->>>>>>> Added support for cufftComplex allocation and returning pointer:CUDA_mex_files/CPU_CUDA_Memory.h
 
     void mem_Copy(std::string varNameString, float *New_Array);
 
@@ -77,18 +69,7 @@ public:
 
     int *CPU_Get_Array_Size(std::string varNameString);
 
-<<<<<<< 1b4adfc5986cf104df88b8bf83462fd6e2ddbe70:src/MemoryManager.h
     float *CUDA_Return(std::string varNameString);
-=======
-    // Allow the vector of CPU pointers to be either int, float, or double type
-    union Ptr_Types
-    {
-        int *i;        
-        unsigned long long *un_int;
-        float *f;
-        cufftComplex * c;
-    };
->>>>>>> Added support for cufftComplex allocation and returning pointer:CUDA_mex_files/CPU_CUDA_Memory.h
 
 private:
     // Variables to hold the CPU arrays

@@ -67,7 +67,7 @@ load mri;
 img = squeeze(D);
 img = imresize3(img,[volSize, volSize, volSize]);
 vol = single(img);
-easyMontage(vol,1);
+% easyMontage(vol,1);
 
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
@@ -105,8 +105,20 @@ obj.CUDA_disp_mem('all')
 obj.disp_mem('all')
 
 %% Run the forward projection kernel
+clc
 disp("Forward_Project()...")
 obj.Forward_Project()
+
+obj.CUDA_Free('all')
+clear obj
+clear all
+
+
+x = transpose(reshape(0:24, [5 5]));
+fft2(x)
+
+abc
+
 
 disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
