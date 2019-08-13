@@ -17,8 +17,8 @@ nBatches = 1;
 nGPUs = 4;
 nStreams = 4;
 volSize = 128;
-n1_axes = 10;
-n2_axes = 10;
+n1_axes = 100;
+n2_axes = 100;
 
 kernelHWidth = 2;
 
@@ -72,31 +72,31 @@ tic
 % obj.SetVolume(single(CASVol))
 obj.SetVolume(single(vol))
 toc
+% 
+% outputVol = obj.GetVolume();
+% outputVol = outputVol / 4;
+% % outputVol = outputVol / (volSize*volSize);
+% outputVol(1:10)
+% 
+% CASVol(1:10)
+% 
+% close all
+% slice = 2;
+% subplot(1,3,1)
+% imagesc(CASVol(:,:,slice))
+% title("Matlab CASVol")
+% subplot(1,3,2)
+% imagesc(outputVol(:,:,slice))
+% title("CUDA FFT CASVol")
+% subplot(1,3,3)
+% imagesc(CASVol(:,:,slice) - outputVol(:,:,slice))
+% title("Subtraction")
+% colormap gray
+% colorbar
 
-outputVol = obj.GetVolume();
-outputVol = outputVol / 4;
-% outputVol = outputVol / (volSize*volSize);
-outputVol(1:10)
-
-CASVol(1:10)
-
-close all
-slice = 2;
-subplot(1,3,1)
-imagesc(CASVol(:,:,slice))
-title("Matlab CASVol")
-subplot(1,3,2)
-imagesc(outputVol(:,:,slice))
-title("CUDA FFT CASVol")
-subplot(1,3,3)
-imagesc(CASVol(:,:,slice) - outputVol(:,:,slice))
-title("Subtraction")
-colormap gray
-colorbar
-
-obj.CUDA_Free('all')
-clear obj
-clear all
+% obj.CUDA_Free('all')
+% clear obj
+% clear all
 
 % imagesc(volCAS(:,:,1))
 

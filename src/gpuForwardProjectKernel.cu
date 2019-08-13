@@ -345,14 +345,6 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     cudaMalloc(&d_CAS_Vol, sizeof(float) * array_size);
     h_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
 
-    // TEST
-    // for (int i=0; i< array_size; i++)
-    // {
-    //     h_CAS_Vol[i] = 1; 
-    // }
-    // return h_CAS_Vol;
-    // END TEST
-
     // Create temporary arrays to hold the cufftComplex array        
     cufftComplex *h_complex_array, *d_complex_array, *d_complex_output_array;
 
@@ -378,153 +370,42 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
 
-
     // Apply a 3D FFT Shift
     for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
     {
-        std::cout << "Slice: " << i << '\n';
         cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, volSize[0], i);
-        cudaDeviceSynchronize();
     }
-
-
-    // // Copy the resulting CAS volume back to the host
-    // cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST  
-
-    // std::cout << "FFTSHIFT h_complex_array: "; 
-    // for (int i=array_size-10; i<array_size; i++)
-    // {
-    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    // }
-    // std::cout << '\n'; 
-    // cudaDeviceSynchronize();
-
-
-    int nRows = volSize[0];
-    int nCols = volSize[1];
-    int batch = volSize[2];         // --- Number of batched executions
-    int rank = 2;                   // --- 2D FFTs
-    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
-    int idist = nRows*nCols;        // --- Distance between batches
-    int odist = nRows*nCols;        // --- Distance between batches
-
-    int inembed[] = {nRows, nCols}; // --- Input size with pitch
-    int onembed[] = {nRows, nCols}; // --- Output size with pitch
-
-    int istride = 1;                // --- Distance between two successive input/output elements
-    int ostride = 1;                // --- Distance between two successive input/output elements
-
-    // cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
-
 
     // Execute the forward FFT on the 3D array
     cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
-    cudaDeviceSynchronize();
-
-    // // Copy the resulting CAS volume back to the host
-    // cudaMemcpy( h_complex_array, d_complex_output_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    // std::cout << "FFT FFTSHIFT h_complex_array: "; 
-    // for (int i=0; i<10; i++)
-    // {
-    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    // }
-    // std::cout << '\n'; 
-    
-    // cudaDeviceSynchronize();
 
     // Apply a second 3D FFT Shift
     for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
     {
         cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, volSize[0], i);
-
-        cudaDeviceSynchronize();
     }
-
-
-    // // Copy the resulting CAS volume back to the host
-    // cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    // std::cout << "FFT FFTSHIFT h_complex_array: "; 
-    // for (int i=0; i<10; i++)
-    // {
-    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    // }
-    // std::cout << '\n'; 
-
-    
     
     // Convert the complex result of the forward FFT to a CAS img type
     ComplexImgsToCASImgs<<< dimGrid, dimBlock >>>(
         d_CAS_Vol, d_complex_array, volSize[0] // Assume the volume is a square for now
     );
-
-    cudaDeviceSynchronize();
-
-    // // Copy the resulting CAS volume back to the host
-    // cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    // std::cout << "CAS FFT FFTSHIFT h_complex_array: "; 
-    // for (int i=0; i<10; i++)
-    // {
-    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    // }
-    // std::cout << '\n'; 
-
-    
     
     // Copy the resulting CAS volume back to the host
     cudaMemcpy( h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);        
-
-    cudaDeviceSynchronize();
 
     // Free the temporary memory
     cudaFree(d_complex_array);
     cudaFree(d_complex_output_array);
     cudaFree(d_CAS_Vol);
 
-    std::cout << "FINAL OUTPUT h_CAS_Vol: "; 
-    for (int i=0; i<10; i++)
-    {
-        std::cout << h_CAS_Vol[i] <<  '\n'; 
-    }
-    std::cout << '\n'; 
-
-
     // Return the resulting CAS volume
     return h_CAS_Vol;
 
+}
 
-
-    // cufftComplex *h_complex_array, *h_imgs, *d_imgs;
-    // float * d_CASImgs_test;
-    // float * h_CASImgs_test;
-
-
-    // h_CASImgs_test = (float *) malloc(sizeof(float) * size);
-    // cudaMalloc(&d_CASImgs_test, sizeof(float) * size);
-
-    // for (int k = 0; k < size; k++) {
-    //     h_CASImgs_test[k] = k;
-    // }
-
-    // cudaMalloc(&d_imgs, sizeof(cufftComplex) * size);
-
-
-    // h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
-    // h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
-
-
-
-
-
-
-
-
-
-
-
-    // int NUM_IMGS = 2;
-    // int nRows = 128;
-    // int nCols = 128;
-    // int batch = NUM_IMGS;           // --- Number of batched executions
+    // int nRows = volSize[0];
+    // int nCols = volSize[1];
+    // int batch = volSize[2];         // --- Number of batched executions
     // int rank = 2;                   // --- 2D FFTs
     // int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
     // int idist = nRows*nCols;        // --- Distance between batches
@@ -537,16 +418,6 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     // int ostride = 1;                // --- Distance between two successive input/output elements
 
     // cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
-    
-
-
-
-
-
-
-
-
-}
 
 
 

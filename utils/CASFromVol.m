@@ -18,16 +18,16 @@ fftw('swisdom',fftinfo);
 interpFft=fftshift(fftn(fftshift(interpVol)));
 %toc;
 
-close all
-slice = 20;
-subplot(2,2,1)
-imagesc(interpVol(:,:,slice))
-subplot(2,2,2)
-imagesc(fftshift(interpVol(:,:,slice)))
-subplot(2,2,3)
-imagesc(real(fftn(fftshift(interpVol(:,:,slice)))))
-subplot(2,2,4)
-imagesc(real(fftshift(fftn(fftshift(interpVol(:,:,slice))))))
+% close all
+% slice = 20;
+% subplot(2,2,1)
+% imagesc(interpVol(:,:,slice))
+% subplot(2,2,2)
+% imagesc(fftshift(interpVol(:,:,slice)))
+% subplot(2,2,3)
+% imagesc(real(fftn(fftshift(interpVol(:,:,slice)))))
+% subplot(2,2,4)
+% imagesc(real(fftshift(fftn(fftshift(interpVol(:,:,slice))))))
 
 
 interpCAS=ToCAS(interpFft);
