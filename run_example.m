@@ -15,10 +15,10 @@ tic
 
 nBatches = 1;
 nGPUs = 4;
-nStreams = 4;
+nStreams = 8;
 volSize = 128;
 n1_axes = 100;
-n2_axes = 100;
+n2_axes = 10;
 
 kernelHWidth = 2;
 
@@ -204,15 +204,22 @@ test_imgs = obj.mem_Return('CASImgs_CPU_Pinned');
 size(test_imgs)
 max(test_imgs(:))
 
+close all
+% imagesc(test_imgs(:,:,1))
+% colormap gray
 
-disp("GetImgs()...")
+% disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
+size(InterpCASImgs)
+InterpCASImgs = InterpCASImgs(:,:,1:10);
+easyMontage(InterpCASImgs,2);
+colormap gray
 
-disp("imgsFromCASImgs()...")
-imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
+% disp("imgsFromCASImgs()...")
+% imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
 
-disp("easyMontage()...")
-easyMontage(imgs,2);
+% disp("easyMontage()...")
+% easyMontage(imgs,2);
 
 % 
 % %% Run the back projection kernel

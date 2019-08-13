@@ -711,7 +711,6 @@ extern "C"
     EXPORT void SetNumberBatches(MultiGPUGridder *gridder, int nBatches) { gridder->SetNumberBatches(nBatches); }
     EXPORT void SetVolume(MultiGPUGridder *gridder, float *gpuVol, int *gpuVolSize) { gridder->SetVolume(gpuVol, gpuVolSize); }
     EXPORT float *GetVolume(MultiGPUGridder *gridder) { gridder->GetVolume(); }
-
     EXPORT void ResetVolume(MultiGPUGridder *gridder) { gridder->ResetVolume(); }
     EXPORT void SetImages(MultiGPUGridder *gridder, float *newCASImgs) { gridder->SetImages(newCASImgs); }
     EXPORT void GetImages(MultiGPUGridder *gridder, float *CASImgs) { gridder->GetImages(); }
