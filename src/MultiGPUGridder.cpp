@@ -94,6 +94,33 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
 {
     // Set the volume for forward and back projection
 
+    // Convert the given volume to a CAS volume
+    // Steps are (1) pad with zeros, (2) run forward FFT using CUDA, (3) sum the real and imaginary components
+    int array_size = gpuVolSize[0] * gpuVolSize[1] * gpuVolSize[2];
+    float * CAS_Vol;
+    CAS_Vol = (float *) malloc(sizeof(float) * array_size);
+
+    std::cout << "ThreeD_ArrayToCASArray()..." << '\n';
+
+    CAS_Vol = ThreeD_ArrayToCASArray(gpuVol, gpuVolSize);
+    std::cout << "Done with ThreeD_ArrayToCASArray()..." << '\n';
+
+    // Show the first slice of the CSA_Volume
+    for (int x=0; x < (1); x++) // gpuVolSize[0]
+    {
+        std::cout << "CAS_Vol[" << x << "]: ";
+        for (int y=0; y < 10; y++)
+        {
+            std::cout << " "   <<  CAS_Vol[y*gpuVolSize[0]+x];                  
+        }
+        std::cout << '\n';
+    }
+
+
+    // TEST
+    std::memcpy(CAS_Vol, gpuVol, sizeof(float) * array_size);
+    // END TEST
+
     std::cout << "GPU Volume Size: " << gpuVolSize[0] << " " << gpuVolSize[1] << " " << gpuVolSize[2] << " " << '\n';
 
     // Pin gpuVol to host (i.e. CPU) memory in order to enable the async CUDA stream copying
@@ -139,6 +166,34 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
 
     std::cout << "GPU Volume Set" << '\n';
 }
+
+void MultiGPUGridder::ConvertVolToCASVol()
+{
+    // Convert the volume in each GPU to a CASVol using CUDA kernels and cuFFT
+
+
+    // Create a vector of GPU pointers to the volume on each GPU
+    std::vector<float *> gpuVol_Vector;
+
+    // Find and add the corresponding GPU pointer to each vector of pointers
+    for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
+    {
+        // Volume array
+        gpuVol_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(gpuDevice)));
+    }
+    
+    // Since the volume on all GPUs are the same, perform the conversion on one and then copy the result to the rest
+    ThreeD_ArrayToCASArray(gpuVol_Vector[0], this->volSize);
+
+    // Since the volume on all GPUs are the same, copy the result to the rest
+    for (int i=0; i<4; i++)
+    {
+    }
+    
+
+
+}
+
 
 float *MultiGPUGridder::GetVolume()
 {

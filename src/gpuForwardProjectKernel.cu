@@ -157,7 +157,7 @@ template <typename T>
 __global__ void cufftShift_2D_kernel(T* data, int N)
 {
     // 2D Slice & 1D Line
-    int sLine = N;
+    int sLine  = N;
     int sSlice = N * N;
 
     // Transformations Equations
@@ -209,6 +209,303 @@ __global__ void cufftShift_2D_kernel(T* data, int N)
     }
 }
 
+// https://github.com/marwan-abdellah/cufftShift/blob/master/Src/CUDA/Kernels/out-of-place/cufftShift_3D_OP.cu
+__global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int zIndex)
+{
+    // 3D Volume & 2D Slice & 1D Line
+    int sLine = N;
+    int sSlice = N * N;
+    int sVolume = N * N * N;
+
+    // Transformations Equations
+    int sEq1 = (sVolume + sSlice + sLine) / 2;
+    int sEq2 = (sVolume + sSlice - sLine) / 2;
+    int sEq3 = (sVolume - sSlice + sLine) / 2;
+    int sEq4 = (sVolume - sSlice - sLine) / 2;
+
+    // Thread
+    int xThreadIdx = threadIdx.x;
+    int yThreadIdx = threadIdx.y;
+
+    // Block Width & Height
+    int blockWidth = blockDim.x;
+    int blockHeight = blockDim.y;
+
+    // Thread Index 2D
+    int xIndex = blockIdx.x * blockWidth + xThreadIdx;
+    int yIndex = blockIdx.y * blockHeight + yThreadIdx;
+
+    // Thread Index Converted into 1D Index
+    int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+
+    if (zIndex < N / 2)
+    {
+        if (xIndex < N / 2)
+        {
+            if (yIndex < N / 2)
+            {
+                // First Quad
+                output[index].x = input[index + sEq1].x;
+                output[index].y = input[index + sEq1].y;
+            }
+            else
+            {
+                // Third Quad
+                output[index].x = input[index + sEq3].x;
+                output[index].y = input[index + sEq3].y;
+            }
+        }
+        else
+        {
+            if (yIndex < N / 2)
+            {
+                // Second Quad
+                output[index].x = input[index + sEq2].x;
+                output[index].y = input[index + sEq2].y;
+            }
+            else
+            {
+                // Fourth Quad
+                output[index].x = input[index + sEq4].x;
+                output[index].y = input[index + sEq4].y;
+            }
+        }
+    }
+
+    else
+    {
+        if (xIndex < N / 2)
+        {
+            if (yIndex < N / 2)
+            {
+                // First Quad
+                output[index].x = input[index - sEq4].x;
+                output[index].y = input[index - sEq4].y;
+            }
+            else
+            {
+                // Third Quad
+                output[index].x = input[index - sEq2].x;
+                output[index].y = input[index - sEq2].y;
+            }
+        }
+        else
+        {
+            if (yIndex < N / 2)
+            {
+                // Second Quad
+                output[index].x = input[index - sEq3].x;
+                output[index].y = input[index - sEq3].y;
+            }
+            else
+            {
+                // Fourth Quad
+                output[index].x = input[index - sEq1].x;
+                output[index].y = input[index - sEq1].y;
+            }
+        }
+    }
+}
+
+
+void TwoD_CASToComplex()
+{
+
+}
+
+void TwoD_ComplexToCAS()
+{
+
+}
+
+
+
+
+float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
+{
+    // Convert a CUDA array to CAS array
+    // Step 1: TO DO: Pad with zeros
+    // Step 2: Take discrete Fourier transform using cuFFT
+    // Step 3: TO DO: fftshift?
+    // Step 4: TO DO: Convert to CAS volume using CUDA kernel
+
+    // https://devtalk.nvidia.com/default/topic/410009/cufftexecr2c-only-gives-half-the-answer-33-/
+
+    cufftHandle forwardFFTPlan;           
+    cufftPlan3d(&forwardFFTPlan, volSize[0], volSize[1], volSize[2], CUFFT_C2C);
+
+    int array_size = volSize[0] * volSize[1] * volSize[2];
+    
+    // Allocate memory for the resulting CAS volume
+    float * d_CAS_Vol, *h_CAS_Vol;
+    cudaMalloc(&d_CAS_Vol, sizeof(float) * array_size);
+    h_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
+
+    // Create temporary arrays to hold the cufftComplex array        
+    cufftComplex *h_complex_array, *d_complex_array, *d_complex_output_array;
+
+    cudaMalloc(&d_complex_array, sizeof(cufftComplex) * array_size);
+    cudaMalloc(&d_complex_output_array, sizeof(cufftComplex) * array_size);
+
+    h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * array_size);
+
+    // Convert the GPU volume to a cufftComplex array
+    // TO DO: Replace this with the CUDA kernel
+    for (int k = 0; k < array_size; k++) {
+        h_complex_array[k].x = gpuVol[k]; // Real component
+        h_complex_array[k].y = 0;         // Imaginary component
+    }
+
+    // Copy the complex version of the GPU volume to the first GPU
+    cudaMemcpy( d_complex_array, h_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyHostToDevice);        
+
+    int gridSize  = ceil(volSize[0] / 32);
+    int blockSize = 32; // 10*10*10 threads
+
+    // Define CUDA kernel dimensions for converting the complex volume to a CAS volume
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+
+    // Apply a 3D FFT Shift
+    for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
+    {
+        std::cout << "Slice: " << i << '\n';
+        cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, volSize[0], i);
+        cudaDeviceSynchronize();
+    }
+
+    // Copy the resulting CAS volume back to the host
+    cudaMemcpy( h_complex_array, d_complex_output_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    std::cout << "FFTSHIFT h_complex_array: "; 
+    for (int i=array_size-10; i<array_size; i++)
+    {
+        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    }
+    std::cout << '\n'; 
+
+    cudaDeviceSynchronize();
+
+    // Execute the forward FFT on the 3D array
+    cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
+
+    cudaDeviceSynchronize();
+
+    // Copy the resulting CAS volume back to the host
+    cudaMemcpy( h_complex_array, d_complex_output_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    std::cout << "FFT FFTSHIFT h_complex_array: "; 
+    for (int i=0; i<10; i++)
+    {
+        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    }
+    std::cout << '\n'; 
+    
+    cudaDeviceSynchronize();
+
+    // Apply a second 3D FFT Shift
+    for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
+    {
+        cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, volSize[0], i);
+    }
+
+
+    // Copy the resulting CAS volume back to the host
+    cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    std::cout << "FFT FFTSHIFT h_complex_array: "; 
+    for (int i=0; i<10; i++)
+    {
+        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    }
+    std::cout << '\n'; 
+
+    
+    
+    // Convert the complex result of the forward FFT to a CAS img type
+    ComplexImgsToCASImgs<<< dimGrid, dimBlock >>>(
+        d_CAS_Vol, d_complex_array, volSize[0] // Assume the volume is a square for now
+    );
+
+    cudaDeviceSynchronize();
+
+    // Copy the resulting CAS volume back to the host
+    cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    std::cout << "CAS FFT FFTSHIFT h_complex_array: "; 
+    for (int i=0; i<10; i++)
+    {
+        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    }
+    std::cout << '\n'; 
+
+    
+    
+    // Copy the resulting CAS volume back to the host
+    cudaMemcpy( h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);        
+
+    cudaDeviceSynchronize();
+
+    // Return the resulting CAS volume
+    return h_CAS_Vol;
+
+
+
+    // cufftComplex *h_complex_array, *h_imgs, *d_imgs;
+    // float * d_CASImgs_test;
+    // float * h_CASImgs_test;
+
+
+    // h_CASImgs_test = (float *) malloc(sizeof(float) * size);
+    // cudaMalloc(&d_CASImgs_test, sizeof(float) * size);
+
+    // for (int k = 0; k < size; k++) {
+    //     h_CASImgs_test[k] = k;
+    // }
+
+    // cudaMalloc(&d_imgs, sizeof(cufftComplex) * size);
+
+
+    // h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+    // h_imgs = (cufftComplex *) malloc(sizeof(cufftComplex) * size);
+
+
+
+
+
+
+
+
+
+
+
+    // int NUM_IMGS = 2;
+    // int nRows = 128;
+    // int nCols = 128;
+    // int batch = NUM_IMGS;           // --- Number of batched executions
+    // int rank = 2;                   // --- 2D FFTs
+    // int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    // int idist = nRows*nCols;        // --- Distance between batches
+    // int odist = nRows*nCols;        // --- Distance between batches
+
+    // int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    // int onembed[] = {nRows, nCols}; // --- Output size with pitch
+
+    // int istride = 1;                // --- Distance between two successive input/output elements
+    // int ostride = 1;                // --- Distance between two successive input/output elements
+
+    // cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
+    
+
+
+
+
+
+
+
+
+}
+
+
+
+
 void gpuForwardProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
@@ -217,177 +514,8 @@ void gpuForwardProject(
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
 )
 {
-    std::cout << "TESTING Running gpuForwardProject()..." << '\n';
+    std::cout << "Running gpuForwardProject()..." << '\n';
     
-    // https://devtalk.nvidia.com/default/topic/410009/cufftexecr2c-only-gives-half-the-answer-33-/
-    //std::vector<cufftComplex*> gpuImgs_Vector, 
-    cufftHandle forwardFFTPlan;           
-              
-    // imgSize = 5;
-
-    int nRows = 5;
-    int nCols = 5;
-    // int n[2] = {nRows, nCols};
-    // int howMany = 1; //nAxes_Stream
-
-    int IMAGE_DIM = 5;
-    int NUM_IMGS = 2;
-
-    int num_real_elements = NUM_IMGS * IMAGE_DIM * IMAGE_DIM; 
-    
-    int batch = NUM_IMGS;           // --- Number of batched executions
-    int rank = 2;                   // --- 2D FFTs
-    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
-    int idist = nRows*nCols;        // --- Distance between batches
-    int odist = nRows*nCols;        // --- Distance between batches
-
-    int inembed[] = {nRows, nCols}; // --- Input size with pitch
-    int onembed[] = {nRows, nCols}; // --- Output size with pitch
-
-    int istride = 1;                // --- Distance between two successive input/output elements
-    int ostride = 1;                // --- Distance between two successive input/output elements
-
-
-
-
-    //int num_complex_elements = IMAGE_DIM * (IMAGE_DIM / 2 + 1); //Output memory is N1(N/2+1), not (N1/2)(N2/2+1)
-    
-
-    // cufftPlanMany(&forwardFFTPlan,
-    //     2, //rank
-    //     &IMAGE_DIM, //dimensions = {nRows, nCols}
-    //     0, //inembed
-    //     NUM_IMGS, //istride
-    //     IMAGE_DIM*IMAGE_DIM, //idist
-    //     0, //onembed
-    //     NUM_IMGS, //ostride
-    //     1, //odist
-    //     CUFFT_C2C, //cufftType
-    //     NUM_IMGS /*batch*/);
-
-    cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
-
-
-    //cufftPlan2d(&forwardFFTPlan, IMAGE_DIM, IMAGE_DIM, CUFFT_C2C);
-
-    // ALLOCATE HOST MEMORY
-    float *h_img;
-    //float *h_imgF;
-    cufftComplex* h_complex_img;
-
-    //h_img = (float*)malloc(num_real_elements * sizeof(float));
-    h_complex_img = (cufftComplex*)malloc(num_real_elements * sizeof(cufftComplex));
-    //h_imgF = (float*)malloc(num_real_elements * sizeof(float));
-    std::cout << "INPUT" << '\n';
-    for (int x=0; x < IMAGE_DIM; x++)
-    {
-        for (int y=0; y < IMAGE_DIM; y++)
-        {
-            // initialize the input image memory somehow
-            h_complex_img[y*IMAGE_DIM+x].x = x * IMAGE_DIM + y ;
-
-            std::cout << "h_complex_img[" << x << "][" << y << "].x: " <<  h_complex_img[y*IMAGE_DIM+x].x << '\n';
-
-
-        }
-    }
-
-    for (int x=0; x < IMAGE_DIM; x++)
-    {
-        int temp_x = x + IMAGE_DIM*IMAGE_DIM; // offset for image two
-        for (int y=0; y < IMAGE_DIM; y++)
-        {
-            // initialize the input image memory somehow
-            h_complex_img[y*IMAGE_DIM+temp_x].x = x * IMAGE_DIM + y ;
-
-            std::cout << "h_complex_img[" << temp_x << "][" << y << "].x: " <<  h_complex_img[y*IMAGE_DIM+temp_x].x << '\n';
-
-
-        }
-    }
-
-
-    // DEVICE MEMORY
-    float *d_img;
-    cufftComplex *d_complex_imgSpec, *d_output;
-    //float *d_imgF;
-
-    // ALLOCATE DEVICE MEMORY
-     //cudaMalloc( (void**) &d_img, num_real_elements * sizeof(float));
-     cudaMalloc( (void**) &d_complex_imgSpec, num_real_elements * sizeof(cufftComplex));	
-     cudaMalloc( (void**) &d_output, num_real_elements * sizeof(cufftComplex));
-
-
-
-    // copy host memory to device (input image)
-     cudaMemcpy( d_complex_imgSpec, h_complex_img, num_real_elements * sizeof(cufftComplex), cudaMemcpyHostToDevice);        
-
-    // now run the forward FFT on the device (real to complex)
-     cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_imgSpec, (cufftComplex *) d_output, CUFFT_FORWARD);
-     
-     
-     cudaDeviceSynchronize();
-    // cufftExecR2C(forwardFFTPlan, d_img, d_complex_imgSpec, CUFFT_FORWARD);
-
-    // copy the DEVICE complex data to the HOST
-    // NOTE: we are only doing this so that you can see the data -- in general you want
-    // to do your computation on the GPU without wasting the time of copying it back to the host
-     cudaMemcpy( h_complex_img, d_output, num_real_elements * sizeof(cufftComplex), cudaMemcpyDeviceToHost) ;
-     cudaDeviceSynchronize();
-    // print the complex data so you can see what it looks like
-    std::cout << "" << '\n';
-    std::cout << "" << '\n';
-    std::cout << "" << '\n';
-    std::cout << "OUTPUT" << '\n';
-    std::cout << "IMAGE ONE" << '\n';
-    for (int x=0; x < (IMAGE_DIM); x++)
-    {
-        std::cout << "h_complex_img[" << x << "]: ";
-        for (int y=0; y < IMAGE_DIM; y++)
-        {
-            if ((h_complex_img[y*IMAGE_DIM+x].x*h_complex_img[y*IMAGE_DIM+x].x) < 0.001)
-            {
-                std::cout << " "   <<  0  << " + " << h_complex_img[y*IMAGE_DIM+x].y << "i   ";
-            } else
-            {
-                std::cout << " "   <<  h_complex_img[y*IMAGE_DIM+x].x  << " + " << h_complex_img[y*IMAGE_DIM+x].y << "i   ";
-            }
-          
-        }
-        std::cout << '\n';
-    }
-
-    std::cout << '\n';
-    std::cout << '\n';
-    std::cout << '\n';
-    std::cout << "IMAGE TWO" << '\n';
-    for (int x=0; x < (IMAGE_DIM); x++)
-    {
-        // Offset is IMAGE_DIM * IMAGE_DIM since we are on image two now
-        int temp_x = x + IMAGE_DIM * IMAGE_DIM;
-        
-        std::cout << "h_complex_img[" << x << "]: ";
-        for (int y=0; y < IMAGE_DIM; y++)
-        {     
-            //std::cout << "y*IMAGE_DIM+temp_x: " << y*IMAGE_DIM+temp_x << '\n';
-
-            
-            if ((h_complex_img[y*IMAGE_DIM+temp_x].x*h_complex_img[y*IMAGE_DIM+temp_x].x) < 0.001)
-            {
-                std::cout << " "   <<  0  << " + " << h_complex_img[y*IMAGE_DIM+temp_x].y << "i   ";
-            } else
-            {
-                std::cout << " "   <<  h_complex_img[y*IMAGE_DIM+temp_x].x  << " + " << h_complex_img[y*IMAGE_DIM+temp_x].y << "i   ";
-            }
-          
-        }
-        std::cout << '\n';
-    }
-
-
-
-    return;
-
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
@@ -575,3 +703,142 @@ void gpuForwardProject(
 
     return; 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // // imgSize = 5;
+
+    // int nRows = 5;
+    // int nCols = 5;
+    // // int n[2] = {nRows, nCols};
+    // // int howMany = 1; //nAxes_Stream
+
+    // int IMAGE_DIM = 5;
+    // int NUM_IMGS = 2;
+
+    // int num_real_elements = NUM_IMGS * IMAGE_DIM * IMAGE_DIM; 
+    
+    // int batch = NUM_IMGS;           // --- Number of batched executions
+    // int rank = 2;                   // --- 2D FFTs
+    // int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    // int idist = nRows*nCols;        // --- Distance between batches
+    // int odist = nRows*nCols;        // --- Distance between batches
+
+    // int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    // int onembed[] = {nRows, nCols}; // --- Output size with pitch
+
+    // int istride = 1;                // --- Distance between two successive input/output elements
+    // int ostride = 1;                // --- Distance between two successive input/output elements
+
+    // cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
+
+    // // ALLOCATE HOST MEMORY
+    // float *h_img;
+    // cufftComplex* h_complex_img;
+    // h_complex_img = (cufftComplex*)malloc(num_real_elements * sizeof(cufftComplex));
+    // std::cout << "INPUT" << '\n';
+    // for (int x=0; x < IMAGE_DIM; x++)
+    // {
+    //     for (int y=0; y < IMAGE_DIM; y++)
+    //     {
+    //         h_complex_img[y*IMAGE_DIM+x].x = x * IMAGE_DIM + y;
+    //         std::cout << "h_complex_img[" << x << "][" << y << "].x: " <<  h_complex_img[y*IMAGE_DIM+x].x << '\n';
+    //     }
+    // }
+
+    // for (int x=0; x < IMAGE_DIM; x++)
+    // {
+    //     int temp_x = x + IMAGE_DIM*IMAGE_DIM; // offset for image two
+    //     for (int y=0; y < IMAGE_DIM; y++)
+    //     {
+    //         h_complex_img[y*IMAGE_DIM+temp_x].x = x * IMAGE_DIM + y ;
+    //         std::cout << "h_complex_img[" << temp_x << "][" << y << "].x: " <<  h_complex_img[y*IMAGE_DIM+temp_x].x << '\n';
+    //     }
+    // }
+
+    // // DEVICE MEMORY
+    // float *d_img;
+    // cufftComplex *d_complex_imgSpec, *d_output;
+
+    // // ALLOCATE DEVICE MEMORY
+    // cudaMalloc( (void**) &d_complex_imgSpec, num_real_elements * sizeof(cufftComplex));	
+    // cudaMalloc( (void**) &d_output, num_real_elements * sizeof(cufftComplex));
+
+    // // copy host memory to device (input image)
+    // cudaMemcpy( d_complex_imgSpec, h_complex_img, num_real_elements * sizeof(cufftComplex), cudaMemcpyHostToDevice);        
+
+    // // now run the forward FFT on the device (real to complex)
+    // cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_imgSpec, (cufftComplex *) d_output, CUFFT_FORWARD);
+
+    // cudaDeviceSynchronize();
+    // // cufftExecR2C(forwardFFTPlan, d_img, d_complex_imgSpec, CUFFT_FORWARD);
+
+    // // copy the DEVICE complex data to the HOST
+    // // NOTE: we are only doing this so that you can see the data -- in general you want
+    // // to do your computation on the GPU without wasting the time of copying it back to the host
+    // cudaMemcpy( h_complex_img, d_output, num_real_elements * sizeof(cufftComplex), cudaMemcpyDeviceToHost) ;
+    // cudaDeviceSynchronize();
+    
+    // std::cout << "" << '\n';
+    // std::cout << "" << '\n';
+    // std::cout << "" << '\n';
+    // std::cout << "OUTPUT" << '\n';
+    // std::cout << "IMAGE ONE" << '\n';
+    // for (int x=0; x < (IMAGE_DIM); x++)
+    // {
+    //     std::cout << "h_complex_img[" << x << "]: ";
+    //     for (int y=0; y < IMAGE_DIM; y++)
+    //     {
+    //         if ((h_complex_img[y*IMAGE_DIM+x].x*h_complex_img[y*IMAGE_DIM+x].x) < 0.001)
+    //         {
+    //             std::cout << " "   <<  0  << " + " << h_complex_img[y*IMAGE_DIM+x].y << "i   ";
+    //         } else
+    //         {
+    //             std::cout << " "   <<  h_complex_img[y*IMAGE_DIM+x].x  << " + " << h_complex_img[y*IMAGE_DIM+x].y << "i   ";
+    //         }
+          
+    //     }
+    //     std::cout << '\n';
+    // }
+
+    // std::cout << '\n';
+    // std::cout << '\n';
+    // std::cout << '\n';
+    // std::cout << "IMAGE TWO" << '\n';
+    // for (int x=0; x < (IMAGE_DIM); x++)
+    // {
+    //     // Offset is IMAGE_DIM * IMAGE_DIM since we are on image two now
+    //     int temp_x = x + IMAGE_DIM * IMAGE_DIM;
+        
+    //     std::cout << "h_complex_img[" << x << "]: ";
+    //     for (int y=0; y < IMAGE_DIM; y++)
+    //     {     
+    //         //std::cout << "y*IMAGE_DIM+temp_x: " << y*IMAGE_DIM+temp_x << '\n';
+
+            
+    //         if ((h_complex_img[y*IMAGE_DIM+temp_x].x*h_complex_img[y*IMAGE_DIM+temp_x].x) < 0.001)
+    //         {
+    //             std::cout << " "   <<  0  << " + " << h_complex_img[y*IMAGE_DIM+temp_x].y << "i   ";
+    //         } else
+    //         {
+    //             std::cout << " "   <<  h_complex_img[y*IMAGE_DIM+temp_x].x  << " + " << h_complex_img[y*IMAGE_DIM+temp_x].y << "i   ";
+    //         }
+          
+    //     }
+    //     std::cout << '\n';
+    // }
+

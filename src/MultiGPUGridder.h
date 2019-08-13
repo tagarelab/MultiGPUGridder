@@ -78,6 +78,9 @@ public:
 	// Set GPU volume
 	void SetVolume(float *gpuVol, int *gpuVolSize);
 
+	// Convert the GPU volume to CAS volume
+	void ConvertVolToCASVol();
+
 	// Get the volume from all the GPUs and return their summation
 	float *GetVolume();
 

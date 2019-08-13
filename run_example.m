@@ -6,34 +6,6 @@ addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
-recompile = 0;
-if (recompile == true)
-    cd('src')
-
-    fprintf('Compiling MultiGPUGridder_Matlab_Class mex file \n');
-
-    % Compile the forward projection CUDA kernel first
-    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuForwardProjectKernel.cu -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
-
-
-    if status ~= 0
-    error("Failed to compile");
-    end
-
-    % Compile the back projection CUDA kernel first
-    status = system("nvcc -c -shared -Xcompiler -fPIC -lcudart -lcuda gpuBackProjectKernel.cu -I'/usr/local/cuda/tarets/x86_64-linux/include/' ", '-echo')
-
-    if status ~= 0
-    error("Failed to compile");
-    end
-
-    % Compile the mex files second
-    % -lnvToolsExt
-    clc; mex GCC='/usr/bin/gcc-6' -I'/usr/local/cuda/targets/x86_64-linux/include/' -L"/usr/local/cuda/lib64/" -lcudart -lcuda  -DMEX mexFunctionWrapper.cpp MultiGPUGridder.cpp MemoryManager.cpp gpuForwardProjectKernel.o gpuBackProjectKernel.o
-
-    cd('..')
-end
-
 
 reset(gpuDevice());
 
@@ -46,12 +18,13 @@ nGPUs = 4;
 nStreams = 64;
 volSize = 128;
 n1_axes = 100;
-n2_axes = 100;
+n2_axes = 10;
 
 kernelHWidth = 2;
 
-interpFactor = 2.0;
-    
+% interpFactor = 2.0;
+interpFactor = 1
+
 origSize   = volSize;
 volCenter  = volSize/2  + 1;
 origCenter = origSize/2 + 1;
@@ -79,7 +52,9 @@ nCoordAxes = length(coordAxes)/9;
 
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
+tic
 [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+toc
 
 disp("Volume size: " + num2str(volSize))
 disp("Number of coordinate axes: " + num2str(nCoordAxes))
@@ -92,7 +67,85 @@ obj.SetNumberStreams(nStreams);
 obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
 
 disp("SetVolume()...")
-obj.SetVolume(single(CASVol))
+tic
+obj.SetVolume(single(vol))
+toc
+
+% interpCAS=fftshift(fftn(fftshift(vol)));
+% interpCAS(1:10)
+
+
+% CAS_Vol[0]:  410 -324.733 -431.91 -422.836 -526.167 -134.411 420.372 533.601 259.494 -272.345
+% interpCAS=ToCAS(fftshift(fftn(fftshift(vol))));
+% interpCAS = permute(interpCAS, [2 1 3]);
+% interpCAS(1:10)
+
+% obj.CUDA_Free('all')
+% clear obj
+% clear all
+% abc
+% FFTSHIFT h_complex_array: 74 + 0
+% 76 + 0
+% 75 + 0
+% 71 + 0
+% 69 + 0
+% 70 + 0
+% 75 + 0
+% 60 + 0
+% 59 + 0
+% 74 + 0
+
+
+% x = fftshift(vol);
+% x(end-10:end)'
+
+
+
+% FFT FFTSHIFT h_complex_array: 4.58015e+07 + 0
+% -1.5745e+07 + 7.49552e+06
+% -4.35522e+06 + 3.68014e+06
+% -1.41856e+06 + 981196
+% -137044 + -520446
+% -414718 + 141614
+% -246986 + -469657
+% -11574.9 + -270589
+% -333057 + -214348
+% -124647 + -376950
+
+
+% x = fftn(fftshift(vol));
+% % x = permute(x, [2 1 3]);
+% x(1:10)
+
+% fft_vol=fftshift(fftn(fftshift(vol)));
+% 
+% 
+% interpCAS=ToCAS(fft_vol);
+% interpCAS = permute(interpCAS, [2 1 3]);
+% interpCAS(1:10)
+% 
+% 
+% vol(1:10)
+% x=fftshift(vol);
+% x(1:10)
+% 
+% fft_vol=fftn(fftshift(vol));
+% fft_vol(1:10)
+
+% 
+% fft_vol=fftn(vol);
+% interpCAS=ToCAS(fft_vol);
+% interpCAS = permute(interpCAS, [2 1 3]);
+% interpCAS(1:10)
+% fft_vol(1:10)
+% CASvol=ToCAS(fft_vol);
+% CASvol(1:10)
+
+% obj.CUDA_Free('all')
+% clear obj
+% clear all
+% 
+% abc
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)
@@ -109,19 +162,13 @@ clc
 disp("Forward_Project()...")
 obj.Forward_Project()
 
-obj.CUDA_Free('all')
-clear obj
-clear all
-
-
-x = transpose(reshape(0:24, [5 5]));
-fft2(x)
-
-abc
-
-
 disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
+
+
+test = InterpCASImgs(:,:,1);
+imagesc(real(ifft2(test)))
+
 
 disp("imgsFromCASImgs()...")
 imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
