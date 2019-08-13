@@ -13,17 +13,16 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-nBatches = 2;
+nBatches = 1;
 nGPUs = 4;
-nStreams = 64;
+nStreams = 4;
 volSize = 128;
-n1_axes = 100;
+n1_axes = 10;
 n2_axes = 10;
 
 kernelHWidth = 2;
 
-% interpFactor = 2.0;
-interpFactor = 1
+interpFactor = 1.0;
 
 origSize   = volSize;
 volCenter  = volSize/2  + 1;
@@ -64,12 +63,51 @@ obj = MultiGPUGridder_Matlab_Class();
 obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
-obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
+% obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
+obj.SetMaskRadius(single(50)); 
 
 disp("SetVolume()...")
 tic
+% CASVol = permute(CASVol, [2 1 3]);
+% obj.SetVolume(single(CASVol))
 obj.SetVolume(single(vol))
 toc
+
+outputVol = obj.GetVolume();
+outputVol = outputVol / 4;
+% outputVol = outputVol / (volSize*volSize);
+outputVol(1:10)
+
+CASVol(1:10)
+
+close all
+slice = 2;
+subplot(1,3,1)
+imagesc(CASVol(:,:,slice))
+title("Matlab CASVol")
+subplot(1,3,2)
+imagesc(outputVol(:,:,slice))
+title("CUDA FFT CASVol")
+subplot(1,3,3)
+imagesc(CASVol(:,:,slice) - outputVol(:,:,slice))
+title("Subtraction")
+colormap gray
+colorbar
+
+obj.CUDA_Free('all')
+clear obj
+clear all
+
+% imagesc(volCAS(:,:,1))
+
+%  410.0000 -239.5747 -566.6325 -462.6787 -118.3519  239.0186  133.5732   63.5933  599.1982  112.2435
+%  CASVol(1:10)
+
+%  410.0000 -324.7330 -431.9106 -422.8362 -526.1659 -134.4101  420.3719  533.6011  259.4940 -272.3445
+% CASVol(1:10)
+% CASVol = permute(CASVol, [2 1 3]);
+% outputVol(1:10)
+% CASVol(1:10)
 
 % interpCAS=fftshift(fftn(fftshift(vol)));
 % interpCAS(1:10)
@@ -158,17 +196,17 @@ obj.CUDA_disp_mem('all')
 obj.disp_mem('all')
 
 %% Run the forward projection kernel
-clc
+% clc
 disp("Forward_Project()...")
 obj.Forward_Project()
 
+test_imgs = obj.mem_Return('CASImgs_CPU_Pinned');
+size(test_imgs)
+max(test_imgs(:))
+
+
 disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
-
-
-test = InterpCASImgs(:,:,1);
-imagesc(real(ifft2(test)))
-
 
 disp("imgsFromCASImgs()...")
 imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
@@ -176,34 +214,35 @@ imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo);
 disp("easyMontage()...")
 easyMontage(imgs,2);
 
-%% Run the back projection kernel
-disp("ResetVolume()...")
-obj.ResetVolume()
-
-disp("Back_Project()...")
-obj.Back_Project()
-
-disp("Get_Volume()...") % Get the volumes from all the GPUs added together
-volCAS = obj.GetVolume();
-
-%% Get the density of inserted planes by backprojecting CASimages of values equal to one
-disp("Get Plane Density()...")
-interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
-obj.ResetVolume();
-obj.SetImages(interpImgs)
-obj.Back_Project()
-volWt = obj.GetVolume();
-
-%% Normalize the back projection result with the plane density
-% Divide the previous volume with the plane density volume
-volCAS=volCAS./(volWt+1e-6);
-                
-% Reconstruct the volume from CASVol
-disp("volFromCAS()...")
-volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
-
-disp("easyMontage()...")
-easyMontage(volReconstructed,3);
+% 
+% %% Run the back projection kernel
+% disp("ResetVolume()...")
+% obj.ResetVolume()
+% 
+% disp("Back_Project()...")
+% obj.Back_Project()
+% 
+% disp("Get_Volume()...") % Get the volumes from all the GPUs added together
+% volCAS = obj.GetVolume();
+% 
+% %% Get the density of inserted planes by backprojecting CASimages of values equal to one
+% disp("Get Plane Density()...")
+% interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
+% obj.ResetVolume();
+% obj.SetImages(interpImgs)
+% obj.Back_Project()
+% volWt = obj.GetVolume();
+% 
+% %% Normalize the back projection result with the plane density
+% % Divide the previous volume with the plane density volume
+% volCAS=volCAS./(volWt+1e-6);
+%                 
+% % Reconstruct the volume from CASVol
+% disp("volFromCAS()...")
+% volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth);
+% 
+% disp("easyMontage()...")
+% easyMontage(volReconstructed,3);
 
 
 %% Free the memory

@@ -97,7 +97,7 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // Convert the given volume to a CAS volume
     // Steps are (1) pad with zeros, (2) run forward FFT using CUDA, (3) sum the real and imaginary components
     int array_size = gpuVolSize[0] * gpuVolSize[1] * gpuVolSize[2];
-    float * CAS_Vol;
+    float * CAS_Vol;// = new float [array_size];
     CAS_Vol = (float *) malloc(sizeof(float) * array_size);
 
     std::cout << "ThreeD_ArrayToCASArray()..." << '\n';
@@ -105,27 +105,53 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     CAS_Vol = ThreeD_ArrayToCASArray(gpuVol, gpuVolSize);
     std::cout << "Done with ThreeD_ArrayToCASArray()..." << '\n';
 
-    // Show the first slice of the CSA_Volume
-    for (int x=0; x < (1); x++) // gpuVolSize[0]
-    {
-        std::cout << "CAS_Vol[" << x << "]: ";
-        for (int y=0; y < 10; y++)
-        {
-            std::cout << " "   <<  CAS_Vol[y*gpuVolSize[0]+x];                  
-        }
-        std::cout << '\n';
-    }
+    float * Output_CAS_Vol;// = new float [array_size];
+    Output_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
+
+
+    // for (int x=0; x < array_size; x++)
+    // {
+    //     Output_CAS_Vol[x] = CAS_Vol[x];
+    //     //Output_CAS_Vol[x] = gpuVol[x];
+    // }
+
+    // std::cout << "Output_CAS_Vol " <<  << "]: ";
+    // for (int x=0; x < 10; x++)
+    // {
+    //      std::cout << " "   <<  Output_CAS_Vol[y*gpuVolSize[0]+x];  
+    // }
 
 
     // TEST
-    std::memcpy(CAS_Vol, gpuVol, sizeof(float) * array_size);
+    std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
+
+    // Show the first slice of the Output_CAS_Vol
+    // for (int x=0; x < gpuVolSize[0]; x++) // 
+    // {
+    //     std::cout << "Output_CAS_Vol[" << x << "]: ";
+    //     for (int y=0; y < 1; y++)
+    //     {
+    //         std::cout << " "   <<  Output_CAS_Vol[y*gpuVolSize[0]+x];                  
+    //     }
+    //     std::cout << '\n';
+    // }
+
+    // for (int x=0; x < gpuVolSize[0]; x++) // 
+    // {
+    //     std::cout << "gpuVol[" << x << "]: ";
+    //     for (int y=0; y < 1; y++)
+    //     {
+    //         std::cout << " "   <<  gpuVol[y*gpuVolSize[0]+x];                  
+    //     }
+    //     std::cout << '\n';
+    // }
     // END TEST
 
     std::cout << "GPU Volume Size: " << gpuVolSize[0] << " " << gpuVolSize[1] << " " << gpuVolSize[2] << " " << '\n';
 
     // Pin gpuVol to host (i.e. CPU) memory in order to enable the async CUDA stream copying
     // This will let us copy the volume to all GPUs at the same time
-    cudaHostRegister(gpuVol, sizeof(float) * gpuVolSize[0] * gpuVolSize[1] * gpuVolSize[2], 0);
+    cudaHostRegister(Output_CAS_Vol, sizeof(float) * gpuVolSize[0] * gpuVolSize[1] * gpuVolSize[2], 0);
 
     // Check each GPU to determine if the gpuVol arrays are already allocated
     for (int gpuDevice = 0; gpuDevice < this->numGPUs; gpuDevice++)
@@ -149,14 +175,14 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     {
         // After allocating the gpuVol array on the gpuDevice, lets copy the memory
         // The name of the gpuVol GPU pointer is gpuVol_0 for GPU 0, gpuVol_1 for GPU 1, etc.
-        Mem_obj->CUDA_Copy_Asyc("gpuVol_" + std::to_string(gpuDevice), gpuVol, stream[gpuDevice]);
+        Mem_obj->CUDA_Copy_Asyc("gpuVol_" + std::to_string(gpuDevice), Output_CAS_Vol, stream[gpuDevice]);
     }
 
     // Synchronize all of the CUDA streams
     cudaDeviceSynchronize();
 
     // Unpin gpuVol to host memory (to free pinned memory on the RAM)
-    cudaHostUnregister(gpuVol);
+    cudaHostUnregister(Output_CAS_Vol);
 
     // Save the volume size
     this->volSize = new int(*gpuVolSize);

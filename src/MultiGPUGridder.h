@@ -36,7 +36,7 @@ public:
 	int *imgSize = new int[3];
 
 	// Interpolation factor
-	int interpFactor = 2;
+	int interpFactor = 1;
 	
 	// Mask radius parameter
 	float *maskRadius;

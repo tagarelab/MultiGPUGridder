@@ -136,18 +136,22 @@ __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int img
     // CUDA kernel for converting the CASImgs to imgs
     int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
-    int k = blockIdx.z * blockDim.z + threadIdx.z; // Which image?
+    //int k = blockIdx.z * blockDim.z + threadIdx.z; // Which image?
 
-    // CASimgs is the same dimensions as imgs
-    int ndx = i + j * imgSize + k * imgSize * imgSize;
-    
-    // Are we outside the bounds of the image?
-    if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
-        return;
+    // Each thread will do all the slices for position X and Y
+    for (int k=0; k< imgSize; k++)
+    {    
+        // CASimgs is the same dimensions as imgs
+        int ndx = i + j * imgSize + k * imgSize * imgSize;
+        
+        // Are we outside the bounds of the image?
+        if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
+            return;
+        }
+        
+        // Summation of the real and imaginary components
+        CASimgs[ndx] = imgs[ndx].x + imgs[ndx].y;
     }
-    
-    // Summation of the real and imaginary components
-    CASimgs[ndx] = imgs[ndx].x + imgs[ndx].y;
 
     return;
 }
@@ -213,8 +217,8 @@ __global__ void cufftShift_2D_kernel(T* data, int N)
 __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int zIndex)
 {
     // 3D Volume & 2D Slice & 1D Line
-    int sLine = N;
-    int sSlice = N * N;
+    int sLine   = N;
+    int sSlice  = N * N;
     int sVolume = N * N * N;
 
     // Transformations Equations
@@ -341,6 +345,14 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     cudaMalloc(&d_CAS_Vol, sizeof(float) * array_size);
     h_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
 
+    // TEST
+    // for (int i=0; i< array_size; i++)
+    // {
+    //     h_CAS_Vol[i] = 1; 
+    // }
+    // return h_CAS_Vol;
+    // END TEST
+
     // Create temporary arrays to hold the cufftComplex array        
     cufftComplex *h_complex_array, *d_complex_array, *d_complex_output_array;
 
@@ -375,48 +387,68 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
         cudaDeviceSynchronize();
     }
 
-    // Copy the resulting CAS volume back to the host
-    cudaMemcpy( h_complex_array, d_complex_output_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    std::cout << "FFTSHIFT h_complex_array: "; 
-    for (int i=array_size-10; i<array_size; i++)
-    {
-        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    }
-    std::cout << '\n'; 
 
-    cudaDeviceSynchronize();
+    // // Copy the resulting CAS volume back to the host
+    // cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST  
+
+    // std::cout << "FFTSHIFT h_complex_array: "; 
+    // for (int i=array_size-10; i<array_size; i++)
+    // {
+    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    // }
+    // std::cout << '\n'; 
+    // cudaDeviceSynchronize();
+
+
+    int nRows = volSize[0];
+    int nCols = volSize[1];
+    int batch = volSize[2];         // --- Number of batched executions
+    int rank = 2;                   // --- 2D FFTs
+    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    int idist = nRows*nCols;        // --- Distance between batches
+    int odist = nRows*nCols;        // --- Distance between batches
+
+    int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    int onembed[] = {nRows, nCols}; // --- Output size with pitch
+
+    int istride = 1;                // --- Distance between two successive input/output elements
+    int ostride = 1;                // --- Distance between two successive input/output elements
+
+    // cufftPlanMany(&forwardFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
+
 
     // Execute the forward FFT on the 3D array
     cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
-
     cudaDeviceSynchronize();
 
-    // Copy the resulting CAS volume back to the host
-    cudaMemcpy( h_complex_array, d_complex_output_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    std::cout << "FFT FFTSHIFT h_complex_array: "; 
-    for (int i=0; i<10; i++)
-    {
-        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    }
-    std::cout << '\n'; 
+    // // Copy the resulting CAS volume back to the host
+    // cudaMemcpy( h_complex_array, d_complex_output_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    // std::cout << "FFT FFTSHIFT h_complex_array: "; 
+    // for (int i=0; i<10; i++)
+    // {
+    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    // }
+    // std::cout << '\n'; 
     
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 
     // Apply a second 3D FFT Shift
     for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
     {
         cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, volSize[0], i);
+
+        cudaDeviceSynchronize();
     }
 
 
-    // Copy the resulting CAS volume back to the host
-    cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    std::cout << "FFT FFTSHIFT h_complex_array: "; 
-    for (int i=0; i<10; i++)
-    {
-        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    }
-    std::cout << '\n'; 
+    // // Copy the resulting CAS volume back to the host
+    // cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    // std::cout << "FFT FFTSHIFT h_complex_array: "; 
+    // for (int i=0; i<10; i++)
+    // {
+    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    // }
+    // std::cout << '\n'; 
 
     
     
@@ -427,14 +459,14 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
 
     cudaDeviceSynchronize();
 
-    // Copy the resulting CAS volume back to the host
-    cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
-    std::cout << "CAS FFT FFTSHIFT h_complex_array: "; 
-    for (int i=0; i<10; i++)
-    {
-        std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
-    }
-    std::cout << '\n'; 
+    // // Copy the resulting CAS volume back to the host
+    // cudaMemcpy( h_complex_array, d_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost); // TEST TEST TEST        
+    // std::cout << "CAS FFT FFTSHIFT h_complex_array: "; 
+    // for (int i=0; i<10; i++)
+    // {
+    //     std::cout << h_complex_array[i].x << " + " << h_complex_array[i].y << '\n'; 
+    // }
+    // std::cout << '\n'; 
 
     
     
@@ -442,6 +474,19 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     cudaMemcpy( h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);        
 
     cudaDeviceSynchronize();
+
+    // Free the temporary memory
+    cudaFree(d_complex_array);
+    cudaFree(d_complex_output_array);
+    cudaFree(d_CAS_Vol);
+
+    std::cout << "FINAL OUTPUT h_CAS_Vol: "; 
+    for (int i=0; i<10; i++)
+    {
+        std::cout << h_CAS_Vol[i] <<  '\n'; 
+    }
+    std::cout << '\n'; 
+
 
     // Return the resulting CAS volume
     return h_CAS_Vol;
@@ -515,7 +560,7 @@ void gpuForwardProject(
 )
 {
     std::cout << "Running gpuForwardProject()..." << '\n';
-    
+
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
@@ -540,6 +585,9 @@ void gpuForwardProject(
             int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
         
             cudaSetDevice(curr_GPU);     
+
+
+            std::cout << "Running stream " << i << '\n';
 
             // How many coordinate axes to assign to this CUDA stream? 
             int nAxes_Stream = ceil((double)nAxes / (nBatches * nStreams)); // Ceil needed if nStreams is not a multiple of numGPUs            
@@ -575,6 +623,55 @@ void gpuForwardProject(
             // Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(gpuCoordAxes_Vector[i], &coordAxes_CPU_Pinned[gpuCoordAxes_Offset], coord_Axes_streamBytes, cudaMemcpyHostToDevice, stream[i]);
             
+
+            // Run the forward projection kernel
+            // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
+            // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
+            gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
+                gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
+                imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
+                maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
+
+            // Copy the resulting gpuCASImgs to the host (CPU)
+            cudaMemcpyAsync(
+                &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+                gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+
+            // Update the number of coordinate axes which have already been assigned to a CUDA stream
+            processed_nAxes = processed_nAxes + nAxes_Stream;
+
+
+                        
+            // // TEST
+            // float *h_Vol;
+            // h_Vol = (float *) malloc(sizeof(float) * 9 * nAxes_Stream);
+
+            // cudaMemcpy( h_Vol, gpuCoordAxes_Vector[i], 9 * nAxes_Stream * sizeof(float), cudaMemcpyDeviceToHost);       
+
+            // for (int i=0; i< 9 * nAxes_Stream ; i++)
+            // {
+            //     std::cout << h_Vol[i] << '\n';
+            // }
+            // // END TEST
+
+            
+            // cudaDeviceSynchronize();
+        } 
+
+        //  cudaDeviceSynchronize();
+    }
+
+    cudaDeviceSynchronize();
+
+    std::cout << "Done with gpuForwardProject()..." << '\n';
+
+    return; 
+}
+
+
+
+
+
 
 
 
@@ -674,44 +771,6 @@ void gpuForwardProject(
             cufftComplex *output_test = (cufftComplex*)malloc(size*sizeof(cufftComplex));
 
             */
-
-
-            
-            // Run the forward projection kernel
-            // NOTE: Only need one gpuVol_Vector and one ker_bessel_Vector per GPU
-            // NOTE: Each stream needs its own gpuCASImgs_Vector and gpuCoordAxes_Vector
-            gpuForwardProjectKernel<<< dimGrid, dimBlock, 0, stream[i] >>>(
-                gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
-                imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
-                maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
-
-            // Copy the resulting gpuCASImgs to the host (CPU)
-            cudaMemcpyAsync(
-                &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
-
-            // Update the number of coordinate axes which have already been assigned to a CUDA stream
-            processed_nAxes = processed_nAxes + nAxes_Stream;
-        } 
-
-        // cudaDeviceSynchronize();
-    }
-
-    cudaDeviceSynchronize();
-
-    std::cout << "Done with gpuForwardProject()..." << '\n';
-
-    return; 
-}
-
-
-
-
-
-
-
-
-
 
 
 
