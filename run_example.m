@@ -15,8 +15,8 @@ tic
 
 nBatches = 1;
 nGPUs = 4;
-nStreams = 8;
-volSize = 128;
+nStreams = 16;
+volSize = 256;
 n1_axes = 100;
 n2_axes = 100;
 
