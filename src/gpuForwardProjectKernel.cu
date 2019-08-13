@@ -248,7 +248,7 @@ __global__ void cufftShift_2D_kernel(T* data, int N)
 }
 
 // https://github.com/marwan-abdellah/cufftShift/blob/master/Src/CUDA/Kernels/out-of-place/cufftShift_3D_OP.cu
-__global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int zIndex)
+__global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
 {
     // 3D Volume & 2D Slice & 1D Line
     int sLine   = N;
@@ -273,73 +273,80 @@ __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* ou
     int xIndex = blockIdx.x * blockWidth + xThreadIdx;
     int yIndex = blockIdx.y * blockHeight + yThreadIdx;
 
-    // Thread Index Converted into 1D Index
-    int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+    // Each thread will do all the slices for some X, Y position in the 3D matrix
 
-    if (zIndex < N / 2)
+    for (int zIndex = 0; zIndex < nSlices; zIndex ++)
     {
-        if (xIndex < N / 2)
+
+    
+        // Thread Index Converted into 1D Index
+        int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+
+        if (zIndex < N / 2)
         {
-            if (yIndex < N / 2)
+            if (xIndex < N / 2)
             {
-                // First Quad
-                output[index].x = input[index + sEq1].x;
-                output[index].y = input[index + sEq1].y;
+                if (yIndex < N / 2)
+                {
+                    // First Quad
+                    output[index].x = input[index + sEq1].x;
+                    output[index].y = input[index + sEq1].y;
+                }
+                else
+                {
+                    // Third Quad
+                    output[index].x = input[index + sEq3].x;
+                    output[index].y = input[index + sEq3].y;
+                }
             }
             else
             {
-                // Third Quad
-                output[index].x = input[index + sEq3].x;
-                output[index].y = input[index + sEq3].y;
+                if (yIndex < N / 2)
+                {
+                    // Second Quad
+                    output[index].x = input[index + sEq2].x;
+                    output[index].y = input[index + sEq2].y;
+                }
+                else
+                {
+                    // Fourth Quad
+                    output[index].x = input[index + sEq4].x;
+                    output[index].y = input[index + sEq4].y;
+                }
             }
         }
+
         else
         {
-            if (yIndex < N / 2)
+            if (xIndex < N / 2)
             {
-                // Second Quad
-                output[index].x = input[index + sEq2].x;
-                output[index].y = input[index + sEq2].y;
+                if (yIndex < N / 2)
+                {
+                    // First Quad
+                    output[index].x = input[index - sEq4].x;
+                    output[index].y = input[index - sEq4].y;
+                }
+                else
+                {
+                    // Third Quad
+                    output[index].x = input[index - sEq2].x;
+                    output[index].y = input[index - sEq2].y;
+                }
             }
             else
             {
-                // Fourth Quad
-                output[index].x = input[index + sEq4].x;
-                output[index].y = input[index + sEq4].y;
-            }
-        }
-    }
-
-    else
-    {
-        if (xIndex < N / 2)
-        {
-            if (yIndex < N / 2)
-            {
-                // First Quad
-                output[index].x = input[index - sEq4].x;
-                output[index].y = input[index - sEq4].y;
-            }
-            else
-            {
-                // Third Quad
-                output[index].x = input[index - sEq2].x;
-                output[index].y = input[index - sEq2].y;
-            }
-        }
-        else
-        {
-            if (yIndex < N / 2)
-            {
-                // Second Quad
-                output[index].x = input[index - sEq3].x;
-                output[index].y = input[index - sEq3].y;
-            }
-            else
-            {
-                // Fourth Quad
-                output[index].x = input[index - sEq1].x;
-                output[index].y = input[index - sEq1].y;
+                if (yIndex < N / 2)
+                {
+                    // Second Quad
+                    output[index].x = input[index - sEq3].x;
+                    output[index].y = input[index - sEq3].y;
+                }
+                else
+                {
+                    // Fourth Quad
+                    output[index].x = input[index - sEq1].x;
+                    output[index].y = input[index - sEq1].y;
+                }
             }
         }
     }
@@ -523,10 +530,7 @@ void gpuForwardProject(
             //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
             //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
-            cudaDeviceSynchronize();
-
             
-
             // Allocated temporary device memory to hold the complex image type
             // TO DO: allocate in the MultiGPUGridder class instead 
 
@@ -548,13 +552,9 @@ void gpuForwardProject(
             cudaMemset(gpuCASImgs_Vector[i], 0, imgSize * imgSize * nAxes_Stream); // Needed?
             
             // Run FFTShift on d_complex_imgs
-            for (int slice = 0; slice < nAxes_Stream; slice++) // Iterate over all of the 2D slices in the current stream
-            {
-                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (d_complex_imgs, d_complex_imgs_shifted, imgSize, slice);
-                cudaDeviceSynchronize();
-            }
+            cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (d_complex_imgs, d_complex_imgs_shifted, imgSize, nAxes_Stream);
 
-            cudaDeviceSynchronize();
+
             // Run inverse FFT
 
             // Create a plan for taking the inverse of the CAS imgs
@@ -575,44 +575,24 @@ void gpuForwardProject(
 
             cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
             cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
-            cudaDeviceSynchronize();
+
             // Run FFTShift on the FFT shifted complex images            
             cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_complex_imgs_shifted, (cufftComplex *) d_complex_imgs_shifted, CUFFT_INVERSE);
-            cudaDeviceSynchronize();
+
             // Run FFTShift on the inverse FFT images
-            for (int slice = 0; slice < nAxes_Stream; slice++) // Iterate over all of the 2D slices in the current stream
-            {
-                // TO DO: Can the same array be used here for the input and output?
-                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock , 0, stream[i]>>> (d_complex_imgs_shifted, d_complex_imgs_shifted_inverse_FFT_shifted, imgSize, slice);
-                cudaDeviceSynchronize();
-            }
-            
-            // TO DO: this is probably unnecessary
-            float *d_Output_Imgs;
-            cudaMalloc(&d_Output_Imgs, sizeof(float) * imgSize * imgSize * nAxes_Stream);
+            cufftShift_3D_slice_kernel <<< dimGrid, dimBlock , 0, stream[i]>>> (d_complex_imgs_shifted, d_complex_imgs_shifted_inverse_FFT_shifted, imgSize, nAxes_Stream);
 
-            cudaMemset(d_Output_Imgs, 0, imgSize * imgSize * nAxes_Stream); // Needed?
-            
-            // Convert from the complex images to the real
-            ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(d_complex_imgs_shifted_inverse_FFT_shifted, d_Output_Imgs, imgSize, nAxes_Stream);
-            cudaDeviceSynchronize();
-
-
+            // Convert from the complex images to the real (resued the gpuCASImgs_Vector[i] GPU array)
+            ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(d_complex_imgs_shifted_inverse_FFT_shifted, gpuCASImgs_Vector[i], imgSize, nAxes_Stream);
 
             // Lastly, copy to host pin memory
             // Copy the resulting gpuCASImgs to the host (CPU)
             cudaMemcpyAsync(
                 &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                d_Output_Imgs, gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
-
-                cudaDeviceSynchronize();
-
-            cudaDeviceSynchronize();
-
+                gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
             // Update the number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + nAxes_Stream;
-
 
         } 
 
