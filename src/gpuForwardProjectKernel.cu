@@ -118,17 +118,22 @@ __global__ void CASImgsToComplexImgs(float* CASimgs, cufftComplex* imgs, int img
             // Imaginary component
             imgs[ndx_1].y = 0;
 
-            continue;
-        }
+            
+        } else 
+        {
 
         // Offset to skip the first row then subtract from the end of the matrix and add the offset where the particular image starts in CASimgs
-        int ndx_2 = imgSize + imgSize * imgSize - ndx_1 + k * imgSize * imgSize;
+        int ndx_2 = imgSize + imgSize * imgSize - (i + j * imgSize) + k * imgSize * imgSize;
 
         // Real component
         imgs[ndx_1].x = 0.5*(CASimgs[ndx_1] + CASimgs[ndx_2]);
 
         // Imaginary component
         imgs[ndx_1].y = 0.5*(CASimgs[ndx_1] - CASimgs[ndx_2]);
+
+
+
+        }
     }
 
     return;
@@ -151,8 +156,7 @@ __global__ void ComplexToReal(cufftComplex* ComplexImg, float* RealImg, int imgS
     
     // Each thread will do all the slices for position X and Y
     for (int k=0; k < nSlices; k++)
-    { 
-        
+    {         
         // Get the linear index of the current position
         int ndx = i + j * imgSize + k * imgSize * imgSize;       
 
@@ -160,8 +164,6 @@ __global__ void ComplexToReal(cufftComplex* ComplexImg, float* RealImg, int imgS
     }
 
 }
-
-
 
 __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
@@ -521,6 +523,9 @@ void gpuForwardProject(
             //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
             //     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
+            cudaDeviceSynchronize();
+
+            
 
             // Allocated temporary device memory to hold the complex image type
             // TO DO: allocate in the MultiGPUGridder class instead 
@@ -539,13 +544,17 @@ void gpuForwardProject(
             // Convert the CASImgs to complex cufft type
             CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], d_complex_imgs, imgSize, nAxes_Stream);
 
+
+            cudaMemset(gpuCASImgs_Vector[i], 0, imgSize * imgSize * nAxes_Stream); // Needed?
+            
             // Run FFTShift on d_complex_imgs
             for (int slice = 0; slice < nAxes_Stream; slice++) // Iterate over all of the 2D slices in the current stream
             {
-                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_imgs, d_complex_imgs_shifted, imgSize, slice);
+                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (d_complex_imgs, d_complex_imgs_shifted, imgSize, slice);
+                cudaDeviceSynchronize();
             }
 
-
+            cudaDeviceSynchronize();
             // Run inverse FFT
 
             // Create a plan for taking the inverse of the CAS imgs
@@ -566,27 +575,37 @@ void gpuForwardProject(
 
             cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
             cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
-
+            cudaDeviceSynchronize();
             // Run FFTShift on the FFT shifted complex images            
             cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_complex_imgs_shifted, (cufftComplex *) d_complex_imgs_shifted, CUFFT_INVERSE);
-
+            cudaDeviceSynchronize();
             // Run FFTShift on the inverse FFT images
             for (int slice = 0; slice < nAxes_Stream; slice++) // Iterate over all of the 2D slices in the current stream
             {
                 // TO DO: Can the same array be used here for the input and output?
-                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_imgs_shifted, d_complex_imgs_shifted_inverse_FFT_shifted, imgSize, slice);
+                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock , 0, stream[i]>>> (d_complex_imgs_shifted, d_complex_imgs_shifted_inverse_FFT_shifted, imgSize, slice);
+                cudaDeviceSynchronize();
             }
             
+            // TO DO: this is probably unnecessary
+            float *d_Output_Imgs;
+            cudaMalloc(&d_Output_Imgs, sizeof(float) * imgSize * imgSize * nAxes_Stream);
+
+            cudaMemset(d_Output_Imgs, 0, imgSize * imgSize * nAxes_Stream); // Needed?
+            
             // Convert from the complex images to the real
-            ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(d_complex_imgs_shifted_inverse_FFT_shifted, gpuCASImgs_Vector[i], imgSize, nAxes_Stream);
+            ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(d_complex_imgs_shifted_inverse_FFT_shifted, d_Output_Imgs, imgSize, nAxes_Stream);
+            cudaDeviceSynchronize();
+
+
 
             // Lastly, copy to host pin memory
             // Copy the resulting gpuCASImgs to the host (CPU)
             cudaMemcpyAsync(
                 &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+                d_Output_Imgs, gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
 
-
+                cudaDeviceSynchronize();
 
             cudaDeviceSynchronize();
 

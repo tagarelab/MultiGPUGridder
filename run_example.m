@@ -64,7 +64,7 @@ obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 % obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
-obj.SetMaskRadius(single(50)); 
+obj.SetMaskRadius(single(60)); 
 
 disp("SetVolume()...")
 tic
