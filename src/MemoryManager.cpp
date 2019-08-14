@@ -102,7 +102,7 @@ float *MemoryManager::ReturnCUDAFloatPtr(std::string varNameString)
     }
 
     // Return the CUDA memory pointer
-    return CUDA_arr_ptrs[arr_idx];
+    return CUDA_arr_ptrs[arr_idx].f;
 }
 
 void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
@@ -330,6 +330,9 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
     cudaMemGetInfo(&mem_free_0, &mem_tot_0);
     // std::cout << "Free memory before copy: " << mem_free_0 << " Device: " << GPU_Device << std::endl;
 
+    // Union of the pointer types
+    Ptr_Types n;
+
     // Allocate the memory and save the pointer to the corresponding vector
     if (dataType == "float")
     {
@@ -346,12 +349,33 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
         cudaMalloc(&devPtr, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
 
         // Save the new pointer to the allocated CUDA GPU array
-        CUDA_arr_ptrs.push_back(devPtr);
+        n.f = devPtr;       
+
+        
+    } else if (dataType == "cufftComplex")
+    {
+        // Is there enough available memory on the device to allocate this array?
+        if (mem_free_0 < sizeof(cufftComplex) * (dataSize[0] * dataSize[1] * dataSize[2]))
+        {
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
+            return;
+        }
+
+        cufftComplex *devPtr = new cufftComplex[dataSize[0] * dataSize[1] * dataSize[2]]; // Multiply the X,Y,Z dimensions of the array
+
+        cudaMalloc(&devPtr, sizeof(cufftComplex) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
+
+        // Save the new pointer to the allocated CUDA GPU array
+        n.c = devPtr;;
+
     }
     else
     {
         std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
+
+    // Save the union of pointers to the vector of CUDA pointers
+    CUDA_arr_ptrs.push_back(n);
 }
 
 void MemoryManager::CUDA_Free(std::string varNameString)
@@ -393,9 +417,12 @@ void MemoryManager::CUDA_Free(std::string varNameString)
     // Delete the array from the GPU memory
     if (CUDA_arr_types[arr_idx] == "float")
     {
-        cudaFree(CUDA_arr_ptrs[arr_idx]);
-    }
-    else
+        cudaFree(CUDA_arr_ptrs[arr_idx].f);
+    
+    } else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        cudaFree(CUDA_arr_ptrs[arr_idx].c);
+    } else
     {
         std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
@@ -462,9 +489,12 @@ void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
     if (CUDA_arr_types[arr_idx] == "float")
     {
         // Sends data to device asynchronously
-        cudaMemcpy(CUDA_arr_ptrs[arr_idx], New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
-    }
-    else
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
+    } else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Sends data to device asynchronously
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
+    } else
     {
         std::cerr << "Only float type is currently supported." << '\n';
     }
@@ -496,9 +526,12 @@ void MemoryManager::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, 
     if (CUDA_arr_types[arr_idx] == "float")
     {
         // Sends data to device asynchronously
-        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx], New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
-    }
-    else
+        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
+    }  else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Sends data to device asynchronously
+        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
+    } else
     {
         std::cerr << "Only float type is currently supported." << '\n';
     }
@@ -559,17 +592,22 @@ float *MemoryManager::CUDA_Return(std::string varNameString)
     // Set the GPU device to the device which contains the CUDA array
     cudaSetDevice(CUDA_arr_GPU_Assignment[arr_idx]);
 
+    int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
+
     if (CUDA_arr_types[arr_idx] == "float")
     {
         // Copy from the GPU to the CPU
-        int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
-
         float *CPU_Array = new float[dim_size];
-        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx], dim_size * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
 
         return CPU_Array;
-    }
-    else
+    } else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Copy from the GPU to the CPU
+        cufftComplex *CPU_Array = new cufftComplex[dim_size];
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].c, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
+
+    } else
     {
         std::cerr << "Only float type is currently supported." << '\n';
     }

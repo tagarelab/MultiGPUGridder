@@ -13,9 +13,9 @@ reset(gpuDevice());
 % Initialize parameters
 tic
 
-nBatches = 1;
+nBatches = 3;
 nGPUs = 4;
-nStreams = 16;
+nStreams = 8;
 volSize = 256;
 n1_axes = 100;
 n2_axes = 100;
@@ -64,7 +64,7 @@ obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 % obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
-obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 5)); 
+obj.SetMaskRadius(single(60)); 
 
 
 disp("SetVolume()...")
@@ -98,7 +98,7 @@ obj.Forward_Project()
 % disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
 size(InterpCASImgs)
-InterpCASImgs = InterpCASImgs(:,:,1:10);
+InterpCASImgs = InterpCASImgs(:,:,1:2);
 easyMontage(InterpCASImgs,2);
 colormap gray
 

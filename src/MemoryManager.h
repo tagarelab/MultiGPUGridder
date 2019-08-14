@@ -72,6 +72,14 @@ public:
     float *CUDA_Return(std::string varNameString);
 
 private:
+
+    // Allow the vector of GPU pointers to be either float or cufftComplex type
+    union Ptr_Types
+    {
+        float *f;
+        cufftComplex *c;
+    };
+
     // Variables to hold the CPU arrays
     std::vector<std::string> cpu_arr_names; // Name of the variables, e.g. 'imgVol'
     std::vector<std::string> cpu_arr_types; // String of datatype, e.g. 'int', 'float', or 'double'
@@ -82,7 +90,7 @@ private:
     std::vector<std::string> CUDA_arr_names;  // Name of the variables, e.g. 'gpuVol'
     std::vector<std::string> CUDA_arr_types;  // String of datatype, e.g. 'int', 'float', or 'double'
     std::vector<int *> CUDA_arr_sizes;        // Size of the float array, e.g. [256, 256, 256]
-    std::vector<float *> CUDA_arr_ptrs;       // Memory pointer to the corresponding int array
+    std::vector<Ptr_Types> CUDA_arr_ptrs;   // Memory pointer to the corresponding float array
     std::vector<int> CUDA_arr_GPU_Assignment; // Which GPU is the array assigned to? (e.g. integer from 0 to 4 for 4 GPUs)
 };
 

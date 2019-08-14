@@ -424,6 +424,27 @@ void MultiGPUGridder::Projection_Initilize()
 
             Mem_obj->CUDA_alloc("gpuCoordAxes_" + std::to_string(i), "float", gpuCoordAxes_Size, gpuDevice);
         }
+
+        // Has the ComplexImgs array been allocated and defined?
+        // The name of the GPU pointer is gpuComplexImgs_0 for GPU 0, gpuComplexImgs_1 for GPU 1, etc.
+        if (Mem_obj->GPUArrayAllocated("gpuComplexImgs_" + std::to_string(i), gpuDevice) == false)
+        {
+            // Allocate the gpuCoordAxes on the current gpuDevice
+            int *gpuCoordAxes_Size = new int[3];
+
+            // Each GPU only needs to hold a fraction of the total axes vector (based on number of streams and batches)
+            int nAxes = this->axesSize[0] / 9;
+
+            // Round up to the number of axes per stream and then multiply by 9 to get the length
+            int nAxesPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
+            nAxesPerStream = std::max(nAxesPerStream, 1); // Must be at least one axes
+
+            gpuCoordAxes_Size[0] = nAxesPerStream * 9;
+            gpuCoordAxes_Size[1] = this->axesSize[1];
+            gpuCoordAxes_Size[2] = this->axesSize[2];
+
+            Mem_obj->CUDA_alloc("gpuComplexImgs_" + std::to_string(i), "float", gpuCoordAxes_Size, gpuDevice);
+        }
     }
 
     // One copy of the Kaiser Bessel look up table is needed for each GPU
