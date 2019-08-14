@@ -6,9 +6,11 @@ addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
-% for i = 1:4
+
+disp("Resetting devices...")
+for i = 1:4
 reset(gpuDevice());
-% end
+end
 
 %% Create a volume 
 % Initialize parameters
@@ -16,10 +18,10 @@ tic
 
 nBatches = 2;
 nGPUs = 4;
-nStreams = 4;
+nStreams = 20;
 volSize = 64;
-n1_axes = 30;
-n2_axes = 10;
+n1_axes = 32;
+n2_axes = 100;
 
 kernelHWidth = 2;
 
@@ -79,7 +81,8 @@ obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 % obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
-obj.SetMaskRadius(single(40)); 
+% obj.SetMaskRadius(single(5)); 
+obj.SetMaskRadius(single((size(vol,1)/2 - 3))); 
 
 
 disp("SetVolume()...")
@@ -128,7 +131,7 @@ for i = 1:size(InterpCASImgs,3)
    end
 end
 
-% InterpCASImgs = InterpCASImgs(:,:,1:10);
+InterpCASImgs = InterpCASImgs(:,:,1:10);
 easyMontage(InterpCASImgs,2);
 colormap gray
 
