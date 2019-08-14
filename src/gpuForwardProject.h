@@ -41,7 +41,8 @@ extern void gpuForwardProject(
     std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
     float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,                              // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches                 // Streaming parameters
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches,                 // Streaming parameters
+    std::vector<int> numAxesPerStream
 );
 
 #endif //__GPUFORWARDPROJECT_H__

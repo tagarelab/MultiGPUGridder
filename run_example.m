@@ -6,19 +6,20 @@ addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
-
+% for i = 1:4
 reset(gpuDevice());
+% end
 
 %% Create a volume 
 % Initialize parameters
 tic
 
-nBatches = 3;
+nBatches = 2;
 nGPUs = 4;
-nStreams = 8;
-volSize = 256;
-n1_axes = 100;
-n2_axes = 100;
+nStreams = 4;
+volSize = 64;
+n1_axes = 30;
+n2_axes = 10;
 
 kernelHWidth = 2;
 
@@ -41,6 +42,20 @@ img = imresize3(img,[volSize, volSize, volSize]);
 vol = single(img);
 % easyMontage(vol,1);
 
+
+% vol = padarray(vol,[floor(volSize/2) floor(volSize/2)],0,'pre');
+% vol = padarray(vol,[floor(volSize/2) floor(volSize/2)],0,'post');
+
+% padded_vol = zeros(size(vol) * 2);
+% 
+% padded_vol(size(vol,1)/2 : size(vol,1)*1.5-1, size(vol,2)/2 : size(vol,2)*1.5-1, size(vol,3)/2 : size(vol,3)*1.5-1) = vol;
+% 
+% vol = padded_vol;
+% size(vol)
+% imagesc(vol(:,:,1))
+
+
+
 %% Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
@@ -52,7 +67,7 @@ nCoordAxes = length(coordAxes)/9;
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
 tic
-[CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+% [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 toc
 
 disp("Volume size: " + num2str(volSize))
@@ -64,7 +79,7 @@ obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 % obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
-obj.SetMaskRadius(single(60)); 
+obj.SetMaskRadius(single(40)); 
 
 
 disp("SetVolume()...")
@@ -78,14 +93,19 @@ obj.SetAxes(coordAxes)
 disp("SetImgSize()...")
 obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
 
-disp("Displaying allocated memory()...")
-obj.CUDA_disp_mem('all')
-obj.disp_mem('all')
+
+
+
 
 %% Run the forward projection kernel
 % clc
 disp("Forward_Project()...")
 obj.Forward_Project()
+
+disp("Displaying allocated memory()...")
+obj.CUDA_disp_mem('all')
+obj.disp_mem('all')
+
 
 % test_imgs = obj.mem_Return('CASImgs_CPU_Pinned');
 % size(test_imgs)
@@ -98,7 +118,17 @@ obj.Forward_Project()
 % disp("GetImgs()...")
 InterpCASImgs = obj.GetImgs();
 size(InterpCASImgs)
-InterpCASImgs = InterpCASImgs(:,:,1:2);
+max(InterpCASImgs(:))
+
+% Check to see if all the projections are there
+for i = 1:size(InterpCASImgs,3)
+    temp = InterpCASImgs(:,:,i);
+   if (max(temp(:)) <= 0)
+       disp("No projection for slice " + num2str(i))
+   end
+end
+
+% InterpCASImgs = InterpCASImgs(:,:,1:10);
 easyMontage(InterpCASImgs,2);
 colormap gray
 

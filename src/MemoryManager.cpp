@@ -367,10 +367,9 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
         cudaMalloc(&devPtr, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
 
         // Save the new pointer to the allocated CUDA GPU array
-        n.f = devPtr;       
-
-        
-    } else if (dataType == "cufftComplex")
+        n.f = devPtr;
+    }
+    else if (dataType == "cufftComplex")
     {
         // Is there enough available memory on the device to allocate this array?
         if (mem_free_0 < sizeof(cufftComplex) * (dataSize[0] * dataSize[1] * dataSize[2]))
@@ -384,8 +383,7 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
         cudaMalloc(&devPtr, sizeof(cufftComplex) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
 
         // Save the new pointer to the allocated CUDA GPU array
-        n.c = devPtr;;
-
+        n.c = devPtr;
     }
     else
     {
@@ -436,11 +434,12 @@ void MemoryManager::CUDA_Free(std::string varNameString)
     if (CUDA_arr_types[arr_idx] == "float")
     {
         cudaFree(CUDA_arr_ptrs[arr_idx].f);
-    
-    } else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
     {
         cudaFree(CUDA_arr_ptrs[arr_idx].c);
-    } else
+    }
+    else
     {
         std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
@@ -508,11 +507,13 @@ void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
     {
         // Sends data to device asynchronously
         cudaMemcpy(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
-    } else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
     {
         // Sends data to device asynchronously
-        cudaMemcpy(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
-    } else
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(cufftComplex), cudaMemcpyHostToDevice);
+    }
+    else
     {
         std::cerr << "Only float type is currently supported." << '\n';
     }
@@ -545,11 +546,13 @@ void MemoryManager::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, 
     {
         // Sends data to device asynchronously
         cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
-    }  else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
     {
         // Sends data to device asynchronously
-        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
-    } else
+        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(cufftComplex), cudaMemcpyHostToDevice, stream);
+    }
+    else
     {
         std::cerr << "Only float type is currently supported." << '\n';
     }
@@ -619,13 +622,14 @@ float *MemoryManager::CUDA_Return(std::string varNameString)
         cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
 
         return CPU_Array;
-    } else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
     {
         // Copy from the GPU to the CPU
         cufftComplex *CPU_Array = new cufftComplex[dim_size];
-        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].c, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
-
-    } else
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].c, dim_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost);
+    }
+    else
     {
         std::cerr << "Only float type is currently supported." << '\n';
     }
