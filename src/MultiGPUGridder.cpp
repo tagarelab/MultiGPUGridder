@@ -121,7 +121,8 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // }
 
     // TEST
-    std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
+    std::memcpy(Output_CAS_Vol, gpuVol, sizeof(float) * array_size);
+    // std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
 
     // Show the first slice of the Output_CAS_Vol
     // for (int x=0; x < gpuVolSize[0]; x++) //
@@ -400,6 +401,7 @@ void MultiGPUGridder::Projection_Initilize()
             // Process the remaining streams (at least one axes is left)
             nImgsPerStream = nImgsPerStream*this->nBatches - (assigned_nAxes + nImgsPerStream*this->nBatches - nAxes); // Remove the extra axes that are past the maximum nAxes
             nImgsPerStream = ceil((double)nImgsPerStream / (double)this->nBatches);
+            // nImgsPerStream = 0; // TEST TEST TEST
         }
         
         if (nImgsPerStream < 0)
@@ -416,10 +418,6 @@ void MultiGPUGridder::Projection_Initilize()
         assigned_nAxes = assigned_nAxes + nImgsPerStream*this->nBatches;
      
         // Remember the number of axes (i.e. images) which were assigned to this stream
-        // if (nImgsPerStream < 5)
-        // {
-        //     nImgsPerStream = 0; // TEST TEST TEST
-        // }
         numAxesPerStream.push_back(nImgsPerStream);
 
         gpuCASImgs_Size[2] = std::max(nImgsPerStream, 2); // Must be at least two images (projections are sometimes missing if only 1 image is allocated)

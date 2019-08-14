@@ -170,16 +170,16 @@ __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int img
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
     //int k = blockIdx.z * blockDim.z + threadIdx.z; // Which image?
 
+    // Are we outside the bounds of the image?
+    if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
+        return;
+    }
+    
     // Each thread will do all the slices for position X and Y
     for (int k=0; k< imgSize; k++)
     {    
         // CASimgs is the same dimensions as imgs
-        int ndx = i + j * imgSize + k * imgSize * imgSize;
-        
-        // Are we outside the bounds of the image?
-        if (i >= imgSize || i < 0 || j >= imgSize || j < 0){
-            return;
-        }
+        int ndx = i + j * imgSize + k * imgSize * imgSize;       
         
         // Summation of the real and imaginary components
         CASimgs[ndx] = imgs[ndx].x + imgs[ndx].y;
@@ -354,20 +354,15 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     dim3 dimBlock(blockSize, blockSize, 1);
 
     // Apply a 3D FFT Shift
-    for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
-    {
-        cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, volSize[0], i);
-    }
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, volSize[0], volSize[0]);
+            
 
     // Execute the forward FFT on the 3D array
     cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
 
     // Apply a second 3D FFT Shift
-    for (int i = 0; i < volSize[0]; i++) // Iterate over all of the 2D slices
-    {
-        cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, volSize[0], i);
-    }
-    
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, volSize[0], volSize[0]);
+
     // Convert the complex result of the forward FFT to a CAS img type
     ComplexImgsToCASImgs<<< dimGrid, dimBlock >>>(
         d_CAS_Vol, d_complex_array, volSize[0] // Assume the volume is a square for now
@@ -406,7 +401,6 @@ void gpuForwardProject(
 
     // Create the CUDA streams
 	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
-    //cudaStream_t stream[nStreams]; 		
 
     for (int i = 0; i < nStreams; i++) // Loop through the streams
     { 
@@ -419,26 +413,26 @@ void gpuForwardProject(
 
     for (int currBatch = 0; currBatch < nBatches; currBatch++) // Loop through the batches
     {   
+        std::cout << "Current batch : " << currBatch << " out of " << nBatches << '\n';
+
         for (int i = 0; i < nStreams; i++) // Loop through the streams   
         {             
             int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
         
             cudaSetDevice(curr_GPU);     
 
-
             std::cout << "Running stream " << i << '\n';
 
             // How many coordinate axes to assign to this CUDA stream? 
-            // int nAxes_Stream = numAxesPerStream[i];
-
             std::cout <<  '\n';
             
             // Check to make sure we don't try to process more coord axes than we have
             if (processed_nAxes + numAxesPerStream[i] >= nAxes) 
             {
-               continue; // Something bad has happened so return for now
+                numAxesPerStream[i] = min(numAxesPerStream[i], nAxes - processed_nAxes);
+                // numAxesPerStream[i] = 0;
+                // continue; // Something bad has happened so return for now
             }
-
 
             // Is there at least one coordinate axes to process for this stream?
             if (numAxesPerStream[i] >= 1 ) // TO DO: Fix this && processed_nAxes < nAxes
@@ -451,13 +445,10 @@ void gpuForwardProject(
 
                 std::cout << "Number of axes in this stream " << numAxesPerStream[i] << '\n';
                 
-                // TEST
-                // cudaMemset(gpuComplexImgs_Vector[i], 0,  imgSize * imgSize * numAxesPerStream[i] * sizeof(cufftComplex));
-                // cudaMemset(gpuComplexImgs_Shifted_Vector[i], 0,  imgSize * imgSize * numAxesPerStream[i] * sizeof(cufftComplex));
-                // cudaMemset(gpuCASImgs_Vector[i], 0, imgSize * imgSize * numAxesPerStream[i] * sizeof(float));
-                // END TEST
-
-                
+                // This seems to be needed
+                cudaMemset(gpuComplexImgs_Vector[i], 0,  imgSize * imgSize * numAxesPerStream[i] * sizeof(cufftComplex));
+                cudaMemset(gpuComplexImgs_Shifted_Vector[i], 0,  imgSize * imgSize * numAxesPerStream[i] * sizeof(cufftComplex));
+                cudaMemset(gpuCASImgs_Vector[i], 0, imgSize * imgSize * numAxesPerStream[i] * sizeof(float));                
 
                 
                 // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
@@ -486,19 +477,10 @@ void gpuForwardProject(
                     imgSize, gpuCoordAxes_Vector[i], numAxesPerStream[i],
                     maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
                 
-                // // // Allocated temporary device memory to hold the complex image type
-                // // // TO DO: allocate in the MultiGPUGridder class instead 
-                // // cufftComplex *gpuComplexImgs_Vector[i];
-                // // cudaMalloc(&gpuComplexImgs_Vector[i], sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream);
-                
-                // // // TO DO: This is probably not needed
-                // // cufftComplex *gpuComplexImgs_Shifted_Vector[i]; 
-                // // cudaMalloc(&gpuComplexImgs_Shifted_Vector[i], sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream);
-            
                 // Convert the CASImgs to complex cufft type
                 CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
                 
-                // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shit kernel)
+                // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
                 cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (gpuComplexImgs_Vector[i], gpuComplexImgs_Shifted_Vector[i], imgSize, numAxesPerStream[i]);
             
                 // Create a plan for taking the inverse of the CAS imgs
@@ -523,7 +505,7 @@ void gpuForwardProject(
                 // Inverse FFT
                 cufftExecC2C(inverseFFTPlan, (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], CUFFT_INVERSE);
                 
-                // FFTShift again (can't reuse the same input as the output for the FFT shit kernel)
+                // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
                 cufftShift_3D_slice_kernel <<< dimGrid, dimBlock , 0, stream[i]>>> (gpuComplexImgs_Shifted_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
             
                 // Convert from the complex images to the real (resued the gpuCASImgs_Vector[i] GPU array)
@@ -534,22 +516,26 @@ void gpuForwardProject(
                     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
                     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
                 
-                    cudaDeviceSynchronize();
+                // cudaDeviceSynchronize();
+
+                // cudaStreamSynchronize(stream[i]);
+
+                
+                // Update the number of coordinate axes which have already been assigned to a CUDA stream
+                processed_nAxes = processed_nAxes + numAxesPerStream[i];
 
             }
 
-            // Update the number of coordinate axes which have already been assigned to a CUDA stream
-            processed_nAxes = processed_nAxes + numAxesPerStream[i];
+
             
             std::cout << "processed_nAxes: " << processed_nAxes << '\n';
             std::cout << "Axes remaining: " << nAxes - processed_nAxes << '\n';
-
-            
-            cudaDeviceSynchronize();
+            // cudaStreamSynchronize(stream[i]);
+            // cudaDeviceSynchronize();
 
         } 
 
-          cudaDeviceSynchronize();
+        //   cudaDeviceSynchronize();
     }
 
     cudaDeviceSynchronize();

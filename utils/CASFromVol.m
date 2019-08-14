@@ -5,10 +5,10 @@ interpVol=zeros([interpBox.size interpBox.size interpBox.size],'single');
 interpVol(interpBox.origB:interpBox.origE,interpBox.origB:interpBox.origE,interpBox.origB:interpBox.origE)=vol;
 
 %Create kernel and precompensate
-% preComp=getPreComp(interpBox.size,kernelHWidth);
-% preComp=preComp';
-% interpVol=interpVol.*reshape(kron(preComp,kron(preComp,preComp)),...
-%                     interpBox.size,interpBox.size,interpBox.size);
+preComp=getPreComp(interpBox.size,kernelHWidth);
+preComp=preComp';
+interpVol=interpVol.*reshape(kron(preComp,kron(preComp,preComp)),...
+                    interpBox.size,interpBox.size,interpBox.size);
 
 
 

@@ -9,19 +9,19 @@ addpath('./bin') % The compiled mex file is stored in the bin folder
 
 disp("Resetting devices...")
 for i = 1:4
-reset(gpuDevice());
+    reset(gpuDevice(i));
 end
 
 %% Create a volume 
 % Initialize parameters
 tic
 
-nBatches = 2;
+nBatches = 4;
 nGPUs = 4;
-nStreams = 20;
+nStreams = 8;
 volSize = 64;
-n1_axes = 32;
-n2_axes = 100;
+n1_axes = 500;
+n2_axes = nBatches * nStreams;
 
 kernelHWidth = 2;
 
@@ -48,12 +48,12 @@ vol = single(img);
 % vol = padarray(vol,[floor(volSize/2) floor(volSize/2)],0,'pre');
 % vol = padarray(vol,[floor(volSize/2) floor(volSize/2)],0,'post');
 
-% padded_vol = zeros(size(vol) * 2);
-% 
-% padded_vol(size(vol,1)/2 : size(vol,1)*1.5-1, size(vol,2)/2 : size(vol,2)*1.5-1, size(vol,3)/2 : size(vol,3)*1.5-1) = vol;
-% 
-% vol = padded_vol;
-% size(vol)
+padded_vol = zeros(size(vol) * 2);
+
+padded_vol(size(vol,1)/2 : size(vol,1)*1.5-1, size(vol,2)/2 : size(vol,2)*1.5-1, size(vol,3)/2 : size(vol,3)*1.5-1) = vol;
+
+vol = padded_vol;
+size(vol)
 % imagesc(vol(:,:,1))
 
 
@@ -69,7 +69,7 @@ nCoordAxes = length(coordAxes)/9;
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
 tic
-% [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+[CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 toc
 
 disp("Volume size: " + num2str(volSize))
@@ -81,13 +81,13 @@ obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 % obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
-% obj.SetMaskRadius(single(5)); 
-obj.SetMaskRadius(single((size(vol,1)/2 - 3))); 
+obj.SetMaskRadius(single(5)); 
+% obj.SetMaskRadius(single((size(vol,1)/2 - 10))); 
 
 
 disp("SetVolume()...")
 tic
-obj.SetVolume(single(vol))
+obj.SetVolume(single(CASVol))
 toc
 
 disp("SetAxes()...")
@@ -131,7 +131,7 @@ for i = 1:size(InterpCASImgs,3)
    end
 end
 
-InterpCASImgs = InterpCASImgs(:,:,1:10);
+% InterpCASImgs = InterpCASImgs(:,:,1);
 easyMontage(InterpCASImgs,2);
 colormap gray
 
