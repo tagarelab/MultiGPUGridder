@@ -97,17 +97,16 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // Convert the given volume to a CAS volume
     // Steps are (1) pad with zeros, (2) run forward FFT using CUDA, (3) sum the real and imaginary components
     int array_size = gpuVolSize[0] * gpuVolSize[1] * gpuVolSize[2];
-    float * CAS_Vol;// = new float [array_size];
-    CAS_Vol = (float *) malloc(sizeof(float) * array_size);
+    float *CAS_Vol; // = new float [array_size];
+    CAS_Vol = (float *)malloc(sizeof(float) * array_size);
 
     std::cout << "ThreeD_ArrayToCASArray()..." << '\n';
 
     CAS_Vol = ThreeD_ArrayToCASArray(gpuVol, gpuVolSize);
     std::cout << "Done with ThreeD_ArrayToCASArray()..." << '\n';
 
-    float * Output_CAS_Vol;// = new float [array_size];
-    Output_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
-
+    float *Output_CAS_Vol; // = new float [array_size];
+    Output_CAS_Vol = (float *)malloc(sizeof(float) * array_size);
 
     // for (int x=0; x < array_size; x++)
     // {
@@ -118,30 +117,29 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // std::cout << "Output_CAS_Vol " <<  << "]: ";
     // for (int x=0; x < 10; x++)
     // {
-    //      std::cout << " "   <<  Output_CAS_Vol[y*gpuVolSize[0]+x];  
+    //      std::cout << " "   <<  Output_CAS_Vol[y*gpuVolSize[0]+x];
     // }
-
 
     // TEST
     std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
 
     // Show the first slice of the Output_CAS_Vol
-    // for (int x=0; x < gpuVolSize[0]; x++) // 
+    // for (int x=0; x < gpuVolSize[0]; x++) //
     // {
     //     std::cout << "Output_CAS_Vol[" << x << "]: ";
     //     for (int y=0; y < 1; y++)
     //     {
-    //         std::cout << " "   <<  Output_CAS_Vol[y*gpuVolSize[0]+x];                  
+    //         std::cout << " "   <<  Output_CAS_Vol[y*gpuVolSize[0]+x];
     //     }
     //     std::cout << '\n';
     // }
 
-    // for (int x=0; x < gpuVolSize[0]; x++) // 
+    // for (int x=0; x < gpuVolSize[0]; x++) //
     // {
     //     std::cout << "gpuVol[" << x << "]: ";
     //     for (int y=0; y < 1; y++)
     //     {
-    //         std::cout << " "   <<  gpuVol[y*gpuVolSize[0]+x];                  
+    //         std::cout << " "   <<  gpuVol[y*gpuVolSize[0]+x];
     //     }
     //     std::cout << '\n';
     // }
@@ -197,7 +195,6 @@ void MultiGPUGridder::ConvertVolToCASVol()
 {
     // Convert the volume in each GPU to a CASVol using CUDA kernels and cuFFT
 
-
     // Create a vector of GPU pointers to the volume on each GPU
     std::vector<float *> gpuVol_Vector;
 
@@ -207,19 +204,15 @@ void MultiGPUGridder::ConvertVolToCASVol()
         // Volume array
         gpuVol_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuVol_" + std::to_string(gpuDevice)));
     }
-    
+
     // Since the volume on all GPUs are the same, perform the conversion on one and then copy the result to the rest
     ThreeD_ArrayToCASArray(gpuVol_Vector[0], this->volSize);
 
     // Since the volume on all GPUs are the same, copy the result to the rest
-    for (int i=0; i<4; i++)
+    for (int i = 0; i < 4; i++)
     {
     }
-    
-
-
 }
-
 
 float *MultiGPUGridder::GetVolume()
 {
@@ -387,20 +380,21 @@ void MultiGPUGridder::Projection_Initilize()
     {
         int gpuDevice = i % this->numGPUs; // Use the remainder operator to split streams evenly between GPUs
 
+        // What is the array size of the output projection images?
+        int *gpuCASImgs_Size = new int[3];
+        gpuCASImgs_Size[0] = this->imgSize[0];
+        gpuCASImgs_Size[1] = this->imgSize[1];
+
+        // How many images will this stream process?
+        int nAxes = this->axesSize[0] / 9;
+        int nImgsPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
+        gpuCASImgs_Size[2] = std::max(nImgsPerStream, 2); // Must be at least two images (projections are sometimes missing if only 1 image is allocated)
+
         // Has the output array been allocated and defined already?
         // The name of the GPU pointer is gpuCASImgs_0 for GPU 0, gpuCASImgs_1 for GPU 1, etc.
         if (Mem_obj->GPUArrayAllocated("gpuCASImgs_" + std::to_string(i), gpuDevice) == false)
         {
             // We need to allocate the gpuCASImgs array on this GPU
-            int *gpuCASImgs_Size = new int[3];
-            gpuCASImgs_Size[0] = this->imgSize[0];
-            gpuCASImgs_Size[1] = this->imgSize[1];
-
-            // How many images will this stream process?
-            int nAxes = this->axesSize[0] / 9;
-            int nImgsPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
-            gpuCASImgs_Size[2] = std::max(nImgsPerStream, 2); // Must be at least two images (projections are sometimes missing if only 1 image is allocated)
-
             Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(i), "float", gpuCASImgs_Size, gpuDevice);
         }
 
@@ -429,21 +423,16 @@ void MultiGPUGridder::Projection_Initilize()
         // The name of the GPU pointer is gpuComplexImgs_0 for GPU 0, gpuComplexImgs_1 for GPU 1, etc.
         if (Mem_obj->GPUArrayAllocated("gpuComplexImgs_" + std::to_string(i), gpuDevice) == false)
         {
-            // Allocate the gpuCoordAxes on the current gpuDevice
-            int *gpuCoordAxes_Size = new int[3];
+            // Allocate the ComplexImgs array on the current gpuDevice
+            // Mem_obj->CUDA_alloc("gpuComplexImgs_" + std::to_string(i), "cufftComplex", gpuCASImgs_Size, gpuDevice);
+        }
 
-            // Each GPU only needs to hold a fraction of the total axes vector (based on number of streams and batches)
-            int nAxes = this->axesSize[0] / 9;
-
-            // Round up to the number of axes per stream and then multiply by 9 to get the length
-            int nAxesPerStream = ceil((double)nAxes / (double)this->nStreams / (double)this->nBatches);
-            nAxesPerStream = std::max(nAxesPerStream, 1); // Must be at least one axes
-
-            gpuCoordAxes_Size[0] = nAxesPerStream * 9;
-            gpuCoordAxes_Size[1] = this->axesSize[1];
-            gpuCoordAxes_Size[2] = this->axesSize[2];
-
-            Mem_obj->CUDA_alloc("gpuComplexImgs_" + std::to_string(i), "float", gpuCoordAxes_Size, gpuDevice);
+        // Has the ComplexImgs_Shifted array been allocated and defined?
+        // The name of the GPU pointer is gpuComplexImgs_Shifted_0 for GPU 0, gpuComplexImgs_Shifted_1 for GPU 1, etc.
+        if (Mem_obj->GPUArrayAllocated("gpuComplexImgs_Shifted_" + std::to_string(i), gpuDevice) == false)
+        {
+            // Allocate the ComplexImgs_Shifted array on the current gpuDevice
+            // Mem_obj->CUDA_alloc("gpuComplexImgs_Shifted_" + std::to_string(i), "cufftComplex", gpuCASImgs_Size, gpuDevice);
         }
     }
 
@@ -481,6 +470,8 @@ void MultiGPUGridder::Forward_Project()
     std::vector<float *> gpuCASImgs_Vector;
     std::vector<float *> ker_bessel_Vector;
     std::vector<float *> gpuCoordAxes_Vector;
+    std::vector<cufftComplex *> gpuComplexImgs_Vector;
+    std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector;
 
     // Find and add the corresponding GPU pointer to each vector of pointers
     // NOTE: Only need one of these arrays per GPU
@@ -502,6 +493,12 @@ void MultiGPUGridder::Forward_Project()
 
         // Input coordinate axes array
         gpuCoordAxes_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCoordAxes_" + std::to_string(i)));
+
+        // Array to hold the complex version of the CASImgs (intermediate step when doing the FFT)
+        // gpuComplexImgs_Vector.push_back(this->Mem_obj->ReturnCUDAComplexPtr("gpuComplexImgs_" + std::to_string(i)));
+
+        // Array to hold the FFT shifted complex version of the CASImgs (intermediate step when doing the FFT)
+        // gpuComplexImgs_Shifted_Vector.push_back(this->Mem_obj->ReturnCUDAComplexPtr("gpuComplexImgs_Shifted_" + std::to_string(i)));
     }
 
     // Get the pointers to the pinned CPU input / output arrays
@@ -518,6 +515,7 @@ void MultiGPUGridder::Forward_Project()
     // Before launching the kernel, first verify that all parameters and inputs are valid
     int parameter_check = ParameterChecking(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector,                     // Vector of GPU array pointers
+        gpuComplexImgs_Vector, gpuComplexImgs_Shifted_Vector,                                         // Vector of GPU array pointers
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned,                                                     // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches                                  // Streaming parameters)
@@ -534,6 +532,7 @@ void MultiGPUGridder::Forward_Project()
     // Which will step up and run the CUDA streams and kernel
     gpuForwardProject(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector,                     // Vector of GPU arrays
+        gpuComplexImgs_Vector, gpuComplexImgs_Shifted_Vector,                                         // Vector of GPU array pointers
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned,                                                     // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel parameters
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches                                  // Streaming parameters
@@ -554,6 +553,8 @@ void MultiGPUGridder::Back_Project()
     std::vector<float *> gpuCASImgs_Vector;
     std::vector<float *> ker_bessel_Vector;
     std::vector<float *> gpuCoordAxes_Vector;
+    std::vector<cufftComplex *> gpuComplexImgs_Vector;
+    std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector;
 
     // Find and add the corresponding GPU pointer to each vector of pointers
     // NOTE: Only need one of these GPU arrays per GPU
@@ -575,6 +576,13 @@ void MultiGPUGridder::Back_Project()
 
         // Input coordinate axes array
         gpuCoordAxes_Vector.push_back(this->Mem_obj->ReturnCUDAFloatPtr("gpuCoordAxes_" + std::to_string(i)));
+
+        // Array to hold the complex version of the CASImgs (intermediate step when doing the FFT)
+        gpuComplexImgs_Vector.push_back(this->Mem_obj->ReturnCUDAComplexPtr("gpuComplexImgs_" + std::to_string(i)));
+
+        // Array to hold the FFT shifted complex version of the CASImgs (intermediate step when doing the FFT)
+        gpuComplexImgs_Shifted_Vector.push_back(this->Mem_obj->ReturnCUDAComplexPtr("gpuComplexImgs_Shifted_" + std::to_string(i)));
+
     }
 
     // Get the pointers to the CPU input / output arrays
@@ -591,6 +599,7 @@ void MultiGPUGridder::Back_Project()
     // Before launching the kernel, first verify that all parameters and inputs are valid
     int parameter_check = ParameterChecking(
         gpuVol_Vector, gpuCASImgs_Vector, gpuCoordAxes_Vector, ker_bessel_Vector,                     // Vector of GPU array pointers
+        gpuComplexImgs_Vector, gpuComplexImgs_Shifted_Vector,                                         // Vector of GPU array pointers
         CASImgs_CPU_Pinned, coordAxes_CPU_Pinned,                                                     // Pointers to pinned CPU arrays for input / output
         this->volSize[0], this->imgSize[0], nAxes, *this->maskRadius, this->kerSize, this->kerHWidth, // kernel Parameters and constants
         numGPUs, this->nStreams, gridSize, blockSize, this->nBatches                                  // Streaming parameters)
@@ -618,6 +627,8 @@ void MultiGPUGridder::Back_Project()
 int MultiGPUGridder::ParameterChecking(
     std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,          // Vector of GPU array pointers
     std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,    // Vector of GPU array pointers
+    std::vector<cufftComplex *> gpuComplexImgs_Vector,                                   // Vector of GPU array pointers
+    std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
     float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,                              // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches                 // Streaming parameters
@@ -703,7 +714,8 @@ int MultiGPUGridder::ParameterChecking(
     }
 
     // Must be at least one pointer to the GPU array
-    if (gpuVol_Vector.size() <= 0 || gpuCASImgs_Vector.size() <= 0 || gpuCoordAxes_Vector.size() <= 0 || ker_bessel_Vector.size() <= 0)
+    if (gpuVol_Vector.size() <= 0 || gpuCASImgs_Vector.size() <= 0 || gpuCoordAxes_Vector.size() <= 0 ||
+     ker_bessel_Vector.size() <= 0 || gpuComplexImgs_Vector.size() <=0 || gpuComplexImgs_Shifted_Vector.size() <= 0)
     {
         std::cerr << "gpuForwardProject(): Input GPU pointer vectors are empty. Has SetVolume() and SetAxes() been run?" << '\n';
         return -1;

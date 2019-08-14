@@ -45,6 +45,8 @@ public:
 
     float *ReturnCUDAFloatPtr(std::string varNameString);
 
+    cufftComplex* ReturnCUDAComplexPtr(std::string varNameString);
+
     void mem_alloc(std::string varNameString, std::string dataType, int *dataSize);
 
     void mem_Copy(std::string varNameString, float *New_Array);

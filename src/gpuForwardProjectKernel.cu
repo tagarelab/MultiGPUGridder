@@ -444,14 +444,17 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
 
 }
 
+
 void gpuForwardProject(
-    std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
-    std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
-    float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
+    std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,          // Vector of GPU array pointers
+    std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,    // Vector of GPU array pointers
+    std::vector<cufftComplex *> gpuComplexImgs_Vector,                                   // Vector of GPU array pointers
+    std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
+    float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,                              // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches // Streaming parameters
+    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches                 // Streaming parameters
 )
-{
+{ 
     std::cout << "Running gpuForwardProject()..." << '\n';
 
     // Define CUDA kernel dimensions
@@ -524,20 +527,20 @@ void gpuForwardProject(
                 imgSize, gpuCoordAxes_Vector[i], nAxes_Stream,
                 maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
             
-            // Allocated temporary device memory to hold the complex image type
-            // TO DO: allocate in the MultiGPUGridder class instead 
-            cufftComplex *d_complex_imgs;
-            cudaMalloc(&d_complex_imgs, sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream);
-
-            // TO DO: This is probably not needed
-            cufftComplex *d_complex_imgs_shifted; 
-            cudaMalloc(&d_complex_imgs_shifted, sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream);
+            // // Allocated temporary device memory to hold the complex image type
+            // // TO DO: allocate in the MultiGPUGridder class instead 
+            // cufftComplex *gpuComplexImgs_Vector[i];
+            // cudaMalloc(&gpuComplexImgs_Vector[i], sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream);
+            
+            // // TO DO: This is probably not needed
+            // cufftComplex *gpuComplexImgs_Shifted_Vector[i]; 
+            // cudaMalloc(&gpuComplexImgs_Shifted_Vector[i], sizeof(cufftComplex) * imgSize * imgSize * nAxes_Stream);
 
             // Convert the CASImgs to complex cufft type
-            CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], d_complex_imgs, imgSize, nAxes_Stream);
+            CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], gpuComplexImgs_Vector[i], imgSize, nAxes_Stream);
             
-            // Run FFTShift on d_complex_imgs (can't reuse the same input as the output for the FFT shit kernel)
-            cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (d_complex_imgs, d_complex_imgs_shifted, imgSize, nAxes_Stream);
+            // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shit kernel)
+            cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (gpuComplexImgs_Vector[i], gpuComplexImgs_Shifted_Vector[i], imgSize, nAxes_Stream);
 
             // Create a plan for taking the inverse of the CAS imgs
             cufftHandle inverseFFTPlan;   
@@ -559,13 +562,13 @@ void gpuForwardProject(
             cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
 
             // Inverse FFT
-            cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_complex_imgs_shifted, (cufftComplex *) d_complex_imgs_shifted, CUFFT_INVERSE);
+            cufftExecC2C(inverseFFTPlan, (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], CUFFT_INVERSE);
 
             // FFTShift again (can't reuse the same input as the output for the FFT shit kernel)
-            cufftShift_3D_slice_kernel <<< dimGrid, dimBlock , 0, stream[i]>>> (d_complex_imgs_shifted, d_complex_imgs, imgSize, nAxes_Stream);
+            cufftShift_3D_slice_kernel <<< dimGrid, dimBlock , 0, stream[i]>>> (gpuComplexImgs_Shifted_Vector[i], gpuComplexImgs_Vector[i], imgSize, nAxes_Stream);
 
             // Convert from the complex images to the real (resued the gpuCASImgs_Vector[i] GPU array)
-            ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(d_complex_imgs, gpuCASImgs_Vector[i], imgSize, nAxes_Stream);
+            ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuComplexImgs_Vector[i], gpuCASImgs_Vector[i], imgSize, nAxes_Stream);
 
             // Lastly, copy the resulting gpuCASImgs to the host pinned memory (CPU)
             cudaMemcpyAsync(

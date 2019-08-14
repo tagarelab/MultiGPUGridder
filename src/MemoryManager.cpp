@@ -65,6 +65,7 @@ int MemoryManager::FindArrayIndex(std::string varNameString, std::vector<std::st
     // Check to make sure we found one
     if (arr_idx >= NameVector.size() || arr_idx == -1) // String name wasn't found in the vector
     {
+        //std::cerr << "Failed to locate variable. " << varNameString << " Please check spelling." << '\n';
         return -1;
     }
 
@@ -103,6 +104,23 @@ float *MemoryManager::ReturnCUDAFloatPtr(std::string varNameString)
 
     // Return the CUDA memory pointer
     return CUDA_arr_ptrs[arr_idx].f;
+}
+
+cufftComplex *MemoryManager::ReturnCUDAComplexPtr(std::string varNameString)
+{
+    // Given the name of a variable, return the memory pointer (supports only CUDA cufftComplex pointers)
+
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name
+    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
+
+    if (arr_idx < 0)
+    {
+        std::cerr << "Failed to locate variable. Please check spelling." << '\n';
+        return NULL; // Return null pointer since no pointer was found
+    }
+
+    // Return the CUDA memory pointer
+    return CUDA_arr_ptrs[arr_idx].c;
 }
 
 void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
@@ -407,7 +425,7 @@ void MemoryManager::CUDA_Free(std::string varNameString)
 
     if (arr_idx < 0)
     {
-        std::cerr << "Failed to locate variable. Please check spelling." << '\n';
+        std::cerr << "Failed to locate variable." << varNameString << " Please check spelling." << '\n';
         return;
     }
 
