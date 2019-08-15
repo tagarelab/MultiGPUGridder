@@ -9,7 +9,6 @@ preComp=getPreComp(interpBox.size,kernelHWidth);
 preComp=preComp';
 interpVol=interpVol.*reshape(kron(preComp,kron(preComp,preComp)),...
                     interpBox.size,interpBox.size,interpBox.size);
-
 %Set fftw plan and transform
 fftw('swisdom',fftinfo);
 %tic;
@@ -18,8 +17,7 @@ interpFft=fftshift(fftn(fftshift(interpVol)));
 interpCAS=ToCAS(interpFft);
 clear interpVol interpFft
 
-
+% volCAS=interpCAS;
 %Pad it so interpolaton is not a problem
 volCAS=zeros(CASBox.size*[1 1 1],'single');
 volCAS(CASBox.interpB:CASBox.interpE,CASBox.interpB:CASBox.interpE,CASBox.interpB:CASBox.interpE)=interpCAS;
-

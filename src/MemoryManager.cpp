@@ -65,6 +65,7 @@ int MemoryManager::FindArrayIndex(std::string varNameString, std::vector<std::st
     // Check to make sure we found one
     if (arr_idx >= NameVector.size() || arr_idx == -1) // String name wasn't found in the vector
     {
+        //std::cerr << "Failed to locate variable. " << varNameString << " Please check spelling." << '\n';
         return -1;
     }
 
@@ -102,7 +103,24 @@ float *MemoryManager::ReturnCUDAFloatPtr(std::string varNameString)
     }
 
     // Return the CUDA memory pointer
-    return CUDA_arr_ptrs[arr_idx];
+    return CUDA_arr_ptrs[arr_idx].f;
+}
+
+cufftComplex *MemoryManager::ReturnCUDAComplexPtr(std::string varNameString)
+{
+    // Given the name of a variable, return the memory pointer (supports only CUDA cufftComplex pointers)
+
+    // Locate the index of the cpu_arr_names vector which correspondes to the given variable name
+    int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
+
+    if (arr_idx < 0)
+    {
+        std::cerr << "Failed to locate variable. Please check spelling." << '\n';
+        return NULL; // Return null pointer since no pointer was found
+    }
+
+    // Return the CUDA memory pointer
+    return CUDA_arr_ptrs[arr_idx].c;
 }
 
 void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
@@ -130,9 +148,9 @@ void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, i
     {
         // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
         unsigned long long *dataSizeLong = new unsigned long long[3];
-        dataSizeLong[0] = (unsigned long long)dataSize[0];
-        dataSizeLong[1] = (unsigned long long)dataSize[1];
-        dataSizeLong[2] = (unsigned long long)dataSize[2];
+        dataSizeLong[0] = (unsigned long long)new_dataSize_ptr[0];
+        dataSizeLong[1] = (unsigned long long)new_dataSize_ptr[1];
+        dataSizeLong[2] = (unsigned long long)new_dataSize_ptr[2];
 
         float *new_ptr = new float[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
 
@@ -330,6 +348,9 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
     cudaMemGetInfo(&mem_free_0, &mem_tot_0);
     // std::cout << "Free memory before copy: " << mem_free_0 << " Device: " << GPU_Device << std::endl;
 
+    // Union of the pointer types
+    Ptr_Types n;
+
     // Allocate the memory and save the pointer to the corresponding vector
     if (dataType == "float")
     {
@@ -346,12 +367,31 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
         cudaMalloc(&devPtr, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
 
         // Save the new pointer to the allocated CUDA GPU array
-        CUDA_arr_ptrs.push_back(devPtr);
+        n.f = devPtr;
+    }
+    else if (dataType == "cufftComplex")
+    {
+        // Is there enough available memory on the device to allocate this array?
+        if (mem_free_0 < sizeof(cufftComplex) * (dataSize[0] * dataSize[1] * dataSize[2]))
+        {
+            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
+            return;
+        }
+
+        cufftComplex *devPtr = new cufftComplex[dataSize[0] * dataSize[1] * dataSize[2]]; // Multiply the X,Y,Z dimensions of the array
+
+        cudaMalloc(&devPtr, sizeof(cufftComplex) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
+
+        // Save the new pointer to the allocated CUDA GPU array
+        n.c = devPtr;
     }
     else
     {
         std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
     }
+
+    // Save the union of pointers to the vector of CUDA pointers
+    CUDA_arr_ptrs.push_back(n);
 }
 
 void MemoryManager::CUDA_Free(std::string varNameString)
@@ -383,7 +423,7 @@ void MemoryManager::CUDA_Free(std::string varNameString)
 
     if (arr_idx < 0)
     {
-        std::cerr << "Failed to locate variable. Please check spelling." << '\n';
+        std::cerr << "Failed to locate variable." << varNameString << " Please check spelling." << '\n';
         return;
     }
 
@@ -393,7 +433,11 @@ void MemoryManager::CUDA_Free(std::string varNameString)
     // Delete the array from the GPU memory
     if (CUDA_arr_types[arr_idx] == "float")
     {
-        cudaFree(CUDA_arr_ptrs[arr_idx]);
+        cudaFree(CUDA_arr_ptrs[arr_idx].f);
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        cudaFree(CUDA_arr_ptrs[arr_idx].c);
     }
     else
     {
@@ -462,7 +506,12 @@ void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
     if (CUDA_arr_types[arr_idx] == "float")
     {
         // Sends data to device asynchronously
-        cudaMemcpy(CUDA_arr_ptrs[arr_idx], New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice);
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Sends data to device asynchronously
+        cudaMemcpy(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(cufftComplex), cudaMemcpyHostToDevice);
     }
     else
     {
@@ -496,7 +545,12 @@ void MemoryManager::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, 
     if (CUDA_arr_types[arr_idx] == "float")
     {
         // Sends data to device asynchronously
-        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx], New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
+        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].f, New_Array, dim_size * sizeof(float), cudaMemcpyHostToDevice, stream);
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Sends data to device asynchronously
+        cudaMemcpyAsync(CUDA_arr_ptrs[arr_idx].c, New_Array, dim_size * sizeof(cufftComplex), cudaMemcpyHostToDevice, stream);
     }
     else
     {
@@ -559,15 +613,20 @@ float *MemoryManager::CUDA_Return(std::string varNameString)
     // Set the GPU device to the device which contains the CUDA array
     cudaSetDevice(CUDA_arr_GPU_Assignment[arr_idx]);
 
+    int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
+
     if (CUDA_arr_types[arr_idx] == "float")
     {
         // Copy from the GPU to the CPU
-        int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
-
         float *CPU_Array = new float[dim_size];
-        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx], dim_size * sizeof(float), cudaMemcpyDeviceToHost);
-
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
         return CPU_Array;
+    }
+    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
+    {
+        // Copy from the GPU to the CPU
+        cufftComplex *CPU_Array = new cufftComplex[dim_size];
+        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].c, dim_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost);
     }
     else
     {
