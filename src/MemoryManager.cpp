@@ -148,9 +148,9 @@ void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, i
     {
         // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
         unsigned long long *dataSizeLong = new unsigned long long[3];
-        dataSizeLong[0] = (unsigned long long)dataSize[0];
-        dataSizeLong[1] = (unsigned long long)dataSize[1];
-        dataSizeLong[2] = (unsigned long long)dataSize[2];
+        dataSizeLong[0] = (unsigned long long)new_dataSize_ptr[0];
+        dataSizeLong[1] = (unsigned long long)new_dataSize_ptr[1];
+        dataSizeLong[2] = (unsigned long long)new_dataSize_ptr[2];
 
         float *new_ptr = new float[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
 
@@ -620,7 +620,6 @@ float *MemoryManager::CUDA_Return(std::string varNameString)
         // Copy from the GPU to the CPU
         float *CPU_Array = new float[dim_size];
         cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
-
         return CPU_Array;
     }
     else if (CUDA_arr_types[arr_idx] == "cufftComplex")

@@ -163,6 +163,7 @@ __global__ void ComplexToReal(cufftComplex* ComplexImg, float* RealImg, int imgS
 
 }
 
+
 __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
     // CUDA kernel for converting the CASImgs to imgs
@@ -295,19 +296,6 @@ __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* ou
 }
 
 
-void TwoD_CASToComplex()
-{
-
-}
-
-void TwoD_ComplexToCAS()
-{
-
-}
-
-
-
-
 float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
 {
     // Convert a CUDA array to CAS array
@@ -356,7 +344,6 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     // Apply a 3D FFT Shift
     cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, volSize[0], volSize[0]);
             
-
     // Execute the forward FFT on the 3D array
     cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
 
@@ -430,8 +417,6 @@ void gpuForwardProject(
             if (processed_nAxes + numAxesPerStream[i] >= nAxes) 
             {
                 numAxesPerStream[i] = min(numAxesPerStream[i], nAxes - processed_nAxes);
-                // numAxesPerStream[i] = 0;
-                // continue; // Something bad has happened so return for now
             }
 
             // Is there at least one coordinate axes to process for this stream?
@@ -516,11 +501,11 @@ void gpuForwardProject(
                     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
                     gpuCASImgs_Vector[i], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
                 
-                // cudaDeviceSynchronize();
+                cudaDeviceSynchronize();
+				
+                cudaStreamSynchronize(stream[i]);
 
-                // cudaStreamSynchronize(stream[i]);
 
-                
                 // Update the number of coordinate axes which have already been assigned to a CUDA stream
                 processed_nAxes = processed_nAxes + numAxesPerStream[i];
 
@@ -531,11 +516,11 @@ void gpuForwardProject(
             std::cout << "processed_nAxes: " << processed_nAxes << '\n';
             std::cout << "Axes remaining: " << nAxes - processed_nAxes << '\n';
             // cudaStreamSynchronize(stream[i]);
-            // cudaDeviceSynchronize();
+            //cudaDeviceSynchronize();
 
         } 
 
-        //   cudaDeviceSynchronize();
+           //cudaDeviceSynchronize();
     }
 
     cudaDeviceSynchronize();

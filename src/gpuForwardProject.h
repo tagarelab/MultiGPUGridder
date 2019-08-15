@@ -11,7 +11,7 @@
 
 // NVTX labeling tools (for the nvidia profiling)
 //#include <nvToolsExt.h>
-#include <cuda_profiler_api.h>
+//#include <cuda_profiler_api.h>
 
 #ifndef __GPUFORWARDPROJECT_H__
 #define __GPUFORWARDPROJECT_H__
@@ -21,6 +21,7 @@ extern void TwoD_CASToComplex();
 
 // Function to convert a GPU array to a CASArray using cuFFT
 extern float *ThreeD_ArrayToCASArray(float *gpuVol, int *volSize);
+
 
 // Function for creating the CUDA streams and launch the forward projection kernel
 // extern void gpuForwardProject(

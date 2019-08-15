@@ -2,8 +2,12 @@ import ctypes
 import numpy as np
 from matplotlib import pyplot as plt # For plotting resulting images
 
-# lib = ctypes.cdll.LoadLibrary("../bin/Release/MultiGPUGridder.dll") 
-lib = ctypes.cdll.LoadLibrary("../bin/libMultiGPUGridder.so") 
+#lib = ctypes.cdll.LoadLibrary("../bin/Release/MultiGPUGridder.dll") 
+lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Debug/MultiGPUGridder.dll") 
+
+#clear & python C:\GitRepositories\MultiGPUGridder\src\src\MultiGPUGridder_Python.py
+
+#lib = ctypes.cdll.LoadLibrary("../bin/libMultiGPUGridder.so") 
 
 class MultiGPUGridder(object):
     def __init__(self):
@@ -95,59 +99,61 @@ class MultiGPUGridder(object):
 # Create the initial parameters and test data
 print("Creating input volume...")
 
-py_Vol = np.zeros((128,128,128)) #[1, 2, 3, 4]
+volSize = 32
 
-for i in range(0,128):
-    for j in range(0,128):
-        for k in range(0,128):
-            # Distance from the center of the volume (i.e. fuzzy sphere)
-            py_Vol[i][j][k] = np.sqrt((i-128/2)*(i-128/2) + (j-128/2)*(j-128/2) +(k-128/2)*(k-128/2))
+py_Vol = np.zeros((volSize,volSize,volSize)) #[1, 2, 3, 4]
+
+for i in range(0,volSize):
+    for j in range(0,volSize):
+        for k in range(0,volSize):
+
+            if (i > volSize / 4 and i < volSize *3/4 and j > volSize / 4 and j < volSize *3/4 and k > volSize / 4 and k < volSize * 3/4):
+                # Distance from the center of the volume (i.e. fuzzy sphere)
+                py_Vol[i][j][k] = i*j*k #np.sqrt((i-volSize/2)*(i-volSize/2) + (j-volSize/2)*(j-volSize/2) +(k-volSize/2)*(k-volSize/2))
 
 
 # Take the FFT of the volume
 print("Taking fourier transform...")
-py_Vol = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(py_Vol)))
+#py_Vol = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(py_Vol)))
 
 # Combine the real and imaginary components (i.e. CAS images)
-py_Vol = np.real(py_Vol) + np.imag(py_Vol)
+#py_Vol = np.real(py_Vol) + np.imag(py_Vol)
 
 float_Vol = (ctypes.c_float * len(py_Vol.flatten()))(*py_Vol.flatten())
 
-py_VolSize = [128, 128, 128]
+py_VolSize = [volSize, volSize, volSize]
 int_VolSize = (ctypes.c_int * len(py_VolSize))(*py_VolSize)
 
-py_CoordAxes = [1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1]
+nAxes = 60;
+
+py_CoordAxes = []
+
+for i in range(0, nAxes):
+    py_CoordAxes = py_CoordAxes + [1,0,0,0,1,0,0,0,1]
+
 float_CoordAxes = (ctypes.c_float * len(py_CoordAxes))(*py_CoordAxes)
 
-py_AxesSize = [90,1,1]
+py_AxesSize = [nAxes * 9, 1, 1]
 int_AxesSize = (ctypes.c_int * len(py_AxesSize))(*py_AxesSize)
 
-py_ImgSize = [128,128,128]
+py_ImgSize = [volSize,volSize,volSize]
 int_ImgSize = (ctypes.c_int * len(py_ImgSize))(*py_ImgSize)
 
 
 # Create an instance of the multi GPU gridder object and run the forward projection
 gridder=MultiGPUGridder()
 gridder.SetNumberGPUs(1)
-gridder.SetNumberStreams(4)
+gridder.SetNumberStreams(2)
 gridder.SetNumberBatches(1)
 gridder.SetAxes(float_CoordAxes, int_AxesSize)
 gridder.SetVolume(float_Vol, int_VolSize)
 gridder.SetImgSize(int_ImgSize)
-gridder.SetMaskRadius(ctypes.c_float(128/2 - 1)) 
+gridder.SetMaskRadius(ctypes.c_float(12))  # volSize/2 - 1
 gridder.Forward_Project()
 outputImgs = gridder.GetImages()
 
-
-
-
-
 # Convert the CASImgs output to a numpy array
-outputImgs_numpy_arr = np.ctypeslib.as_array((ctypes.c_float * 128 * 128 * 10).from_address(ctypes.addressof(outputImgs.contents)))
-
-# Take the inverse FFT of the first projection (i.. CASImgs)
-print("Taking fourier transform...")
-example_CAS_Img = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.fftshift(outputImgs_numpy_arr[:][:][0]))))
+outputImgs_numpy_arr = np.ctypeslib.as_array((ctypes.c_float * volSize * volSize * nAxes).from_address(ctypes.addressof(outputImgs.contents)))
 
 # Plot the forward projections
 nrows = 2
@@ -157,11 +163,43 @@ for i in range(0,10):
     subPlot = plt.subplot(nrows, ncols, i+1)
     subPlot.title.set_text('Projection ' + str(i+1))
 
-    example_CAS_Img = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.fftshift(outputImgs_numpy_arr[:][:][i]))))
+#    example_CAS_Img = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.fftshift(outputImgs_numpy_arr[:][:][i]))))
+    example_CAS_Img = np.real(outputImgs_numpy_arr[:][:][i])
+
 
     plt.imshow(example_CAS_Img, interpolation='nearest', cmap='gray') #, vmin=0, vmax = 3)
 
 
 
-
 plt.show()
+
+gridder.ResetVolume()
+
+gridder.SetImages(outputImgs)
+
+gridder.Back_Project()
+
+outputVol = gridder.GetVolume()
+
+
+# Convert the CASImgs output to a numpy array
+outputVol_numpy_arr = np.ctypeslib.as_array((ctypes.c_float * volSize * volSize * volSize).from_address(ctypes.addressof(outputVol.contents)))
+
+# Plot the back projections
+nrows = 2
+ncols = 5
+
+for i in range(0,10):
+    subPlot = plt.subplot(nrows, ncols, i+1)
+    subPlot.title.set_text('Back Projection ' + str(i+1))
+
+    example_CAS_Img = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.fftshift(outputVol_numpy_arr[:][:][i]))))
+    #example_CAS_Img = np.real(outputVol_numpy_arr[:][:][i])
+
+
+    plt.imshow(example_CAS_Img,  cmap='gray') #, vmin=0, vmax = 3)
+
+    
+plt.show()
+
+print("Done!")

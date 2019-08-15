@@ -19,7 +19,7 @@
 #include <cuda.h>
 
 // NVTX labeling tools (for the nvidia profiling)
-#include <nvToolsExt.h>
+//#include <nvToolsExt.h>
 #include <cuda_profiler_api.h>
 
 class MultiGPUGridder
