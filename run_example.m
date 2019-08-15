@@ -8,9 +8,9 @@ addpath('./bin') % The compiled mex file is stored in the bin folder
 
 
 disp("Resetting devices...")
-for i = 1:4
-    reset(gpuDevice(i));
-end
+% for i = 1:4
+    reset(gpuDevice());
+% end
 
 %% Create a volume 
 % Initialize parameters
@@ -19,13 +19,13 @@ tic
 nBatches = 4;
 nGPUs = 4;
 nStreams = 8;
-volSize = 64;
-n1_axes = 500;
+volSize = 128;
+n1_axes = 310;
 n2_axes = nBatches * nStreams;
 
 kernelHWidth = 2;
 
-interpFactor = 1.0;
+interpFactor = 2.0;
 
 origSize   = volSize;
 volCenter  = volSize/2  + 1;
@@ -69,7 +69,7 @@ nCoordAxes = length(coordAxes)/9;
 % interpBoc and fftinfo are needed for plotting the results
 disp("MATLAB Vol_Preprocessing()...")
 tic
-[CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
+% [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, interpFactor);
 toc
 
 disp("Volume size: " + num2str(volSize))
@@ -81,20 +81,23 @@ obj.SetNumberBatches(nBatches);
 obj.SetNumberGPUs(nGPUs);
 obj.SetNumberStreams(nStreams);
 % obj.SetMaskRadius(single((size(vol,1) * interpFactor)/2 - 1)); 
-obj.SetMaskRadius(single(5)); 
-% obj.SetMaskRadius(single((size(vol,1)/2 - 10))); 
+% obj.SetMaskRadius(single(5)); 
+obj.SetMaskRadius(single((size(vol,1)/2 - 10))); 
 
 
 disp("SetVolume()...")
 tic
-obj.SetVolume(single(CASVol))
+obj.SetVolume(single(vol))
 toc
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)
 
 disp("SetImgSize()...")
-obj.SetImgSize(int32([size(vol,1) * interpFactor, size(vol,1) * interpFactor,nCoordAxes]))
+obj.SetImgSize(int32([size(vol,1), size(vol,1),nCoordAxes]))
+
+% This is the size of the non-zero padded projection images
+% obj.SetImgSize(int32([size(vol,1)/interpFactor, size(vol,1)/interpFactor,nCoordAxes]))
 
 
 
@@ -124,14 +127,14 @@ size(InterpCASImgs)
 max(InterpCASImgs(:))
 
 % Check to see if all the projections are there
-for i = 1:size(InterpCASImgs,3)
-    temp = InterpCASImgs(:,:,i);
-   if (max(temp(:)) <= 0)
-       disp("No projection for slice " + num2str(i))
-   end
-end
+% for i = 1:size(InterpCASImgs,3)
+%     temp = InterpCASImgs(:,:,i);
+%    if (max(temp(:)) <= 0)
+%        disp("No projection for slice " + num2str(i))
+%    end
+% end
 
-% InterpCASImgs = InterpCASImgs(:,:,1);
+InterpCASImgs = InterpCASImgs(:,:,1);
 easyMontage(InterpCASImgs,2);
 colormap gray
 

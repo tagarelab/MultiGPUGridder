@@ -476,6 +476,7 @@ void MultiGPUGridder::Projection_Initilize()
             // Allocate the ComplexImgs_Shifted array on the current gpuDevice
             Mem_obj->CUDA_alloc("gpuComplexImgs_Shifted_" + std::to_string(i), "cufftComplex", gpuCASImgs_Size, gpuDevice);
         }
+
     }
 
     // One copy of the Kaiser Bessel look up table is needed for each GPU

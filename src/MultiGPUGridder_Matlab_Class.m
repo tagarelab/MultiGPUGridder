@@ -17,7 +17,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexFunctionWrapper('SetAxes', this.objectHandle, varargin{:});
         end
         %% SetVolume - Set GPU volume
-        function varargout = SetVolume(this, varargin)
+        function varargout = setVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, varargin{:});
         end
         %% GetVolume - Get the summed volume from all of the GPUs
@@ -105,7 +105,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexFunctionWrapper('Projection_Initilize', this.objectHandle, varargin{:});
         end
         %% Forward_Project - Run the forward projection kernel
-        function varargout = Forward_Project(this, varargin)
+        function varargout = forwardProject(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('Forward_Project', this.objectHandle, varargin{:});
         end
         %% Back_Project - Run the back projection kernel
