@@ -102,7 +102,7 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
 
     std::cout << "ThreeD_ArrayToCASArray()..." << '\n';
 
-    CAS_Vol = ThreeD_ArrayToCASArray(gpuVol, gpuVolSize);
+    // CAS_Vol = ThreeD_ArrayToCASArray(gpuVol, gpuVolSize);
     std::cout << "Done with ThreeD_ArrayToCASArray()..." << '\n';
 
     float *Output_CAS_Vol; // = new float [array_size];
@@ -121,8 +121,8 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // }
 
     // TEST
-    std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
-    // std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
+    std::memcpy(Output_CAS_Vol, gpuVol, sizeof(float) * array_size);
+//    std::memcpy(Output_CAS_Vol, CAS_Vol, sizeof(float) * array_size);
 
     // Show the first slice of the Output_CAS_Vol
     // for (int x=0; x < gpuVolSize[0]; x++) //
@@ -183,7 +183,7 @@ void MultiGPUGridder::SetVolume(float *gpuVol, int *gpuVolSize)
     // Unpin gpuVol to host memory (to free pinned memory on the RAM)
     cudaHostUnregister(Output_CAS_Vol);
 
-    std::free(Output_CAS_Vol);
+    // std::free(gpuVol);
 
     // Save the volume size
     this->volSize = new int(*gpuVolSize);
@@ -358,6 +358,8 @@ void MultiGPUGridder::SetMaskRadius(float *maskRadius)
     // Set the maskRadius parameter (used in the forward and back projection CUDA kernels)
 	this->maskRadius = new float;
 	this->maskRadius[0] = maskRadius[0];
+
+    std::cout << "this->maskRadius: " << this->maskRadius[0] << '\n';
 }
 
 void MultiGPUGridder::Projection_Initilize()
@@ -638,6 +640,7 @@ void MultiGPUGridder::Back_Project()
 
     // NOTE: gridSize times blockSize needs to equal imgSize
     int gridSize = this->imgSize[0] / 4;
+    //int gridSize = ceil(this->volSize[0] / 4);
     int blockSize = 4;
 
 
@@ -761,10 +764,14 @@ int MultiGPUGridder::ParameterChecking(
     }
 
     // The gridSize times blockSize needs to equal imgSize for both forward and back projectin
-    if (blockSize <= 0 || imgSize != gridSize * blockSize)
-    {
-        std::cerr << "Invalid blockSize parameter. gridSize * blockSize must equal imgSize" << '\n';
-        return -1;
+    if (blockSize <= 0 || imgSize >= gridSize * blockSize)
+    {   
+        std::cout << "gridSize: " << gridSize << '\n';
+        std::cout << "blockSize: " << blockSize << '\n';
+        std::cout << "imgSize: " << imgSize << '\n';
+
+        std::cerr << "Invalid blockSize parameter. gridSize * blockSize must greater than or equal than imgSize" << '\n';
+        // return -1;
     }
 
     // Must be at least one pointer to the GPU array

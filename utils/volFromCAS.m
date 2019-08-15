@@ -4,6 +4,7 @@ function vol=volFromCAS(volCAS,CASBox,interpBox,origBox,kernelHWidth)
 volSize=size(volCAS,1);
 volCenter=volSize/2+1;
 
+
 %Create interpolated vol
 interpCAS=zeros([interpBox.size interpBox.size interpBox.size],'single');
 interpCAS=volCAS(CASBox.interpB:CASBox.interpE,...
@@ -28,7 +29,6 @@ interpVol=interpVol.*reshape(kron(preComp,kron(preComp,preComp)),...
 vol=interpVol(interpBox.origB:interpBox.origE,...
               interpBox.origB:interpBox.origE,...
               interpBox.origB:interpBox.origE);
-
 
 
 

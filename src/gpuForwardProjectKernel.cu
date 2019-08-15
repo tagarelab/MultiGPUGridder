@@ -25,6 +25,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 
     __shared__ float locKer[1000];
 
+       
     if (threadIdx.x==0)
     {
         /* Copy over the kernel */
@@ -32,6 +33,12 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
         locKer[kerIndex]=*(ker+kerIndex);
     }
     __syncthreads();      
+
+    // Are we inside the image bounds?
+    if ( i < 0 || i > volSize || j < 0 || j > volSize)
+    {
+        return;
+    }
 
     for(img_i=0;img_i<nAxes;img_i++)
     {
@@ -81,9 +88,13 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
                         wk=*(locKer+kerIndex);
                         w=wi*wj*wk;
 
-                        //w=expf(-(ri*ri+rj*rj+rk*rk)/(2*sigma*sigma));
+                        //w=expf(-(ri*ri+rj*rj+rk*rk)/(2*sigma*sigma));  
+
+                        // if (k1*volSize*volSize+j1*volSize+i1 < volSize*volSize*volSize) // test
+                        // {
                         *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+//w;
                                 w*( *(vol+k1*volSize*volSize+j1*volSize+i1));
+                        // }
                     } //End k1
                 }//End j1   
             }//End i1
@@ -396,6 +407,8 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
     // Copy the resulting CAS volume back to the host
     cudaMemcpy( h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);        
 
+    cudaDeviceSynchronize();
+    
     // Free the temporary memory
     cudaFree(d_complex_array);
     cudaFree(d_complex_output_array);
@@ -419,6 +432,7 @@ void gpuForwardProject(
 )
 { 
     std::cout << "Running gpuForwardProject()..." << '\n';
+    std::cout << "maskRadius: " << maskRadius << '\n';
 
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
@@ -473,7 +487,7 @@ void gpuForwardProject(
                 // This seems to be needed
                 // cudaMemset(gpuComplexImgs_Vector[i], 0,  imgSize * imgSize * numAxesPerStream[i] * sizeof(cufftComplex));
                 // cudaMemset(gpuComplexImgs_Shifted_Vector[i], 0,  imgSize * imgSize * numAxesPerStream[i] * sizeof(cufftComplex));
-                // cudaMemset(gpuCASImgs_Vector[i], 0, imgSize * imgSize * numAxesPerStream[i] * sizeof(float));                
+                cudaMemset(gpuCASImgs_Vector[i], 0, imgSize * imgSize * numAxesPerStream[i] * sizeof(float));                
 
                 
                 // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
@@ -502,40 +516,46 @@ void gpuForwardProject(
                 //     imgSize, gpuCoordAxes_Vector[i], numAxesPerStream[i],
                 //     maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
                 
-                // Convert the CASImgs to complex cufft type
-                CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
+                bool Use_CUDA_FFT = false;
+
+                if (Use_CUDA_FFT == true)
+                {
+
+                    // Convert the CASImgs to complex cufft type
+                    CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
+                    
+                    // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
+                    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (gpuComplexImgs_Vector[i], gpuComplexImgs_Shifted_Vector[i], imgSize, numAxesPerStream[i]);
                 
-                // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
-                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (gpuComplexImgs_Vector[i], gpuComplexImgs_Shifted_Vector[i], imgSize, numAxesPerStream[i]);
-            
-                // Create a plan for taking the inverse of the CAS imgs
-                cufftHandle inverseFFTPlan;   
-                int nRows = imgSize;
-                int nCols = imgSize;
-                int batch = numAxesPerStream[i];       // --- Number of batched executions
-                int rank = 2;                   // --- 2D FFTs
-                int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
-                int idist = nRows*nCols;        // --- Distance between batches
-                int odist = nRows*nCols;        // --- Distance between batches
+                    // Create a plan for taking the inverse of the CAS imgs
+                    cufftHandle inverseFFTPlan;   
+                    int nRows = imgSize;
+                    int nCols = imgSize;
+                    int batch = numAxesPerStream[i];       // --- Number of batched executions
+                    int rank = 2;                   // --- 2D FFTs
+                    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+                    int idist = nRows*nCols;        // --- Distance between batches
+                    int odist = nRows*nCols;        // --- Distance between batches
 
-                int inembed[] = {nRows, nCols}; // --- Input size with pitch
-                int onembed[] = {nRows, nCols}; // --- Output size with pitch
+                    int inembed[] = {nRows, nCols}; // --- Input size with pitch
+                    int onembed[] = {nRows, nCols}; // --- Output size with pitch
 
-                int istride = 1;                // --- Distance between two successive input/output elements
-                int ostride = 1;                // --- Distance between two successive input/output elements
+                    int istride = 1;                // --- Distance between two successive input/output elements
+                    int ostride = 1;                // --- Distance between two successive input/output elements
 
-                cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
-                cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
+                    cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
+                    cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
 
-                // Inverse FFT
-                cufftExecC2C(inverseFFTPlan, (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], CUFFT_INVERSE);
+                    // Inverse FFT
+                    cufftExecC2C(inverseFFTPlan, (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], CUFFT_INVERSE);
+                    
+                    // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
+                    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i]>>> (gpuComplexImgs_Shifted_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
                 
-                // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
-                cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i]>>> (gpuComplexImgs_Shifted_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
-            
-                // Convert from the complex images to the real (resued the d_CAS_imgs GPU array)
-                ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuComplexImgs_Vector[i], gpuCASImgs_Vector[i], imgSize, numAxesPerStream[i]);            
-        
+                    // Convert from the complex images to the real (resued the d_CAS_imgs GPU array)
+                    ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuComplexImgs_Vector[i], gpuCASImgs_Vector[i], imgSize, numAxesPerStream[i]);            
+                }
+                
                 // Perform the cropping now
 
                 // Run kernel to crop the projection images (to remove the zero padding)
