@@ -12,12 +12,12 @@ function [CASVol, CASBox, origBox, interpBox, fftinfo]  = Vol_Preprocessing(vol,
 
     %Set the fftw plan
 %     tmp=randn(interpBox.size*[1 1 1],'single');
-    tmp=ones(interpBox.size*[1 1 1],'single');
-    fftw('swisdom',[]);
-    fftw('planner','measure');
-%     fftw('planner','estimate');
-    fft(tmp); 
-    fftinfo=fftw('swisdom');
+%     tmp=ones(interpBox.size*[1 1 1],'single');
+%     fftw('swisdom',[]);
+%      fftinfo=fftw('planner','measure');
+    fftinfo=fftw('planner','estimate');
+%     fft(tmp); 
+%     fftinfo=fftw('swisdom');
     CASVol=CASFromVol(vol, kerHWidth, origBox, interpBox, CASBox, fftinfo);
 
 end
