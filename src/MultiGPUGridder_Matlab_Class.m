@@ -38,8 +38,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function varargout = SetImages(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('SetImages', this.objectHandle, varargin{:});
         end
-        %% ResetVolume - Reset GPU volume
-        function varargout = ResetVolume(this, varargin)
+        %% resetVolume - Reset GPU volume
+        function varargout = resetVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('ResetVolume', this.objectHandle, varargin{:});
         end
         %% SetImgSize - Set output image size
@@ -123,13 +123,65 @@ classdef MultiGPUGridder_Matlab_Class < handle
             disp("imgsFromCASImgs...")
             varargout{1}=imgsFromCASImgs(imgs, this.interpBox, this.fftinfo); 
         end
+        %% Forward_Project get the CAS images
+        function varargout = forwardProjectCAS(this, varargin)
+            coordAxes = varargin{1};
+            coordAxes = coordAxes(:);
+            disp("Forward Project...")
+            varargout{1} = mexFunctionWrapper('forwardProject', this.objectHandle, coordAxes);
+        end
+        %% Set the kaiser bessel vector
+        function varargout = SetKerBesselVector(this, varargin)
+            [varargout{1:nargout}]  = mexFunctionWrapper('SetKerBesselVector', this.objectHandle,  varargin{:});
+        end        
+        
         %% Back_Project - Run the back projection kernel
-        function varargout = Back_Project(this, varargin)
+        function varargout = backProject(this, varargin)
+            
+%             imgs = varargin{1};
+%             coordAxes = varargin{2};
+%             
+%             % Need to convert the images to CAS imgs
+%             CAS_projection_imgs = CASImgsFromImgs(imgs, this.interpBox, this.fftinfo);
+%             
+%             this.SetImages(CAS_projection_imgs);
+%             this.setCoordAxes(coordAxes(:));
+
+            
             [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle, varargin{:});
         end
         %% Print- Print the current parameters to the console
         function varargout = Print(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('Print', this.objectHandle, varargin{:});
         end
+        %% Reconstruct Volume
+        function volReconstructed = reconstructVol(this, coordAxes)
+            
+            volCAS = this.GetVolume();
+            
+            % Get the density of inserted planes by backprojecting CASimages of values equal to one
+            disp("Get Plane Density()...")
+            interpImgs=ones([this.interpBox.size this.interpBox.size size(coordAxes,1)/9],'single');
+            
+            CAS_interpImgs = [];
+            CAS_interpImgs = CASImgsFromImgs(interpImgs,this.interpBox, this.fftinfo);
+            this.resetVolume();
+            this.SetImages(CAS_interpImgs)
+            this.Back_Project()
+            volWt = this.GetVolume();
+
+
+            % Normalize the back projection result with the plane density
+            % Divide the previous volume with the plane density volume
+            volCAS=volCAS./(volWt+1e-6);
+
+            % Reconstruct the volume from CASVol
+            disp("volFromCAS()...")
+            volReconstructed=volFromCAS(volCAS,CASBox, this.interpBox, this.origBox,kernelHWidth);
+       
+            
+            
+        end
+
     end
 end

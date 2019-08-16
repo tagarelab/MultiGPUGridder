@@ -401,6 +401,20 @@ void MultiGPUGridder::SetAxes(float *coordAxes, int *axesSize)
     Mem_obj->pin_mem("coordAxes_CPU_Pinned");
 }
 
+void MultiGPUGridder::SetKerBesselVector(float *ker_bessel_Vector, int kerSize)
+{
+    // Set the keiser bessel vector
+    
+    this->kerSize = kerSize;
+
+    for (int i = 0; i<kerSize; i++)
+    {
+        this->ker_bessel_Vector[i] = ker_bessel_Vector[i];
+    }
+
+}
+
+
 void MultiGPUGridder::SetImgSize(int *imgSize)
 {
     // Set the output CAS image size parameter

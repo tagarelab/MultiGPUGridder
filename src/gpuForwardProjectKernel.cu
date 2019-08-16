@@ -92,8 +92,16 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 
                         // if (k1*volSize*volSize+j1*volSize+i1 < volSize*volSize*volSize) // test
                         // {
+
+                            // *(img_ptr+j*imgSize+i)=wi;
+
                         *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+//w;
                                 w*( *(vol+k1*volSize*volSize+j1*volSize+i1));
+
+
+
+
+
                         // }
                     } //End k1
                 }//End j1   

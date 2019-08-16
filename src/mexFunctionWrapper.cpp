@@ -103,9 +103,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
             MultiGPUGridder_instance->SetMaskRadius(maskRadius);
 
-
-
-            
         }
 
         return;
@@ -387,6 +384,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Call the method
         MultiGPUGridder_instance->SetNumberBatches(nBatches);
+
+        return;
+    }
+
+    // Set the kaiser bessel vector
+    if (!strcmp("SetKerBesselVector", cmd))
+    {
+        // Check parameters
+        if (nrhs != 3)
+        {
+            mexErrMsgTxt("SetKerBesselVector: Unexpected arguments. Please provide a Matlab array.");
+        }
+
+        // Get a pointer to the matlab array
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
+
+        // Get the matrix size of the input GPU volume
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions(prhs[2]);
+
+        mwSize numDims;
+        numDims = mxGetNumberOfDimensions(prhs[2]);
+
+        int dims[3];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
+        dims[2] = 1;
+
+        if (numDims != 2)
+        {
+            mexErrMsgTxt("setCoordAxes: Unexpected arguments. Array should be a row vector.");
+        }
+
+        // Call the method
+        MultiGPUGridder_instance->SetKerBesselVector(matlabArrayPtr, dims[0]);
 
         return;
     }
