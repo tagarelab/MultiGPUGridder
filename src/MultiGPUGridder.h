@@ -69,6 +69,9 @@ public:
 	MultiGPUGridder();
 	~MultiGPUGridder(){};
 
+	// Output all of the parameters to the console (very useful for debugging)
+	void Print();
+
 	// Set the number of GPUs to use with the CUDA kernel
 	void SetNumberGPUs(int numGPUs);
 
@@ -80,6 +83,12 @@ public:
 
 	// Set GPU volume
 	void SetVolume(float *gpuVol, int *gpuVolSize);
+
+	// Set the GPU volume size
+	void SetVolumeSize(int gpuVolSize);
+
+	// Set the interpolation factor parameter
+	void SetInterpFactor(float interpFactor);
 
 	// Convert the GPU volume to CAS volume
 	void ConvertVolToCASVol();
@@ -118,8 +127,8 @@ public:
 	int ParameterChecking(
 		std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,			 // Vector of GPU array pointers
 		std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,	 // Vector of GPU array pointers
-		std::vector<cufftComplex *> gpuComplexImgs_Vector,									 // Vector of GPU array pointers
-		std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,							 // Vector of GPU array pointers
+		// std::vector<cufftComplex *> gpuComplexImgs_Vector,									 // Vector of GPU array pointers
+		// std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,							 // Vector of GPU array pointers
 		float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,								 // Pointers to pinned CPU arrays for input / output
 		int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
 		int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches,				 // Streaming parameters

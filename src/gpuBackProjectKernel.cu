@@ -239,8 +239,8 @@ __global__ void ComplexImgsToCASImgs_2(float* CASimgs, cufftComplex* imgs, int i
 void gpuBackProject(
     std::vector<float*> gpuVol_Vector, std::vector<float*> gpuCASImgs_Vector,       // Vector of GPU array pointers
     std::vector<float*> gpuCoordAxes_Vector, std::vector<float*> ker_bessel_Vector, // Vector of GPU array pointers
-	std::vector<cufftComplex *> gpuComplexImgs_Vector,                                   // Vector of GPU array pointers
-	std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
+	// std::vector<cufftComplex *> gpuComplexImgs_Vector,                                   // Vector of GPU array pointers
+	// std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches, // Streaming parameters
@@ -249,13 +249,13 @@ void gpuBackProject(
 {   
 	std::cout << "Running gpuBackProject()..." << '\n';
 
-	gridSize   = 18;  // TEST
-	blockSize  = 4;   // TEST
-	maskRadius = 31;  // TEST
-	kerHWidth  = 2;   // TEST
-	volSize    = 70;  // TEST
-	imgSize    = 64;  // TEST
-	nAxes      = 251; // TEST  
+	// gridSize   = 18;  // TEST
+	// blockSize  = 4;   // TEST
+	// maskRadius = 31;  // TEST
+	// kerHWidth  = 2;   // TEST
+	// volSize    = 70;  // TEST
+	// imgSize    = 64;  // TEST
+	// nAxes      = 251; // TEST  
 
 
 	

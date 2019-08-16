@@ -23,6 +23,91 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Return a handle to a new C++ instance
         plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder);
+
+        if (nrhs == 2) // No other inputs were provided
+        {
+            return;
+        }
+        else if (nrhs == 4)
+        {
+            // Parameters are: (1) volume size, (2) number of coordinate axes, and (3) interpolation factor
+
+            // (1) Set the volume size
+            // Get a pointer to the matlab array
+            int *matlabArrayPtr = (int *)mxGetData(prhs[1]);
+
+            // Check the dimensions of the given input
+            mwSize numDims;
+            numDims = mxGetNumberOfDimensions(prhs[1]);
+
+            std::cout << "numDims: " << numDims << '\n';
+
+            if (numDims != 2)
+            {
+                mexErrMsgTxt("SetVolumeSize: Input should be a single integer value.");
+            }
+
+            MultiGPUGridder *MultiGPUGridder_instance = convertMat2Ptr<MultiGPUGridder>(plhs[0]);
+
+            // (2) Set the number of coordinate axes
+            // Get a pointer to the matlab array
+            int *matlabArrayPtr_Axes = (int *)mxGetData(prhs[2]);
+
+            // Check the dimensions of the given input
+            mwSize numDims_Axes;
+            numDims_Axes = mxGetNumberOfDimensions(prhs[2]);
+
+            if (numDims_Axes != 2)
+            {
+                mexErrMsgTxt("SetAxes: Input should be a single integer value.");
+            }
+
+            // Allocate and set the coordinate axes
+            MultiGPUGridder_instance->SetAxes(NULL, matlabArrayPtr_Axes);
+
+            // (3) Set the interpolation factor
+            // Get a pointer to the matlab array
+            int *matlabArrayPtr_InterpFactor = (int *)mxGetData(prhs[3]);
+
+            // Call the method to set the volume size
+            // Additional 6 is for an extra padding of 3 in each dimension
+            MultiGPUGridder_instance->SetVolumeSize(matlabArrayPtr[0] * matlabArrayPtr_InterpFactor[0] + 6);
+
+            std::cout << "matlabArrayPtr_InterpFactor[0]: " << matlabArrayPtr_InterpFactor[0] << '\n';
+            std::cout << "matlabArrayPtr[0]: " << matlabArrayPtr[0] << '\n';
+
+            // Set the image size here
+            int * imgSize = new int[3];
+            imgSize[0] = matlabArrayPtr[0] * matlabArrayPtr_InterpFactor[0];
+            imgSize[1] = matlabArrayPtr[0] * matlabArrayPtr_InterpFactor[0];
+            imgSize[2] = matlabArrayPtr_Axes[0]; // Number of coordinate axes
+
+            // std::cout << "matlabArrayPtr matlab wrapper: " << matlabArrayPtr[0] << " " << matlabArrayPtr[1] << " " << matlabArrayPtr[2] << '\n';
+            std::cout << "imgSize matlab wrapper: " << imgSize[0] << " " << imgSize[1] << " " << imgSize[2] << '\n';
+            MultiGPUGridder_instance->SetImgSize(imgSize);
+
+            // Check the dimensions of the given input
+            mwSize numDims_InterpFactor;
+            numDims_InterpFactor = mxGetNumberOfDimensions(prhs[3]);
+
+            if (numDims_InterpFactor != 2)
+            {
+                mexErrMsgTxt("SetInterpFactor: Input should be a single integer value.");
+            }
+
+            MultiGPUGridder_instance->SetInterpFactor(matlabArrayPtr_InterpFactor[0]);
+
+            // Set the mask radius here
+            float* maskRadius = new float;
+            maskRadius[0] = (imgSize[0])/2 -1;
+
+            MultiGPUGridder_instance->SetMaskRadius(maskRadius);
+
+
+
+            
+        }
+
         return;
     }
 
@@ -168,12 +253,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     // Set the coordinate axes vector to pinned CPU memory
-    if (!strcmp("SetAxes", cmd))
+    if (!strcmp("setCoordAxes", cmd))
     {
         // Check parameters
         if (nrhs != 3)
         {
-            mexErrMsgTxt("SetAxes: Unexpected arguments. Please provide a Matlab array.");
+            mexErrMsgTxt("setCoordAxes: Unexpected arguments. Please provide a Matlab array.");
         }
 
         // Get a pointer to the matlab array
@@ -193,7 +278,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         if (numDims != 2)
         {
-            mexErrMsgTxt("SetAxes: Unexpected arguments. Array should be a row vector.");
+            mexErrMsgTxt("setCoordAxes: Unexpected arguments. Array should be a row vector.");
         }
 
         // Call the method
@@ -426,7 +511,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size(varNameString);
 
         // Create the output Matlab array (using the stored size of the corresponding C++ array)
-        mwSize dims[3]; 
+        mwSize dims[3];
         dims[0] = vol_dims[0];
         dims[1] = vol_dims[1];
         dims[2] = vol_dims[2];
@@ -465,7 +550,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
 
         // Create the output Matlab array (using the stored size of the corresponding C++ array)
-        mwSize dims[3]; 
+        mwSize dims[3];
         dims[0] = vol_dims[0];
         dims[1] = vol_dims[1];
         dims[2] = vol_dims[2];
@@ -624,32 +709,192 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     // Run the forward projection CUDA kernel
-    if (!strcmp("Forward_Project", cmd))
+    if (!strcmp("forwardProject", cmd))
     {
-        // Check parameters
-        if (nrhs != 2)
+        // Accept either 2 or 3 parameters
+        if (nrhs != 2 && nrhs != 3)
         {
-            mexErrMsgTxt("Forward_Project: Unexpected arguments. ");
+            mexErrMsgTxt("forwardProject: Unexpected arguments.");
         }
 
-        // Call the method
-        MultiGPUGridder_instance->Forward_Project();
+        // If only 2 parameters were given run the forward projection
+        if (nrhs == 1)
+        {
+            // Call the method
+            MultiGPUGridder_instance->Forward_Project();
+        }
+        else
+        {
+            // Otherwise the user also provided us with a coordinate axes vector
+            // Lets first set the coordinate axes array
+
+            // Get a pointer to the matlab array
+            float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
+
+            // Get the matrix size of the input GPU volume
+            const mwSize *dims_mwSize;
+            dims_mwSize = mxGetDimensions(prhs[2]);
+
+            mwSize numDims;
+            numDims = mxGetNumberOfDimensions(prhs[2]);
+
+            int dims[3];
+            dims[0] = (int)dims_mwSize[0];
+            dims[1] = (int)dims_mwSize[1];
+            dims[2] = 1;
+
+            if (numDims != 2)
+            {
+                mexErrMsgTxt("forwardProject: Coordinate axes array should be a row vector.");
+            }
+
+            // Call the method
+            MultiGPUGridder_instance->SetAxes(matlabArrayPtr, dims);
+
+            // Now that the coordinate axes vector has been set run forward projection
+            MultiGPUGridder_instance->Forward_Project();
+
+            // Return the projection images
+            // Create the output Matlab array (using the stored size of the corresponding C++ array)
+            int *vol_dims;
+
+            // The images are store in the following pinned CPU array: "CASImgs_CPU_Pinned"
+            vol_dims = MultiGPUGridder_instance->Mem_obj->CPU_Get_Array_Size("CASImgs_CPU_Pinned");
+
+            // Create the output Matlab array (using the stored size of the corresponding C++ array)
+            mwSize dims_imgs[3];
+            dims_imgs[0] = vol_dims[0];
+            dims_imgs[1] = vol_dims[1];
+            dims_imgs[2] = vol_dims[2];
+
+            // Create the output matlab array as type float
+            mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims_imgs, mxSINGLE_CLASS, mxREAL);
+
+            // Get a pointer to the output matrix created above
+            float *matlabArrayPtr_imgs = (float *)mxGetData(Matlab_Pointer);
+
+            // Call the method
+            float *OutputArray = MultiGPUGridder_instance->Mem_obj->ReturnCPUFloatPtr("CASImgs_CPU_Pinned");
+
+            // Copy the data to the Matlab array
+            std::memcpy(matlabArrayPtr_imgs, OutputArray, sizeof(float) * dims_imgs[0] * dims_imgs[1] * dims_imgs[2]);
+
+            plhs[0] = Matlab_Pointer;
+
+        }
         return;
     }
 
     // Run the back projection CUDA kernel
     if (!strcmp("Back_Project", cmd))
     {
-        // Check parameters
-        if (nrhs != 2)
+        // Accept either 2 or 4 input parameters
+        if (nrhs != 2 && nrhs != 4)
         {
-            mexErrMsgTxt("Back_Project: Unexpected arguments. ");
+            mexErrMsgTxt("Back_Project: Unexpected arguments.");
         }
 
-        // Call the method
-        MultiGPUGridder_instance->Back_Project();
+        // If only 2 parameters were given run the back projection
+        if (nrhs == 2)
+        {
+            // Call the method
+            MultiGPUGridder_instance->Back_Project();
+        }
+        else if (nrhs == 4)
+        {
+            // Assume the third parameter is the CASImgs to back project
+            // Set the CASImgs now
+            // Get a pointer to the matlab array
+            float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
+
+            // Get the matrix size of the input GPU volume
+            const mwSize *dims_mwSize;
+            dims_mwSize = mxGetDimensions(prhs[2]);
+
+            int dims[3];
+            dims[0] = (int)dims_mwSize[0];
+            dims[1] = (int)dims_mwSize[1];
+            dims[2] = (int)dims_mwSize[2];
+
+            mwSize numDims;
+            numDims = mxGetNumberOfDimensions(prhs[2]);
+
+            if (numDims != 3)
+            {
+                mexErrMsgTxt("Back_Project: CASImgs should be a matrix with 3 dimensions.");
+            }
+
+            // Call the method
+            MultiGPUGridder_instance->SetImages(matlabArrayPtr);
+
+            // Assume the fourth parameter is the coordinate axes array
+            // Set the coordinate axes array now
+            // Get a pointer to the matlab array
+            float *matlabArrayPtr_Imgs = (float *)mxGetData(prhs[3]);
+
+            // Get the matrix size of the input GPU volume
+            const mwSize *dims_mwSize_imgs;
+            dims_mwSize_imgs = mxGetDimensions(prhs[3]);
+
+            mwSize numDims_imgs;
+            numDims_imgs = mxGetNumberOfDimensions(prhs[3]);
+
+            int dims_imgs[3];
+            dims_imgs[0] = (int)dims_mwSize_imgs[0];
+            dims_imgs[1] = (int)dims_mwSize_imgs[1];
+            dims_imgs[2] = 1;
+
+            if (numDims_imgs != 2)
+            {
+                mexErrMsgTxt("setCoordAxes: Unexpected arguments. Array should be a row vector.");
+            }
+
+            // Call the method
+            MultiGPUGridder_instance->SetAxes(matlabArrayPtr_Imgs, dims_imgs);
+
+            // Lastly, run the back projection method
+            MultiGPUGridder_instance->Back_Project();
+        }
+
+        // Is the user provided an output array, lets output the
+        // Summation of the volume on all of the GPUs
+        if (nlhs == 1)
+        {
+            // Get the matrix size of the GPU volume
+            mwSize dims[3];
+            dims[0] = MultiGPUGridder_instance->volSize[0];
+            dims[1] = MultiGPUGridder_instance->volSize[1];
+            dims[2] = MultiGPUGridder_instance->volSize[2];
+
+            // Create the output matlab array as type float
+            mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+            // Get a pointer to the output matrix created above
+            float *matlabArrayPtr = (float *)mxGetData(Matlab_Pointer);
+
+            // Call the method
+            float *GPUVol = MultiGPUGridder_instance->GetVolume();
+
+            // Copy the data to the Matlab array
+            std::memcpy(matlabArrayPtr, GPUVol, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+            plhs[0] = Matlab_Pointer;
+        }
+
         return;
     }
+
+    // Print the parameters of the multi GPU  gridder to the console for debugging
+    if (!strcmp("Print", cmd))  
+    {
+
+        MultiGPUGridder_instance->Print();
+        return;
+
+    }
+
+
+
 
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)

@@ -2,6 +2,10 @@
 classdef MultiGPUGridder_Matlab_Class < handle
     properties (SetAccess = private, Hidden = true)
         objectHandle; % Handle to the underlying C++ class instance
+        interpBox;
+        fftinfo;
+        interpFactor = 2;
+        origBox;
     end
     methods
         %% Constructor - Create a new C++ class instance 
@@ -12,13 +16,19 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function delete(this)
             mexFunctionWrapper('delete', this.objectHandle);
         end
-        %% SetAxes - Set coordinate axes
-        function varargout = SetAxes(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetAxes', this.objectHandle, varargin{:});
+        %% setCoordAxes - Set coordinate axes
+        function varargout = setCoordAxes(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('setCoordAxes', this.objectHandle, varargin{:});
         end
         %% SetVolume - Set GPU volume
         function varargout = setVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, varargin{:});
+            
+            [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(varargin{1}, this.interpFactor);
+            this.origBox = origBox;
+            this.interpBox = interpBox;
+            this.fftinfo = fftinfo;
+            
+            [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, CASVol);
         end
         %% GetVolume - Get the summed volume from all of the GPUs
         function varargout = GetVolume(this, varargin)
@@ -106,11 +116,20 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end
         %% Forward_Project - Run the forward projection kernel
         function varargout = forwardProject(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('Forward_Project', this.objectHandle, varargin{:});
+            coordAxes = varargin{1};
+            coordAxes = coordAxes(:);
+            disp("Forward Project...")
+            imgs = mexFunctionWrapper('forwardProject', this.objectHandle, coordAxes);
+            disp("imgsFromCASImgs...")
+            varargout{1}=imgsFromCASImgs(imgs, this.interpBox, this.fftinfo); 
         end
         %% Back_Project - Run the back projection kernel
         function varargout = Back_Project(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle, varargin{:});
+        end
+        %% Print- Print the current parameters to the console
+        function varargout = Print(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('Print', this.objectHandle, varargin{:});
         end
     end
 end

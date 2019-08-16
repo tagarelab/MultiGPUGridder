@@ -423,8 +423,8 @@ float* ThreeD_ArrayToCASArray(float* gpuVol, int* volSize)
 void gpuForwardProject(
     std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,          // Vector of GPU array pointers
     std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,    // Vector of GPU array pointers
-    std::vector<cufftComplex *> gpuComplexImgs_Vector,                                   // Vector of GPU array pointers
-    std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
+    // std::vector<cufftComplex *> gpuComplexImgs_Vector,                                   // Vector of GPU array pointers
+    // std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
     float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,                              // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
     int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches,                 // Streaming parameters
@@ -516,45 +516,45 @@ void gpuForwardProject(
                 //     imgSize, gpuCoordAxes_Vector[i], numAxesPerStream[i],
                 //     maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);        
                 
-                bool Use_CUDA_FFT = false;
+                // bool Use_CUDA_FFT = false;
 
-                if (Use_CUDA_FFT == true)
-                {
+                // if (Use_CUDA_FFT == true)
+                // {
 
-                    // Convert the CASImgs to complex cufft type
-                    CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
+                //     // Convert the CASImgs to complex cufft type
+                //     CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuCASImgs_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
                     
-                    // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
-                    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (gpuComplexImgs_Vector[i], gpuComplexImgs_Shifted_Vector[i], imgSize, numAxesPerStream[i]);
+                //     // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
+                //     cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i] >>> (gpuComplexImgs_Vector[i], gpuComplexImgs_Shifted_Vector[i], imgSize, numAxesPerStream[i]);
                 
-                    // Create a plan for taking the inverse of the CAS imgs
-                    cufftHandle inverseFFTPlan;   
-                    int nRows = imgSize;
-                    int nCols = imgSize;
-                    int batch = numAxesPerStream[i];       // --- Number of batched executions
-                    int rank = 2;                   // --- 2D FFTs
-                    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
-                    int idist = nRows*nCols;        // --- Distance between batches
-                    int odist = nRows*nCols;        // --- Distance between batches
+                //     // Create a plan for taking the inverse of the CAS imgs
+                //     cufftHandle inverseFFTPlan;   
+                //     int nRows = imgSize;
+                //     int nCols = imgSize;
+                //     int batch = numAxesPerStream[i];       // --- Number of batched executions
+                //     int rank = 2;                   // --- 2D FFTs
+                //     int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+                //     int idist = nRows*nCols;        // --- Distance between batches
+                //     int odist = nRows*nCols;        // --- Distance between batches
 
-                    int inembed[] = {nRows, nCols}; // --- Input size with pitch
-                    int onembed[] = {nRows, nCols}; // --- Output size with pitch
+                //     int inembed[] = {nRows, nCols}; // --- Input size with pitch
+                //     int onembed[] = {nRows, nCols}; // --- Output size with pitch
 
-                    int istride = 1;                // --- Distance between two successive input/output elements
-                    int ostride = 1;                // --- Distance between two successive input/output elements
+                //     int istride = 1;                // --- Distance between two successive input/output elements
+                //     int ostride = 1;                // --- Distance between two successive input/output elements
 
-                    cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
-                    cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
+                //     cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
+                //     cufftSetStream(inverseFFTPlan, stream[i]); // Set the FFT plan to the current stream to process
 
-                    // Inverse FFT
-                    cufftExecC2C(inverseFFTPlan, (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], CUFFT_INVERSE);
+                //     // Inverse FFT
+                //     cufftExecC2C(inverseFFTPlan, (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], (cufftComplex *) gpuComplexImgs_Shifted_Vector[i], CUFFT_INVERSE);
                     
-                    // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
-                    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i]>>> (gpuComplexImgs_Shifted_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
+                //     // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
+                //     cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream[i]>>> (gpuComplexImgs_Shifted_Vector[i], gpuComplexImgs_Vector[i], imgSize, numAxesPerStream[i]);
                 
-                    // Convert from the complex images to the real (resued the d_CAS_imgs GPU array)
-                    ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuComplexImgs_Vector[i], gpuCASImgs_Vector[i], imgSize, numAxesPerStream[i]);            
-                }
+                //     // Convert from the complex images to the real (resued the d_CAS_imgs GPU array)
+                //     ComplexToReal<<< dimGrid, dimBlock, 0, stream[i] >>>(gpuComplexImgs_Vector[i], gpuCASImgs_Vector[i], imgSize, numAxesPerStream[i]);            
+                // }
                 
                 // Perform the cropping now
 

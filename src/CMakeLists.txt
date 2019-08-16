@@ -38,7 +38,7 @@ if(WITH_CUFFT)
 	CUDA_ADD_CUFFT_TO_TARGET(MultiGPUGridder )
 endif()
 
-if(WITH_NVPROF)
+if(WITH_MATLAB)
 	find_package(Matlab)
 	matlab_add_mex(NAME mexFunctionWrapper SRC mexFunctionWrapper.cpp LINK_TO MultiGPUGridder)
 	message(STATUS "Matlab library located")
