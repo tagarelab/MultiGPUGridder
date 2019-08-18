@@ -3,11 +3,11 @@ import numpy as np
 from matplotlib import pyplot as plt # For plotting resulting images
 
 #lib = ctypes.cdll.LoadLibrary("../bin/Release/MultiGPUGridder.dll") 
-# lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Debug/MultiGPUGridder.dll") 
+lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Release/MultiGPUGridder.dll") 
 
-lib = ctypes.cdll.LoadLibrary("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/bin/libMultiGPUGridder.so")
+# lib = ctypes.cdll.LoadLibrary("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/bin/libMultiGPUGridder.so")
 
-#clear & python C:\GitRepositories\MultiGPUGridder\src\src\MultiGPUGridder_Python.py
+#cls & python C:\GitRepositories\MultiGPUGridder\src\src\MultiGPUGridder_Python.py
 
 #lib = ctypes.cdll.LoadLibrary("../bin/libMultiGPUGridder.so") 
 
@@ -130,8 +130,8 @@ nAxes = 60
 
 py_CoordAxes = []
 
-for i in range(0, nAxes):
-    py_CoordAxes = py_CoordAxes + [1,0,0,0,1,0,0,0,1]
+for i in range(0, 30):
+    py_CoordAxes = py_CoordAxes + [1,0,0,0,1,0,0,0,1] + [1,0,0,1,0,0,0,0,1]
 
 float_CoordAxes = (ctypes.c_float * len(py_CoordAxes))(*py_CoordAxes)
 
@@ -143,14 +143,18 @@ int_ImgSize = (ctypes.c_int * len(py_ImgSize))(*py_ImgSize)
 
 
 # Create an instance of the multi GPU gridder object and run the forward projection
+print("MultiGPUGridder()...")
 gridder=MultiGPUGridder()
-gridder.SetNumberGPUs(4)
-gridder.SetNumberStreams(4)
-gridder.SetNumberBatches(2)
+gridder.SetNumberGPUs(1)
+gridder.SetNumberStreams(5)
+# gridder.SetNumberBatches(2)
 gridder.SetAxes(float_CoordAxes, int_AxesSize)
 gridder.SetVolume(float_Vol, int_VolSize)
 gridder.SetImgSize(int_ImgSize)
 gridder.SetMaskRadius(ctypes.c_float(volSize/2 - 5))  # volSize/2 - 1
+# gridder.SetMaskRadius(ctypes.c_float(2))  # volSize/2 - 1
+
+print("gridder.Forward_Project()...")
 gridder.Forward_Project()
 outputImgs = gridder.GetImages()
 
@@ -175,34 +179,34 @@ for i in range(0,10):
 
 plt.show()
 
-gridder.ResetVolume()
-gridder.SetImages(outputImgs)
+# gridder.ResetVolume()
+# gridder.SetImages(outputImgs)
 
-gridder.Back_Project()
+# gridder.Back_Project()
 
-outputVol = gridder.GetVolume()
-
-
-# Convert the CASImgs output to a numpy array
-outputVol_numpy_arr = np.ctypeslib.as_array((ctypes.c_float * volSize * volSize * volSize).from_address(ctypes.addressof(outputVol.contents)))
-
-outputVol_numpy_arr = np.real(np.fft.fftshift(np.fft.fftn(np.fft.fftshift(outputVol_numpy_arr))))
-
-# Plot the back projections
-nrows = 2
-ncols = 5
-
-for i in range(0,10):
-    subPlot = plt.subplot(nrows, ncols, i+1)
-    subPlot.title.set_text('Back Projection ' + str(i+1))
-
-    # example_CAS_Img = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.fftshift(outputVol_numpy_arr[:][:][i]))))
-    example_CAS_Img = np.real(outputVol_numpy_arr[:][:][i])
+# outputVol = gridder.GetVolume()
 
 
-    plt.imshow(example_CAS_Img,  cmap='gray') #, vmin=0, vmax = 3)
+# # Convert the CASImgs output to a numpy array
+# outputVol_numpy_arr = np.ctypeslib.as_array((ctypes.c_float * volSize * volSize * volSize).from_address(ctypes.addressof(outputVol.contents)))
+
+# outputVol_numpy_arr = np.real(np.fft.fftshift(np.fft.fftn(np.fft.fftshift(outputVol_numpy_arr))))
+
+# # Plot the back projections
+# nrows = 2
+# ncols = 5
+
+# for i in range(0,10):
+#     subPlot = plt.subplot(nrows, ncols, i+1)
+#     subPlot.title.set_text('Back Projection ' + str(i+1))
+
+#     # example_CAS_Img = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.fftshift(outputVol_numpy_arr[:][:][i]))))
+#     example_CAS_Img = np.real(outputVol_numpy_arr[:][:][i])
+
+
+#     plt.imshow(example_CAS_Img,  cmap='gray') #, vmin=0, vmax = 3)
 
     
-plt.show()
+# plt.show()
 
 print("Done!")
