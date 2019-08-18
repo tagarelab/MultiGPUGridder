@@ -62,7 +62,7 @@ public:
 
 	// Maximum number of coordinate axes / CASImg size to initilize
 	// Essentially this limits the amount of GPU memory allocated
-	int MaxAxesToAllocate = 5;
+	int MaxAxesToAllocate = 20;
 
 	// Create a MemoryManager class object for allocating, copying, and transferring array to  CPU, GPU, or Matlab memory
 	MemoryManager *Mem_obj;

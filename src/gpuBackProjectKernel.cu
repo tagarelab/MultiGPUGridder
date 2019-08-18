@@ -128,6 +128,16 @@ void gpuBackProject(
         cudaStreamCreate(&stream[i]);
     }
 
+	// Initilize a vector which will remember how many axes have been assigned to each GPU
+	// during the current batch. This is needed for calculating the offset for the stream when 
+	// the number of streams is greater than the number of GPUs. This resets to zeros after each
+	// batch since the same GPU memory is used for the next batch.
+	std::vector<int> numAxesGPU_Batch;
+	for (int i = 0; i < numGPUs; i++)
+	{
+		numAxesGPU_Batch.push_back(0);
+	}
+
 	// How many coordinate axes to assign to each stream?
 	int numAxesPerStream;
 	if (nAxes <= MaxAxesAllocated)
@@ -165,8 +175,12 @@ void gpuBackProject(
 			// Check to make sure we don't try to process more coord axes than we have and that we have at least one axes to process
 			if (processed_nAxes + numAxesPerStream > nAxes || numAxesPerStream < 1)
 			{
+				std::cout << "Done with gpuBackProject()..." << '\n';
 				return;
 			}
+
+			std::cout << "Running stream " << i << " and batch " << batch << '\n';
+			std::cout << "numAxesPerStream: " << numAxesPerStream << '\n';
 
 			// Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
 			int gpuCoordAxes_Offset = processed_nAxes * 9;  // Each axes has 9 elements (X, Y, Z)
@@ -174,6 +188,11 @@ void gpuBackProject(
 
 			// How many bytes are the output images?
 			int gpuCASImgs_streamBytes = imgSize * imgSize * numAxesPerStream * sizeof(float);
+
+			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
+			int gpuCASImgs_Offset = numAxesGPU_Batch[curr_GPU] * imgSize * imgSize;
+			int gpuCoordAxes_Stream_Offset = numAxesGPU_Batch[curr_GPU] * 9;
+
 
 			// Use unsigned long long int type to allow for array length larger than maximum int32 value 
 			// Number of bytes of already processed images
@@ -185,7 +204,7 @@ void gpuBackProject(
 
 			// Copy the section of gpuCoordAxes which this stream will process on the current GPU
 			cudaMemcpyAsync(
-				gpuCoordAxes_Vector[i],
+				&gpuCoordAxes_Vector[curr_GPU][gpuCoordAxes_Stream_Offset],
 				&coordAxes_CPU_Pinned[gpuCoordAxes_Offset],
 				coord_Axes_streamBytes,
 				cudaMemcpyHostToDevice,
@@ -193,7 +212,7 @@ void gpuBackProject(
 
 			// Copy CAS image to the GPU
 			cudaMemcpyAsync(
-				gpuCASImgs_Vector[i],
+				&gpuCASImgs_Vector[curr_GPU][gpuCASImgs_Offset],
 				&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
 				gpuCASImgs_streamBytes,
 				cudaMemcpyHostToDevice,
@@ -201,8 +220,8 @@ void gpuBackProject(
 
 			// Run the back projection kernel
 			gpuBackProjectKernel <<< dimGrid, dimBlock, 0, stream[i] >> > (
-				gpuVol_Vector[curr_GPU], volSize, gpuCASImgs_Vector[i],
-				imgSize, gpuCoordAxes_Vector[i], numAxesPerStream,
+				gpuVol_Vector[curr_GPU], volSize, &gpuCASImgs_Vector[curr_GPU][gpuCASImgs_Offset],
+				imgSize, &gpuCoordAxes_Vector[curr_GPU][gpuCoordAxes_Stream_Offset], numAxesPerStream,
 				maskRadius, ker_bessel_Vector[curr_GPU], 501, kerHWidth);
 
 			// Update the number of coordinate axes which have already been assigned to a CUDA stream
