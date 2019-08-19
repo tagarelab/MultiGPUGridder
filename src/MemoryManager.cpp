@@ -125,7 +125,7 @@ cufftComplex *MemoryManager::ReturnCUDAComplexPtr(std::string varNameString)
 
 void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, int *dataSize)
 {
-    // Allocate memory based on the dataType (i.e. int, float, etc.)
+    // Allocate memory on the CPU based on the dataType (i.e. int, float, etc.)
 
     // Save the name of the variable and the array size to the corresponding vectors
     cpu_arr_names.push_back(varNameString);
@@ -163,9 +163,51 @@ void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, i
     }
 }
 
+void MemoryManager::CPU_Pinned_Allocate(std::string varNameString, std::string dataType, int *dataSize)
+{
+    // Allocate memory on the CPU based on the dataType (i.e. int, float, etc.)
+
+    // Save the name of the variable and the array size to the corresponding vectors
+    cpu_arr_names.push_back(varNameString);
+
+    // Save the dataType of this array
+    cpu_arr_types.push_back(dataType);
+
+    // Deep copy the data size pointer
+    int *new_dataSize_ptr = new int[3];
+    for (int i = 0; i < 3; i++)
+    {
+        new_dataSize_ptr[i] = dataSize[i];
+    }
+
+    // Save to the vector of array sizes
+    cpu_arr_sizes.push_back(new_dataSize_ptr);
+
+    // Allocate the memory and save the pointer to the corresponding vector
+    if (dataType == "float")
+    {
+        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
+        unsigned long long *dataSizeLong = new unsigned long long[3];
+        dataSizeLong[0] = (unsigned long long)new_dataSize_ptr[0];
+        dataSizeLong[1] = (unsigned long long)new_dataSize_ptr[1];
+        dataSizeLong[2] = (unsigned long long)new_dataSize_ptr[2];
+
+        float *new_ptr;// = new float[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
+        cudaHostAlloc((void**)&new_ptr, dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] * sizeof(float), cudaHostAllocDefault);
+        
+        // Save the new pointer to the allocated CPU array
+        cpu_arr_ptrs.push_back(new_ptr);
+    }
+    else
+    {
+        std::cerr << "Unrecognized data type. Please choose either int, float, or double." << '\n';
+    }
+}
+
+
 void MemoryManager::mem_Copy(std::string varNameString, float *New_Array)
 {
-    // Given a float array, copy the data to the corresponding C++ pointer
+    // Given a float array, copy the data to the corresponding CPU pointer
 
     // Locate the index of the cpu_arr_names vector which correspondes to the given variable name
     int arr_idx = FindArrayIndex(varNameString, cpu_arr_names);
@@ -228,7 +270,7 @@ void MemoryManager::pin_mem(std::string varNameString)
 
 void MemoryManager::disp_mem(std::string varNameString)
 {
-    // Display in the console the size of a given matrix
+    // Display description of the CPU memory allocated
 
     if (varNameString == "all")
     {
@@ -260,7 +302,7 @@ void MemoryManager::disp_mem(std::string varNameString)
 
 void MemoryManager::mem_Free(std::string varNameString)
 {
-    // Free the memory of the corresponding array
+    // Free the memory of the corresponding CPU array
 
     // If varNameString == "all" then free all the allocated CPU arrays
     if (varNameString == "all")
@@ -362,9 +404,9 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
             return;
         }
 
-        float *devPtr = new float[dataSize[0] * dataSize[1] * dataSize[2]]; // Multiply the X,Y,Z dimensions of the array
+        float *devPtr = new float[dataSize[0] * dataSize[1] * dataSize[2]]; 
 
-        cudaMalloc(&devPtr, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); // Multiply the X,Y,Z dimensions of the array
+        cudaMalloc(&devPtr, sizeof(float) * (dataSize[0] * dataSize[1] * dataSize[2])); 
 
         // Save the new pointer to the allocated CUDA GPU array
         n.f = devPtr;
@@ -387,7 +429,7 @@ void MemoryManager::CUDA_alloc(std::string varNameString, std::string dataType, 
     }
     else
     {
-        std::cerr << "Unrecognized data type. Only float is currently supported." << '\n';
+        std::cerr << "Unrecognized data type. Only float and cufftComplex is currently supported." << '\n';
     }
 
     // Save the union of pointers to the vector of CUDA pointers
@@ -454,12 +496,11 @@ void MemoryManager::CUDA_Free(std::string varNameString)
 
 void MemoryManager::CUDA_disp_mem(std::string varNameString)
 {
-    // Display in the Matlab console the size of a given GPU CUDA array
+    // Display description of the allocated GPU arrays
 
     // Display information on all of the arrays
     if (varNameString == "all")
     {
-
         std::cout << '\n';
         for (int arr_idx = 0; arr_idx < CUDA_arr_names.size(); arr_idx++)
         {
@@ -485,7 +526,7 @@ void MemoryManager::CUDA_disp_mem(std::string varNameString)
 
 void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
 {
-    // Given a float array, copy the data to the corresponding CUDA pointer
+    // Given a float array, copy the data to the corresponding GPU pointer
 
     // Locate the index of the CUDA_arr_names vector which correspondes to the given variable name
     int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
@@ -499,8 +540,7 @@ void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
     // Set the GPU device to the device which contains the CUDA array
     cudaSetDevice(CUDA_arr_GPU_Assignment[arr_idx]);
 
-    // Copy the Matlab array to the class pointer for deep copy
-    // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
+    // Copy the array to the class pointer for deep copy
     int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
 
     if (CUDA_arr_types[arr_idx] == "float")
@@ -515,7 +555,7 @@ void MemoryManager::CUDA_Copy(std::string varNameString, float *New_Array)
     }
     else
     {
-        std::cerr << "Only float type is currently supported." << '\n';
+        std::cerr << "Only float and cufftComplex type is currently supported." << '\n';
     }
 }
 
@@ -538,8 +578,7 @@ void MemoryManager::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, 
     // Create the stream on the selected GPU
     cudaStreamCreate(&stream);
 
-    // Copy the Matlab array to the class pointer for deep copy
-    // Otherwise, Matlab seems to delete it's pointer once returning from the Mex file
+    // Copy the array to the class pointer for deep copy
     int dim_size = CUDA_arr_sizes[arr_idx][0] * CUDA_arr_sizes[arr_idx][1] * CUDA_arr_sizes[arr_idx][2];
 
     if (CUDA_arr_types[arr_idx] == "float")
@@ -554,7 +593,7 @@ void MemoryManager::CUDA_Copy_Asyc(std::string varNameString, float *New_Array, 
     }
     else
     {
-        std::cerr << "Only float type is currently supported." << '\n';
+        std::cerr << "Only float and cufftComplex type is currently supported." << '\n';
     }
 }
 
@@ -600,7 +639,7 @@ int *MemoryManager::CUDA_Get_Array_Size(std::string varNameString)
 
 float *MemoryManager::CUDA_Return(std::string varNameString)
 {
-    // Copy the data from the corresponding CUDA array back to a float array
+    // Copy the data from the corresponding GPU array back to a float array
 
     // Locate the index of the CUDA_arr_names vector which correspondes to the given variable name
     int arr_idx = FindArrayIndex(varNameString, CUDA_arr_names);
@@ -621,12 +660,6 @@ float *MemoryManager::CUDA_Return(std::string varNameString)
         float *CPU_Array = new float[dim_size];
         cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].f, dim_size * sizeof(float), cudaMemcpyDeviceToHost);
         return CPU_Array;
-    }
-    else if (CUDA_arr_types[arr_idx] == "cufftComplex")
-    {
-        // Copy from the GPU to the CPU
-        cufftComplex *CPU_Array = new cufftComplex[dim_size];
-        cudaMemcpy(CPU_Array, CUDA_arr_ptrs[arr_idx].c, dim_size * sizeof(cufftComplex), cudaMemcpyDeviceToHost);
     }
     else
     {

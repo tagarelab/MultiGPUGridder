@@ -1,6 +1,6 @@
 # https://devblogs.nvidia.com/building-cuda-applications-cmake/
 # /opt/cmake-3.15.2-Linux-x86_64/bin/cmake-gui 
-
+# Have to select the x64 option in CMAKE
 
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project(cmake_and_cuda LANGUAGES CXX CUDA)
