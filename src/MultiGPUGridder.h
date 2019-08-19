@@ -29,9 +29,6 @@ public:
 	// Number of GPUs to use with the CUDA kernel
 	int numGPUs = 1; // Default is 1
 
-	// Number of kernel batches to perform
-	int nBatches = 1;
-
 	// Output image size parameter
 	int *imgSize = new int[3];
 
@@ -62,14 +59,14 @@ public:
 
 	// Maximum number of coordinate axes / CASImg size to initilize
 	// Essentially this limits the amount of GPU memory allocated
-	int MaxAxesToAllocate = 20;
+	int MaxAxesToAllocate = 5000;
 
 	// Create a MemoryManager class object for allocating, copying, and transferring array to  CPU, GPU, or Matlab memory
 	MemoryManager *Mem_obj;
 
 	// Constructor/Destructor
 	MultiGPUGridder();
-	~MultiGPUGridder(){};
+	~MultiGPUGridder(){cudaDeviceReset();};
 
 	// Output all of the parameters to the console (very useful for debugging)
 	void Print();
@@ -79,9 +76,6 @@ public:
 
 	// Set the number of streams to use with the CUDA kernel
 	void SetNumberStreams(int nStreams);
-
-	// Set the number of batches to use with the CUDA kernel
-	void SetNumberBatches(int nBatches);
 
 	// Set GPU volume
 	void SetVolume(float *gpuVol, int *gpuVolSize);
@@ -133,7 +127,7 @@ public:
 		// std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,							 // Vector of GPU array pointers
 		float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,								 // Pointers to pinned CPU arrays for input / output
 		int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-		int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches				 // Streaming parameters
+		int numGPUs, int nStreams, int gridSize, int blockSize				 // Streaming parameters
 	);
 };
 

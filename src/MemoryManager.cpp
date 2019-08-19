@@ -163,6 +163,48 @@ void MemoryManager::mem_alloc(std::string varNameString, std::string dataType, i
     }
 }
 
+void MemoryManager::CPU_Pinned_Allocate(std::string varNameString, std::string dataType, int *dataSize)
+{
+    // Allocate memory on the CPU based on the dataType (i.e. int, float, etc.)
+
+    // Save the name of the variable and the array size to the corresponding vectors
+    cpu_arr_names.push_back(varNameString);
+
+    // Save the dataType of this array
+    cpu_arr_types.push_back(dataType);
+
+    // Deep copy the data size pointer
+    int *new_dataSize_ptr = new int[3];
+    for (int i = 0; i < 3; i++)
+    {
+        new_dataSize_ptr[i] = dataSize[i];
+    }
+
+    // Save to the vector of array sizes
+    cpu_arr_sizes.push_back(new_dataSize_ptr);
+
+    // Allocate the memory and save the pointer to the corresponding vector
+    if (dataType == "float")
+    {
+        // Need to convert the dataSize to long long int type to allow for array length larger than maximum int32 value
+        unsigned long long *dataSizeLong = new unsigned long long[3];
+        dataSizeLong[0] = (unsigned long long)new_dataSize_ptr[0];
+        dataSizeLong[1] = (unsigned long long)new_dataSize_ptr[1];
+        dataSizeLong[2] = (unsigned long long)new_dataSize_ptr[2];
+
+        float *new_ptr;// = new float[dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2]]; // Multiply the X,Y,Z dimensions of the array
+        cudaHostAlloc((void**)&new_ptr, dataSizeLong[0] * dataSizeLong[1] * dataSizeLong[2] * sizeof(float), cudaHostAllocDefault);
+        
+        // Save the new pointer to the allocated CPU array
+        cpu_arr_ptrs.push_back(new_ptr);
+    }
+    else
+    {
+        std::cerr << "Unrecognized data type. Please choose either int, float, or double." << '\n';
+    }
+}
+
+
 void MemoryManager::mem_Copy(std::string varNameString, float *New_Array)
 {
     // Given a float array, copy the data to the corresponding CPU pointer

@@ -22,9 +22,6 @@ class MultiGPUGridder(object):
         lib.SetNumberStreams.argtypes = [ctypes.c_void_p, ctypes.c_int]
         lib.SetNumberStreams.restype = ctypes.c_void_p
 
-        lib.SetNumberBatches.argtypes = [ctypes.c_void_p, ctypes.c_int]
-        lib.SetNumberBatches.restype = ctypes.c_void_p
-
         lib.SetVolume.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_int)]
         lib.SetVolume.restype = ctypes.c_void_p
 
@@ -62,9 +59,6 @@ class MultiGPUGridder(object):
 
     def SetNumberStreams(self, nStreams):
         lib.SetNumberStreams(self.obj, nStreams) 
-
-    def SetNumberBatches(self, nBatches):
-        lib.SetNumberBatches(self.obj, nBatches) 
 
     def SetVolume(self, gpuVol, gpuVolSize):
         lib.SetVolume(self.obj, gpuVol, gpuVolSize) 
@@ -147,7 +141,6 @@ print("MultiGPUGridder()...")
 gridder=MultiGPUGridder()
 gridder.SetNumberGPUs(1)
 gridder.SetNumberStreams(20)
-# gridder.SetNumberBatches(2)
 gridder.SetAxes(float_CoordAxes, int_AxesSize)
 gridder.SetVolume(float_Vol, int_VolSize)
 gridder.SetImgSize(int_ImgSize)

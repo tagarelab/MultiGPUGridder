@@ -110,14 +110,14 @@ void gpuBackProject(
 	// std::vector<cufftComplex *> gpuComplexImgs_Shifted_Vector,                           // Vector of GPU array pointers
     float * CASImgs_CPU_Pinned, float * coordAxes_CPU_Pinned, // Pointers to pinned CPU arrays for input / output
     int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize, int nBatches, // Streaming parameters
+    int numGPUs, int nStreams, int gridSize, int blockSize,  // Streaming parameters
 	int MaxAxesAllocated
 	)
 {   
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, gridSize);
     dim3 dimBlock(blockSize, blockSize, blockSize);
-    
+
     // Create the CUDA streams
 	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
 
@@ -143,29 +143,28 @@ void gpuBackProject(
 	if (nAxes <= MaxAxesAllocated)
 	{
 		// The number of coordinate axes is less than or equal to the total number of axes to process
-		numAxesPerStream = (double)nAxes / (double)nStreams;
+		numAxesPerStream = ceil((double)nAxes / (double)nStreams);
 	}
 	else
 	{
 		// Several batches will be needed so evenly split the MaxAxesAllocated by the number of streams
-		numAxesPerStream = (double)MaxAxesAllocated / (double)nStreams;
+		numAxesPerStream = ceil((double)MaxAxesAllocated / (double)nStreams);
 	}
 
 	int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
 
 	// While we have coordinate axes to process, loop through the GPUs and the streams
-	int MaxBatches = 50; // Maximum iterations in case we get stuck in the while loop
+	int MaxBatches = 10000; // Maximum iterations in case we get stuck in the while loop
 	int batch = 0;
+
 	while (processed_nAxes < nAxes && batch < MaxBatches)
 	{
 		for (int i = 0; i < nStreams; i++) // Loop through the streams   
 		{
-			std::cout << "Running stream " << i << " and batch " << batch << '\n';
-
 			int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs        
 			cudaSetDevice(curr_GPU);
 
-			// If we're passed the number of axes, process the remaining faction of numAxesPerStream
+			// If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
 			if (processed_nAxes + numAxesPerStream >= nAxes)
 			{
 				// Process the remaining fraction of numAxesPerStream
@@ -175,12 +174,12 @@ void gpuBackProject(
 			// Check to make sure we don't try to process more coord axes than we have and that we have at least one axes to process
 			if (processed_nAxes + numAxesPerStream > nAxes || numAxesPerStream < 1)
 			{
-				std::cout << "Done with gpuBackProject()..." << '\n';
 				return;
 			}
 
 			std::cout << "Running stream " << i << " and batch " << batch << '\n';
 			std::cout << "numAxesPerStream: " << numAxesPerStream << '\n';
+			std::cout << "nAxes: " << nAxes << '\n';
 
 			// Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
 			int gpuCoordAxes_Offset = processed_nAxes * 9;  // Each axes has 9 elements (X, Y, Z)
@@ -192,7 +191,6 @@ void gpuBackProject(
 			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
 			int gpuCASImgs_Offset = numAxesGPU_Batch[curr_GPU] * imgSize * imgSize;
 			int gpuCoordAxes_Stream_Offset = numAxesGPU_Batch[curr_GPU] * 9;
-
 
 			// Use unsigned long long int type to allow for array length larger than maximum int32 value 
 			// Number of bytes of already processed images
@@ -217,7 +215,7 @@ void gpuBackProject(
 				gpuCASImgs_streamBytes,
 				cudaMemcpyHostToDevice,
 				stream[i]);
-
+				
 			// Run the back projection kernel
 			gpuBackProjectKernel <<< dimGrid, dimBlock, 0, stream[i] >> > (
 				gpuVol_Vector[curr_GPU], volSize, &gpuCASImgs_Vector[curr_GPU][gpuCASImgs_Offset],
@@ -226,7 +224,7 @@ void gpuBackProject(
 
 			// Update the number of coordinate axes which have already been assigned to a CUDA stream
 			processed_nAxes = processed_nAxes + numAxesPerStream;
-
+			
 			std::cout << "processed_nAxes: " << processed_nAxes << '\n';
 			std::cout << "Axes remaining: " << nAxes - processed_nAxes << '\n';
 
@@ -236,14 +234,15 @@ void gpuBackProject(
 		batch++;
 
 		// Synchronize before running the next batch
-		// TO DO: Is this needed?
+		// TO DO: Consider replacing with cudaStreamWaitEvent or similar to prevent blocking of the CPU
 		cudaDeviceSynchronize();
 	}
 	
-
-	std::cout << "Done with gpuBackProject()..." << '\n';
-
+    // Destroy the streams
+    for (int i = 0; i < nStreams; i++) {
+        cudaStreamDestroy(stream[i]);
+	}   
+	
     return; 
-
 }
 

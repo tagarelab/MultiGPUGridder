@@ -49,6 +49,8 @@ public:
 
     void mem_alloc(std::string varNameString, std::string dataType, int *dataSize);
 
+    void CPU_Pinned_Allocate(std::string varNameString, std::string dataType, int *dataSize);    
+
     void mem_Copy(std::string varNameString, float *New_Array);
 
     void pin_mem(std::string varNameString);

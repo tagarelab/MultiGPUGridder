@@ -6,6 +6,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         fftinfo;
         interpFactor = 2;
         origBox;
+        CASBox;
+        kernelHWidth = 2;
     end
     methods
         %% Constructor - Create a new C++ class instance 
@@ -27,6 +29,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.origBox = origBox;
             this.interpBox = interpBox;
             this.fftinfo = fftinfo;
+            this.CASBox = CASBox;
             
             [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, CASVol);
         end
@@ -138,17 +141,18 @@ classdef MultiGPUGridder_Matlab_Class < handle
         %% Back_Project - Run the back projection kernel
         function varargout = backProject(this, varargin)
             
-%             imgs = varargin{1};
-%             coordAxes = varargin{2};
-%             
-%             % Need to convert the images to CAS imgs
-%             CAS_projection_imgs = CASImgsFromImgs(imgs, this.interpBox, this.fftinfo);
-%             
-%             this.SetImages(CAS_projection_imgs);
-%             this.setCoordAxes(coordAxes(:));
-
+            imgs = varargin{1};
+            coordAxes = varargin{2};
             
-            [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle, varargin{:});
+            % Need to convert the images to CAS imgs
+            CAS_projection_imgs = CASImgsFromImgs(imgs, this.interpBox, this.fftinfo);
+            
+            this.SetImages(single(CAS_projection_imgs));
+            this.setCoordAxes(single(coordAxes(:)));
+            
+            this.Print()
+            
+            [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle);
         end
         %% Print- Print the current parameters to the console
         function varargout = Print(this, varargin)
@@ -161,13 +165,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Get the density of inserted planes by backprojecting CASimages of values equal to one
             disp("Get Plane Density()...")
-            interpImgs=ones([this.interpBox.size this.interpBox.size size(coordAxes,1)/9],'single');
+            interpImgs=ones([this.interpBox.size this.interpBox.size size(coordAxes(:),1)/9],'single');
             
-            CAS_interpImgs = [];
-            CAS_interpImgs = CASImgsFromImgs(interpImgs,this.interpBox, this.fftinfo);
+%             CAS_interpImgs = [];
+%             CAS_interpImgs = CASImgsFromImgs(interpImgs,this.interpBox, this.fftinfo);
             this.resetVolume();
-            this.SetImages(CAS_interpImgs)
-            this.Back_Project()
+            this.SetImages(single(interpImgs))
+%             this.backProject(interpImgs, coordAxes(:))
+            this.setCoordAxes(single(coordAxes(:)));
+            [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle);
+            
             volWt = this.GetVolume();
 
 
@@ -177,7 +184,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
             % Reconstruct the volume from CASVol
             disp("volFromCAS()...")
-            volReconstructed=volFromCAS(volCAS,CASBox, this.interpBox, this.origBox,kernelHWidth);
+            volReconstructed=volFromCAS(volCAS,this.CASBox, this.interpBox, this.origBox,this.kernelHWidth);
        
             
             
