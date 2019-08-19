@@ -362,7 +362,7 @@ void MultiGPUGridder::Projection_Initilize()
 			gpuCASImgs_Size[1] = this->imgSize[1];
 
 			// Allocate either the number of coordinate axes given or the maximum number (whichever is smaller)
-			gpuCASImgs_Size[2] = std::min(nAxes, MaxAxesToAllocate);
+			gpuCASImgs_Size[2] = std::min(ceil((double)nAxes / (double)this->numGPUs), (double)MaxAxesToAllocate);
 
 			// We need to allocate the gpuCASImgs array on this GPU
 			Mem_obj->CUDA_alloc("gpuCASImgs_" + std::to_string(gpuDevice), "float", gpuCASImgs_Size, gpuDevice);
@@ -376,7 +376,7 @@ void MultiGPUGridder::Projection_Initilize()
 			int *gpuCoordAxes_Size = new int[3];
 
 			// Each coordinate axes has 9 elements so multiply by 9 to get the length
-			gpuCoordAxes_Size[0] = std::min(nAxes, MaxAxesToAllocate) * 9;
+			gpuCoordAxes_Size[0] = std::min(ceil((double)nAxes / (double)this->numGPUs), (double)MaxAxesToAllocate) * 9;
 			gpuCoordAxes_Size[1] = this->axesSize[1]; // This should be equal to one
 			gpuCoordAxes_Size[2] = this->axesSize[2]; // This should be equal to one
 

@@ -3,13 +3,8 @@ import numpy as np
 from matplotlib import pyplot as plt # For plotting resulting images
 
 #lib = ctypes.cdll.LoadLibrary("../bin/Release/MultiGPUGridder.dll") 
-lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Release/MultiGPUGridder.dll") 
-
-# lib = ctypes.cdll.LoadLibrary("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/bin/libMultiGPUGridder.so")
-
-#cls & python C:\GitRepositories\MultiGPUGridder\src\src\MultiGPUGridder_Python.py
-
-#lib = ctypes.cdll.LoadLibrary("../bin/libMultiGPUGridder.so") 
+#lib = ctypes.cdll.LoadLibrary("C:/GitRepositories/MultiGPUGridder/bin/Release/MultiGPUGridder.dll") 
+lib = ctypes.cdll.LoadLibrary("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/bin/libMultiGPUGridder.so")
 
 class MultiGPUGridder(object):
     def __init__(self):
