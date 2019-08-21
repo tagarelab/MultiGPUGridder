@@ -4,6 +4,7 @@
 #include "MemoryManager.h"
 #include "gpuForwardProject.h"
 #include "gpuBackProject.h"
+#include "gpuFFT.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -14,7 +15,6 @@
 #include <limits>
 #include <algorithm>
 
-#include "gpuFFT.h"
 
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
@@ -68,7 +68,7 @@ public:
 
 	// Constructor/Destructor
 	MultiGPUGridder();
-	~MultiGPUGridder(){cudaDeviceReset();};
+	~MultiGPUGridder(){}; // cudaDeviceReset();
 
 	// Output all of the parameters to the console (very useful for debugging)
 	void Print();

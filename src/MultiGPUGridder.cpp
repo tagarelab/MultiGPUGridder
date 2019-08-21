@@ -672,7 +672,9 @@ float *MultiGPUGridder::PadVolume(float *inputVol, int inputImgSize, int outputI
 
     float * outputVol;
 
-    outputVol = gpuFFT::PadVolume(inputVol, inputImgSize, outputImgSize)
+    gpuFFT gpuFFT_obj;
+
+    outputVol = gpuFFT_obj.PadVolume(inputVol, inputImgSize, outputImgSize);
 
     return outputVol;
 

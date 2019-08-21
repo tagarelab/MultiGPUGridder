@@ -4,6 +4,10 @@
 
 #include <iostream>
 
+// includes CUDA Runtime
+#include <cuda_runtime.h>
+#include <cuda.h>
+
 
 class gpuFFT
 {
