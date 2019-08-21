@@ -764,14 +764,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         dims[2] = (int)dims_mwSize[2];
 
         mwSize output_dims[3];
-        output_dims[0] = dims[0] / 2;
-        output_dims[1] = dims[1] / 2;
-        output_dims[2] = dims[2] / 2;
+        output_dims[0] = dims[0] / 2 - 3;
+        output_dims[1] = dims[1] / 2 - 3;
+        output_dims[2] = dims[2] / 2 - 3;
 
         std::cout << "output_dims: " << output_dims[0] << " " <<  output_dims[1] << " " <<  output_dims[2] << '\n';
         // Call the method
         float * output_volume;// = new float[dims[0]/2 * dims[1]/2 * dims[2]/2];
-        output_volume = MultiGPUGridder_instance->CropVolume(matlabArrayPtr, dims[0], dims[0] / 2);
+        output_volume = MultiGPUGridder_instance->CropVolume(matlabArrayPtr, dims[0], dims[0] / 2 - 3);
 
         // Create the output matlab array as type float
         mxArray *Output_Matlab_Pointer = mxCreateNumericArray(3, output_dims, mxSINGLE_CLASS, mxREAL);

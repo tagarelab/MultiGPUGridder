@@ -14,6 +14,8 @@
 #include <limits>
 #include <algorithm>
 
+#include "gpuFFT.h"
+
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
 #include <cuda.h>
