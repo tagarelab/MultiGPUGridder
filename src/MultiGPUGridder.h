@@ -129,6 +129,12 @@ public:
 		int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
 		int numGPUs, int nStreams, int gridSize, int blockSize				 // Streaming parameters
 	);
+
+	// Crop an image volume
+	float* CropVolume(float *inputVol, int inputImgSize, int outputImgSize);
+
+	// Zero pad a volume
+	float * PadVolume(float *inputVol, int inputImgSize,  int outputImgSize);
 };
 
 #endif

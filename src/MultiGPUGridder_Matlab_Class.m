@@ -194,6 +194,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             
         end
-
+        %% CropVolume - Crop a volume
+        function varargout = CropVolume(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('CropVolume', this.objectHandle, varargin{:});
+        end
+        
+        %% PadVolume - Zero pad a volume
+        function varargout = PadVolume(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('PadVolume', this.objectHandle, varargin{:});
+        end
     end
 end

@@ -738,6 +738,106 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+
+
+
+    // Crop some image volume
+    if (!strcmp("CropVolume", cmd))
+    {
+        // Check parameters
+        if (nrhs != 3)
+        {
+            mexErrMsgTxt("CropVolume: Unexpected arguments. Please provide a Matlab array.");
+        }
+
+
+        // Get a pointer to the input matrix
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
+
+        // Get the matrix size of the input Matlab pointer
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions(prhs[2]);
+
+        int *dims = new int[3];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
+        dims[2] = (int)dims_mwSize[2];
+
+        mwSize output_dims[3];
+        output_dims[0] = dims[0] / 2;
+        output_dims[1] = dims[1] / 2;
+        output_dims[2] = dims[2] / 2;
+
+        std::cout << "output_dims: " << output_dims[0] << " " <<  output_dims[1] << " " <<  output_dims[2] << '\n';
+        // Call the method
+        float * output_volume;// = new float[dims[0]/2 * dims[1]/2 * dims[2]/2];
+        output_volume = MultiGPUGridder_instance->CropVolume(matlabArrayPtr, dims[0], dims[0] / 2);
+
+        // Create the output matlab array as type float
+        mxArray *Output_Matlab_Pointer = mxCreateNumericArray(3, output_dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *Output_matlabArrayPtr = (float *)mxGetData(Output_Matlab_Pointer);
+
+        // Copy the data to the Matlab array
+        std::memcpy(Output_matlabArrayPtr, output_volume, sizeof(float) * output_dims[0] * output_dims[1] * output_dims[2]);
+
+        plhs[0] = Output_Matlab_Pointer;
+
+
+
+        return;
+    }
+        
+    // Pad some image volume
+    if (!strcmp("PadVolume", cmd))
+    {
+        // Check parameters
+        if (nrhs != 3)
+        {
+            mexErrMsgTxt("PadVolume: Unexpected arguments. Please provide a Matlab array.");
+        }
+
+
+        // Get a pointer to the input matrix
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
+
+        // Get the matrix size of the input Matlab pointer
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions(prhs[2]);
+
+        int *dims = new int[3];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
+        dims[2] = (int)dims_mwSize[2];
+
+        mwSize output_dims[3];
+        output_dims[0] = dims[0] * 2 + 6;
+        output_dims[1] = dims[1] * 2 + 6;
+        output_dims[2] = dims[2] * 2 + 6;
+
+        // Call the method
+        float * output_volume;
+        output_volume = MultiGPUGridder_instance->PadVolume(matlabArrayPtr, dims[0], dims[0]*2 + 6);
+
+        // Create the output matlab array as type float
+        mxArray *Output_Matlab_Pointer = mxCreateNumericArray(3, output_dims, mxSINGLE_CLASS, mxREAL);
+
+        // Get a pointer to the output matrix created above
+        float *Output_matlabArrayPtr = (float *)mxGetData(Output_Matlab_Pointer);
+
+        // Copy the data to the Matlab array
+        std::memcpy(Output_matlabArrayPtr, output_volume, sizeof(float) * output_dims[0] * output_dims[1] * output_dims[2]);
+
+        plhs[0] = Output_Matlab_Pointer;
+
+        std::cout << "Done with PadVolume()" << '\n';
+
+
+        return;
+    }  
+
+
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)
     {
