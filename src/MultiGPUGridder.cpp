@@ -175,10 +175,10 @@ float *MultiGPUGridder::GetVolume()
     }
 
     // Lastly, divide the sum by the number of GPUs used
-    for (int i = 0; i < this->volSize[0] * this->volSize[1] * this->volSize[2]; i++)
-    {
-        VolSum[i] = VolSum[i] / this->numGPUs;
-    }
+    // for (int i = 0; i < this->volSize[0] * this->volSize[1] * this->volSize[2]; i++)
+    // {
+    //     VolSum[i] = VolSum[i] / this->numGPUs;
+    // }
 
     return VolSum;
 }

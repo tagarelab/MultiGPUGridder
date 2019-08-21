@@ -215,7 +215,7 @@ void gpuBackProject(
 				gpuCASImgs_streamBytes,
 				cudaMemcpyHostToDevice,
 				stream[i]);
-				
+
 			// Run the back projection kernel
 			gpuBackProjectKernel <<< dimGrid, dimBlock, 0, stream[i] >> > (
 				gpuVol_Vector[curr_GPU], volSize, &gpuCASImgs_Vector[curr_GPU][gpuCASImgs_Offset],
@@ -230,6 +230,14 @@ void gpuBackProject(
 
 		}
 
+
+		// Reset the number of axes assigned to each gpu to all zeros before starting another batch
+		for (int curr_GPU = 0; curr_GPU < numGPUs; curr_GPU++)
+		{
+			numAxesGPU_Batch[curr_GPU] = 0;
+		}
+
+		
 		// Increment the batch number
 		batch++;
 

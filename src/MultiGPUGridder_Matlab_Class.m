@@ -36,6 +36,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
         %% GetVolume - Get the summed volume from all of the GPUs
         function varargout = GetVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('GetVolume', this.objectHandle, varargin{:});
+            
+%              varargout{1:nargout}=volFromCAS(varargout{1:nargout},this.CASBox, this.interpBox, this.origBox,this.kernelHWidth);
+       
         end
         %% SetImages - Set CAS Imgs
         function varargout = SetImages(this, varargin)
@@ -162,25 +165,27 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function volReconstructed = reconstructVol(this, coordAxes)
             
             volCAS = this.GetVolume();
-            
-            % Get the density of inserted planes by backprojecting CASimages of values equal to one
-            disp("Get Plane Density()...")
-            interpImgs=ones([this.interpBox.size this.interpBox.size size(coordAxes(:),1)/9],'single');
-            
-%             CAS_interpImgs = [];
-%             CAS_interpImgs = CASImgsFromImgs(interpImgs,this.interpBox, this.fftinfo);
-            this.resetVolume();
-            this.SetImages(single(interpImgs))
-%             this.backProject(interpImgs, coordAxes(:))
-            this.setCoordAxes(single(coordAxes(:)));
-            [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle);
-            
-            volWt = this.GetVolume();
+%    
+%             % Get the density of inserted planes by backprojecting CASimages of values equal to one
+%             disp("Get Plane Density()...")
+%             interpImgs=ones([this.interpBox.size this.interpBox.size size(coordAxes(:),1)/9],'single');
+%             
+% %             CAS_interpImgs = [];
+% %             CAS_interpImgs = CASImgsFromImgs(interpImgs,this.interpBox, this.fftinfo);
+%             this.resetVolume();
+%             this.SetImages(single(interpImgs))
+% %             this.backProject(interpImgs, coordAxes(:))
+%             this.setCoordAxes(single(coordAxes(:)));
+%             [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle);
+%             
+%             volWt = this.GetVolume();
 
-
+%             imagesc(volWt(:,:,10))
+            
             % Normalize the back projection result with the plane density
             % Divide the previous volume with the plane density volume
-            volCAS=volCAS./(volWt+1e-6);
+%             volCAS=volCAS./(volWt+1e-6);
+%             volCAS = volWt; % TEST
 
             % Reconstruct the volume from CASVol
             disp("volFromCAS()...")

@@ -67,7 +67,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             // (2) Set the number of coordinate axes
             // Get a pointer to the matlab array
             int *matlabArrayPtr_Axes = (int *)mxGetData(prhs[2]);
-            matlabArrayPtr_Axes[0] = matlabArrayPtr_Axes[0];
+            matlabArrayPtr_Axes[0] = matlabArrayPtr_Axes[0] * 9;
 
             // Check the dimensions of the given input
             mwSize numDims_Axes;
@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             int *imgSize = new int[3];
             imgSize[0] = matlabArrayPtr[0] * matlabArrayPtr_InterpFactor[0];
             imgSize[1] = matlabArrayPtr[0] * matlabArrayPtr_InterpFactor[0];
-            imgSize[2] = matlabArrayPtr_Axes[0]; // Number of coordinate axes
+            imgSize[2] = matlabArrayPtr_Axes[0] / 9; // Number of coordinate axes since axes has 9 elements each
 
             MultiGPUGridder_instance->SetImgSize(imgSize);
 
@@ -675,8 +675,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Run the back projection CUDA kernel
     if (!strcmp("Back_Project", cmd))
     {
-        // Accept either 2 or 4 input parameters
-        if (nrhs != 2 && nrhs != 4)
+        // Accept 2 input parameters
+        if (nrhs != 2 )
         {
             mexErrMsgTxt("Back_Project: Unexpected arguments.");
         }
