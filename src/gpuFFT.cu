@@ -9,7 +9,7 @@ gpuFFT::~gpuFFT()
 }
 
 
-__global__ void PadVolumeKernel(float* input, float* output, int intputImgSize, int outputImgSize, int padding)
+__global__ void PadVolumeKernel(float* input, float* output, int inputImgSize, int outputImgSize, int padding)
 {
     // Zero pad a volume using the GPU
 
@@ -19,16 +19,16 @@ __global__ void PadVolumeKernel(float* input, float* output, int intputImgSize, 
     
 
     // Are we outside the bounds of the image?
-    if (i >= intputImgSize || i < 0 || j >= intputImgSize || j < 0){
+    if (i >= inputImgSize || i < 0 || j >= inputImgSize || j < 0){
         return;
     }
 
 
     // // Iterate over the input image (i.e. the smaller image)
-    for (int k = 0; k < intputImgSize; k++){
+    for (int k = 0; k < inputImgSize; k++){  
 
         // Get the linear index of the output (smaller) image
-        int ndx_1 = i + j * intputImgSize + k * intputImgSize * intputImgSize;   
+        int ndx_1 = i + j * inputImgSize + k * inputImgSize * inputImgSize;   
 
         // Get the linear index of the output (larger) image    
         int ndx_2 = 
@@ -36,7 +36,7 @@ __global__ void PadVolumeKernel(float* input, float* output, int intputImgSize, 
         (j + padding) * outputImgSize +
         (k + padding) * outputImgSize *  outputImgSize;  
 
-        output[ndx_1] = input[ndx_2];
+        output[ndx_2] = input[ndx_1];
     }
 }
 
@@ -53,16 +53,12 @@ float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
     }
 
     // Create the output volume
-    //int outputImgSize = interpFactor * inputImgSize;
-
     float *outputVol = new float[outputImgSize * outputImgSize * outputImgSize];
 
     for (int i = 0; i < outputImgSize * outputImgSize * outputImgSize; i++)
     {
         outputVol[i] = 0; // Initilize the output volume to zeros first
     }
-
-    std::cout << "Output volume size: " << outputImgSize << '\n';
 
     // How much to crop on each side?
     int padding = (outputImgSize - inputImgSize) / 2;
@@ -71,20 +67,18 @@ float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
 
     if (use_gpu == true)
     {
-        std::cout << "Padding: " << padding << '\n';
-        std::cout << "inputImgSize: " << inputImgSize << '\n';
-        std::cout << "outputImgSize: " << outputImgSize << '\n';
-
         // Allocate GPU memory to hold the input and output arrays
         float *d_input; 
         cudaMalloc(&d_input, sizeof(float) * inputImgSize * inputImgSize * inputImgSize);
         float *d_output; 
         cudaMalloc(&d_output, sizeof(float) * outputImgSize * outputImgSize * outputImgSize);
 
+        // Copy the input volume to the device
+        cudaMemcpy(d_input, inputVol, sizeof(float) * inputImgSize * inputImgSize * inputImgSize, cudaMemcpyHostToDevice);
 
         // Run kernel to pad the intput array
         int gridSize = 32;
-        int blockSize = inputImgSize / gridSize;
+        int blockSize = ceil(inputImgSize / gridSize);
 
         dim3 dimGridCrop(gridSize, gridSize, 1);
         dim3 dimBlockCrop(blockSize, blockSize, 1);

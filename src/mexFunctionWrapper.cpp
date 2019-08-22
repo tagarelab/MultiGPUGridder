@@ -816,6 +816,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         output_dims[1] = dims[1] * 2 + 6;
         output_dims[2] = dims[2] * 2 + 6;
 
+        std::cout << "dims[0]: " << dims[0] << '\n';
+        
         // Call the method
         float * output_volume;
         output_volume = MultiGPUGridder_instance->PadVolume(matlabArrayPtr, dims[0], dims[0]*2 + 6);
