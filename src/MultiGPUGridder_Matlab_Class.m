@@ -203,5 +203,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function varargout = PadVolume(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('PadVolume', this.objectHandle, single(varargin{:}));
         end
+        %% VolumeToCAS - Zero pad a volume
+        function varargout = VolumeToCAS(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('VolumeToCAS', this.objectHandle, single(varargin{:}));
+        end
     end
 end

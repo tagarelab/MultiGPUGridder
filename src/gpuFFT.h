@@ -8,6 +8,7 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 
+#include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
 
 class gpuFFT
 {
@@ -22,6 +23,7 @@ public:
     float *PadVolume(float *inputVol, int inputImgSize, int outputImgSize);
 
 
+    float* VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding);
 
 };
 

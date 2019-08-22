@@ -137,6 +137,9 @@ public:
 
 	// Zero pad a volume
 	float * PadVolume(float *inputVol, int inputImgSize,  int outputImgSize);
+
+	// Convert a volume to CAS volume	
+	float * VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding);
 };
 
 #endif

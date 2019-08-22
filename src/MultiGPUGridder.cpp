@@ -677,13 +677,24 @@ float *MultiGPUGridder::PadVolume(float *inputVol, int inputImgSize, int outputI
     outputVol = gpuFFT_obj.PadVolume(inputVol, inputImgSize, outputImgSize);
 
     return outputVol;
+}
+
+float *MultiGPUGridder::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding)
+{
+    // Convert a volume to CAS volume using the CUDA FFT library and other kernels
+
+
+    float * outputVol;
+
+    gpuFFT gpuFFT_obj;
+
+    outputVol = gpuFFT_obj.VolumeToCAS(inputVol, inputVolSize, interpFactor, extraPadding);
+
+    return outputVol;
 
 
 
 }
-
-
-
 
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)
 #define USE_EXTERN_C true
