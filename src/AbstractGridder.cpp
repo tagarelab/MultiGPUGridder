@@ -1,41 +1,45 @@
 #include "AbstractGridder.h"
 
-
 AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
 {
     // Constructor for the abstract gridder class
-
     // Set the volume size
-    if ( VolumeSize > 0 && VolumeSize%2 == 0) // Check that the size is greater than zero and an even number
+    if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
     {
         this->VolumeSize = VolumeSize;
-    } else
+    }
+    else
     {
         std::cerr << "Volume size must be a non-zero even integer." << '\n';
     }
 
     // Set the coordinate axes size
-    if ( numCoordAxes > 0 ) // Check that the number of coordinate axes is greater than zero 
+    if (numCoordAxes > 0) // Check that the number of coordinate axes is greater than zero
     {
         this->numCoordAxes = numCoordAxes;
-    } else
+    }
+    else
     {
         std::cerr << "Number of coordinate axes must be a non-zero integer." << '\n';
     }
 
     // Set the interpolation factor parameter
-    if ( interpFactor > 0 ) // Check that the interpolation factor is greater than zero 
+    if (interpFactor > 0) // Check that the interpolation factor is greater than zero
     {
         this->interpFactor = interpFactor;
-    } else
+    }
+    else
     {
         std::cerr << "Interpolation factor must be a non-zero float value." << '\n';
     }
-
 }
 
 AbstractGridder::~AbstractGridder()
 {
+    // Deconstructor for the abstract gridder class
+
+    // Free all of the allocated memory
+    FreeMemory();
 }
 
 void AbstractGridder::SetInterpFactor(float interpFactor)
@@ -64,7 +68,7 @@ void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int kerSize)
 
 void AbstractGridder::SetImgSize(int *imgSize)
 {
-    // Set the projection image size 
+    // Set the projection image size
     this->imgSize = new int[3];
     this->imgSize[0] = imgSize[0];
     this->imgSize[1] = imgSize[1];

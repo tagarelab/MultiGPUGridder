@@ -40,7 +40,9 @@ add_library(MultiGPUGridder SHARED
 
 		AbstractGridder.h
 		AbstractGridder.cpp
-		
+
+		gpuGridder.h
+		gpuGridder.cpp		
 		
   )
 

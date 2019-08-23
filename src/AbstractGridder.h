@@ -4,12 +4,17 @@
 class AbstractGridder
 {
 protected:
-
     // Volume to use for forward/back projection
     float *Volume;
 
     // Size of the volume (the volume must be square)
     int VolumeSize;
+
+    // CASVolume to use for forward/back projection
+    float *CASVolume;
+
+    // Size of the CASVolume (the CASvolume must be square)
+    int CASVolumeSize;
 
     // Interpolation factor for zero padding the volume
     float interpFactor = 2;
@@ -18,10 +23,16 @@ protected:
     int extraPadding = 3;
 
     // Projection images
-    float * imgs;
+    float *imgs;
 
     // Size of the projection images
-	int *imgSize = new int[3];
+    int *imgSize;
+
+    // CAS Projection images
+    float *CASimgs;
+
+    // Size of the CAS projection images
+    int *CASimgSize;
 
     // Number of the coordinate axes
     int numCoordAxes;
@@ -49,13 +60,13 @@ protected:
     // Convert the CAS volume back to volume
     virtual void CASToVolume();
 
-	// Set coordinate axes
-	void SetAxes(float *coordAxes, int *axesSize);
+    // Set coordinate axes
+    void SetAxes(float *coordAxes, int *axesSize);
 
     // Set the maskRadius parameter
     void SetMaskRadius(float *maskRadius);
 
-    // Set the CASImgs array by first converting imgs to CAS
+    // Get a new images array and then convert them to CAS
     virtual void SetImages(float *imgs);
 
     // Get the images array by first converting the CAS images back to images
@@ -67,9 +78,11 @@ protected:
     // Set the interpolation factor parameter
     void SetInterpFactor(float interpFactor);
 
+    // Free all of the allocated memory
+    virtual void FreeMemory();
+
 public:
-    
-    // Constructor 
+    // Constructor
     AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor);
 
     // Deconstructor
@@ -91,5 +104,5 @@ public:
     virtual float *GetVolume();
 
     // Set the kaiser bessel vector
-	void SetKerBesselVector(float *ker_bessel_Vector, int kerSize);
+    void SetKerBesselVector(float *ker_bessel_Vector, int kerSize);
 };
