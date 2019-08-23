@@ -25,7 +25,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Which allows for calling the C++ and CUDA functions while maintaining the memory pointers
 
      mxUnshareArray(const_cast<mxArray *>(prhs[0]), true);  //</mxArray>
-     
+
     // Get the input command string
     char cmd[64];
     if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
@@ -877,8 +877,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int extraPadding = 3;
 
         // Call the method
-        float * output_volume;
+        float * output_volume;// = new float[output_dims[0] * output_dims[1] * output_dims[2]];
         // auto t1 = std::chrono::high_resolution_clock::now();
+
+        // for (int i=0; i<output_dims[0]*output_dims[1]*output_dims[2]; i++)
+        // {
+        //     output_volume[i] = 0;
+        // }
 
         output_volume = MultiGPUGridder_instance->VolumeToCAS(matlabArrayPtr, dims[0], interpFactor, extraPadding);
 

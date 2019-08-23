@@ -16,7 +16,7 @@ __global__ void cufftShift_3D_slice_kernel(T* data, int N, int nSlices)
     // In place FFT shift using GPU
     // Modified from https://raw.githubusercontent.com/marwan-abdellah/cufftShift/master/Src/CUDA/Kernels/in-place/cufftShift_3D_IP.cu
     // GNU Lesser General Public License
-    
+
     // 3D Volume & 2D Slice & 1D Line
     int sLine = N;
     int sSlice = N * N;
@@ -33,12 +33,18 @@ __global__ void cufftShift_3D_slice_kernel(T* data, int N, int nSlices)
     int yThreadIdx = threadIdx.y;
 
     // Block Width & Height
-    int blockWidth = blockDim.x;
+    int blockWidth  = blockDim.x;
     int blockHeight = blockDim.y;
 
     // Thread Index 2D
     int xIndex = blockIdx.x * blockWidth + xThreadIdx;
     int yIndex = blockIdx.y * blockHeight + yThreadIdx;
+
+    // Are we within the image bounds?
+    if (xIndex < 0 || xIndex >= N || yIndex < 0 || yIndex >= N )
+    {
+        return;
+    }
 
     T regTemp;
 
@@ -100,99 +106,6 @@ __global__ void cufftShift_3D_slice_kernel(T* data, int N, int nSlices)
         }
     }
 }
-
-
-// __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
-// {
-// 	// 3D Volume, 2D Slice, 1D Line
-// 	int sLine = N;
-// 	int sSlice = N * N;
-// 	int sVolume = N * N * N;
-
-// 	// Transformations Equations
-// 	int sEq1 = (sVolume + sSlice + sLine) / 2;
-// 	int sEq2 = (sVolume + sSlice - sLine) / 2;
-// 	int sEq3 = (sVolume - sSlice + sLine) / 2;
-// 	int sEq4 = (sVolume - sSlice - sLine) / 2;
-
-// 	// Thread Index 2D
-// 	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-// 	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-
-// 	// Each thread will do all the slices for some X, Y position in the 3D matrix
-// 	for (int zIndex = 0; zIndex < nSlices; zIndex++)
-// 	{
-// 		// Thread Index Converted into 1D Index
-// 		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
-
-// 		if (zIndex < N / 2)
-// 		{
-// 			if (xIndex < N / 2)
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// First Quad
-// 					output[index].x = input[index + sEq1].x;
-// 					output[index].y = input[index + sEq1].y;
-// 				}
-// 				else
-// 				{
-// 					// Third Quad
-// 					output[index].x = input[index + sEq3].x;
-// 					output[index].y = input[index + sEq3].y;
-// 				}
-// 			}
-// 			else
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// Second Quad
-// 					output[index].x = input[index + sEq2].x;
-// 					output[index].y = input[index + sEq2].y;
-// 				}
-// 				else
-// 				{
-// 					// Fourth Quad
-// 					output[index].x = input[index + sEq4].x;
-// 					output[index].y = input[index + sEq4].y;
-// 				}
-// 			}
-// 		}
-// 		else
-// 		{
-// 			if (xIndex < N / 2)
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// First Quad
-// 					output[index].x = input[index - sEq4].x;
-// 					output[index].y = input[index - sEq4].y;
-// 				}
-// 				else
-// 				{
-// 					// Third Quad
-// 					output[index].x = input[index - sEq2].x;
-// 					output[index].y = input[index - sEq2].y;
-// 				}
-// 			}
-// 			else
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// Second Quad
-// 					output[index].x = input[index - sEq3].x;
-// 					output[index].y = input[index - sEq3].y;
-// 				}
-// 				else
-// 				{
-// 					// Fourth Quad
-// 					output[index].x = input[index - sEq1].x;
-// 					output[index].y = input[index - sEq1].y;
-// 				}
-// 			}
-// 		}
-// 	}
-// }
 
 __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
@@ -330,11 +243,16 @@ float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
     float *outputVol = new float[outputImgSize * outputImgSize * outputImgSize];
     memset(outputVol, 0, outputImgSize * outputImgSize * outputImgSize * sizeof(float));
 
+    // for (int i = 0; i < outputImgSize * outputImgSize * outputImgSize; i++)
+    // {
+    //     outputVol[i] = 0;
+    // }
+
     // How much to crop on each side?
     int padding = (outputImgSize - inputImgSize) / 2;
 
     // For very small matrix sizes it might be faster to use the CPU instead of the GPU
-    bool use_gpu = true;
+    bool use_gpu = false;
 
     if (use_gpu == true)
     {
@@ -401,11 +319,9 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // Example: input size = 128; interpFactor = 2; extra padding = 3; -> padded size = 262
     int paddedVolSize = inputVolSize * interpFactor;
 
-    std::cout << "paddedVolSize: " << paddedVolSize << '\n';
-
     // Pad the input volume with zeros
     float* inputVol_Padded = PadVolume(inputVol, inputVolSize, paddedVolSize);
-
+    
     // Plan the forward FFT
     cufftHandle forwardFFTPlan;           
     cufftPlan3d(&forwardFFTPlan, paddedVolSize, paddedVolSize, paddedVolSize, CUFFT_C2C);
@@ -418,9 +334,8 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     h_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
 
     // Create temporary arrays to hold the cufftComplex array        
-    cufftComplex *h_complex_array, *d_complex_array; //, *d_complex_output_array;
+    cufftComplex *h_complex_array, *d_complex_array;
     cudaMalloc(&d_complex_array, sizeof(cufftComplex) * array_size);
-    // cudaMalloc(&d_complex_output_array, sizeof(cufftComplex) * array_size);
     h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * array_size);
     
     // Convert the padded volume to a cufftComplex array
@@ -434,7 +349,7 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     cudaMemcpy( d_complex_array, h_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyHostToDevice);        
 
     int gridSize  = ceil(paddedVolSize / 32);
-    int blockSize = 32; // 32*32 threads
+    int blockSize = 32; // i.e. 32*32 threads
 
     // Define CUDA kernel dimensions for converting the complex volume to a CAS volume
     dim3 dimGrid(gridSize, gridSize, 1);
@@ -443,8 +358,7 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // STEP 2
     // Apply an in place 3D FFT Shift
     cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
-    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, paddedVolSize, paddedVolSize);
-        
+   
     // STEP 3
     // Execute the forward FFT on the 3D array
     cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_array, (cufftComplex *) d_complex_array, CUFFT_FORWARD);
@@ -452,7 +366,6 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // STEP 4
     // Apply a second in place 3D FFT Shift
     cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
-    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, paddedVolSize, paddedVolSize);
 
     // STEP 5
     // Convert the complex result of the forward FFT to a CAS img type
@@ -463,21 +376,18 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // Copy the resulting CAS volume back to the host
     cudaMemcpy(h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);        
 
-    cudaDeviceSynchronize();
-    
-    // Free the temporary memory
-    cudaFree(d_complex_array);
-    // cudaFree(d_complex_output_array);
-    cudaFree(d_CAS_Vol);
-    std::free(h_CAS_Vol);
-    std::free(inputVol_Padded);
-
     // STEP 6
     // Pad the result with the additional padding
     int paddedVolSize_Extra = paddedVolSize + extraPadding * 2;
 
     // Pad the padded volume with the extra zero padding
     float *outputVol = PadVolume(h_CAS_Vol, paddedVolSize, paddedVolSize_Extra);
+
+    // Free the temporary memory
+    cudaFree(d_complex_array);
+    cudaFree(d_CAS_Vol);   
+    std::free(inputVol_Padded);
+    std::free(h_CAS_Vol);
 
     // Return the resulting CAS volume
     return outputVol;
