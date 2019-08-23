@@ -37,6 +37,9 @@ add_library(MultiGPUGridder SHARED
 
 		gpuFFT.h
 		gpuFFT.cu
+
+		AbstractGridder.h
+		AbstractGridder.cpp
 		
 		
   )

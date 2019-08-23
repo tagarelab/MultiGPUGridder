@@ -252,7 +252,7 @@ float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
     int padding = (outputImgSize - inputImgSize) / 2;
 
     // For very small matrix sizes it might be faster to use the CPU instead of the GPU
-    bool use_gpu = false;
+    bool use_gpu = true;
 
     if (use_gpu == true)
     {
