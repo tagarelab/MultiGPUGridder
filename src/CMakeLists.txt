@@ -24,14 +24,21 @@ endif()
 
 #find_package(Cuda)
 add_library(MultiGPUGridder SHARED
-		gpuBackProjectKernel.cu
-		gpuForwardProjectKernel.cu
 		gpuBackProject.h
+		gpuBackProjectKernel.cu
 		gpuForwardProject.h
-		MemoryManager.cpp
-		MultiGPUGridder.cpp
+		gpuForwardProjectKernel.cu
+		
 		MemoryManager.h
+		MemoryManager.cpp
+		
 		MultiGPUGridder.h
+		MultiGPUGridder.cpp
+
+		gpuFFT.h
+		gpuFFT.cu
+		
+		
   )
 
 if(WITH_CUFFT)

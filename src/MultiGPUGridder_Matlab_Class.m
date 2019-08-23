@@ -196,12 +196,28 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end
         %% CropVolume - Crop a volume
         function varargout = CropVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CropVolume', this.objectHandle, varargin{:});
+            [varargout{1:nargout}] = mexFunctionWrapper('CropVolume', this.objectHandle, single(varargin{:}));
         end
         
         %% PadVolume - Zero pad a volume
         function varargout = PadVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('PadVolume', this.objectHandle, varargin{:});
+            [varargout{1:nargout}] = mexFunctionWrapper('PadVolume', this.objectHandle, single(varargin{:}));
+        end
+        %% VolumeToCAS - Zero pad a volume
+        function varargout = VolumeToCAS(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('VolumeToCAS', this.objectHandle, single(varargin{:}));
+        end
+        %% MemoryTest - Test
+        function varargout = MemoryTestSavePtr(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('MemoryTestSavePtr', this.objectHandle, single(varargin{:}));
+        end
+        %% DivideByTwo - Test
+        function varargout = DivideByTwo(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('DivideByTwo', this.objectHandle, varargin{:});
+        end
+        %% MemoryTestPrint - Test
+        function varargout = MemoryTestPrint(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('MemoryTestPrint', this.objectHandle, varargin{:});
         end
     end
 end

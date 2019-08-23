@@ -669,58 +669,32 @@ float *MultiGPUGridder::PadVolume(float *inputVol, int inputImgSize, int outputI
     // Pad a volume (of dimensions 3) with zeros
     // Note: Output volume is larger than the input volume
 
-    // Check the input parameters
-    if(inputImgSize <=0)
-    {
-        std::cerr << "CropVolume(): Invalid image size." << '\n';
-    }
 
-    // Create the output volume
-    //int outputImgSize = interpFactor * inputImgSize;
+    float * outputVol;
 
-    float *outputVol = new float[outputImgSize * outputImgSize * outputImgSize];
+    gpuFFT gpuFFT_obj;
 
-    for (int i = 0; i < outputImgSize * outputImgSize * outputImgSize; i++)
-    {
-        outputVol[i] = 0; // Initilize the output volume to zeros first
-    }
+    outputVol = gpuFFT_obj.PadVolume(inputVol, inputImgSize, outputImgSize);
 
-    std::cout << "Output volume size: " << outputImgSize << '\n';
+    return outputVol;
+}
 
-    // How much to crop on each side?
-    int padding = (outputImgSize - inputImgSize) / 2;
+float *MultiGPUGridder::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding)
+{
+    // Convert a volume to CAS volume using the CUDA FFT library and other kernels
 
-    // padding = 0;
 
-    std::cout << "Padding: " << padding << '\n';
-    std::cout << "inputImgSize: " << inputImgSize << '\n';
-    std::cout << "outputImgSize: " << outputImgSize << '\n';
+    float * outputVol;
 
-    // Iterate over the input image (i.e. the smaller image)
-    for (int i = 0; i < inputImgSize; i++)
-    {
-        for (int j = 0; j < inputImgSize; j++)
-        {
-            for (int k = 0; k < inputImgSize; k++)
-            {
+    gpuFFT gpuFFT_obj;
 
-                int input_ndx = i + j*inputImgSize + k*inputImgSize*inputImgSize;
-
-                int output_ndx = (i + padding) + (j+padding)*outputImgSize + (k+padding)*outputImgSize*outputImgSize;
-
-                outputVol[output_ndx] = inputVol[input_ndx];
-            }
-        }
-    }
+    outputVol = gpuFFT_obj.VolumeToCAS(inputVol, inputVolSize, interpFactor, extraPadding);
 
     return outputVol;
 
 
 
 }
-
-
-
 
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)
 #define USE_EXTERN_C true

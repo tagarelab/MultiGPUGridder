@@ -4,6 +4,7 @@
 #include "MemoryManager.h"
 #include "gpuForwardProject.h"
 #include "gpuBackProject.h"
+#include "gpuFFT.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -14,6 +15,7 @@
 #include <limits>
 #include <algorithm>
 
+
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
 #include <cuda.h>
@@ -21,11 +23,19 @@
 // NVTX labeling tools (for the nvidia profiling)
 //#include <nvToolsExt.h>
 #include <cuda_profiler_api.h>
+#include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
+
+
 
 class MultiGPUGridder
 {
 
 public:
+
+	float * testMatrix = NULL;
+
+	int testMatrix_size;
+
 	// Number of GPUs to use with the CUDA kernel
 	int numGPUs = 1; // Default is 1
 
@@ -66,7 +76,7 @@ public:
 
 	// Constructor/Destructor
 	MultiGPUGridder();
-	~MultiGPUGridder(){cudaDeviceReset();};
+	~MultiGPUGridder(){}; // cudaDeviceReset();
 
 	// Output all of the parameters to the console (very useful for debugging)
 	void Print();
@@ -135,6 +145,9 @@ public:
 
 	// Zero pad a volume
 	float * PadVolume(float *inputVol, int inputImgSize,  int outputImgSize);
+
+	// Convert a volume to CAS volume	
+	float * VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding);
 };
 
 #endif
