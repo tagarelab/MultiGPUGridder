@@ -1,5 +1,9 @@
 #include "mexFunctionWrapper.h"
 
+#include <chrono> // For measuring execution time
+
+// extern "C" bool mxUnshareArray(mxArray *array_ptr, bool noDeepCopy);
+
 int *GetMatlabDimensions(const mxArray *MatlabInputPointer)
 {
 
@@ -20,6 +24,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // This is the wrapper for the corresponding Matlab class
     // Which allows for calling the C++ and CUDA functions while maintaining the memory pointers
 
+     mxUnshareArray(const_cast<mxArray *>(prhs[0]), true);  //</mxArray>
+     
     // Get the input command string
     char cmd[64];
     if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
@@ -872,7 +878,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         // Call the method
         float * output_volume;
+        // auto t1 = std::chrono::high_resolution_clock::now();
+
         output_volume = MultiGPUGridder_instance->VolumeToCAS(matlabArrayPtr, dims[0], interpFactor, extraPadding);
+
+        // auto t2 = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+        // std::cout << duration << '\n';
 
         // Create the output matlab array as type float
         mxArray *Output_Matlab_Pointer = mxCreateNumericArray(3, output_dims, mxSINGLE_CLASS, mxREAL);
@@ -884,13 +896,65 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         std::memcpy(Output_matlabArrayPtr, output_volume, sizeof(float) * output_dims[0] * output_dims[1] * output_dims[2]);
 
         plhs[0] = Output_Matlab_Pointer;
-
+    
         std::cout << "Done with PadVolume()" << '\n';
 
 
         return;
     }  
 
+    if (!strcmp("MemoryTestSavePtr", cmd))
+    {
+        // Get a pointer to the input matrix
+        float *matlabArrayPtr = (float *)mxGetData(prhs[2]);
+
+        // Get the matrix size of the input Matlab pointer
+        const mwSize *dims_mwSize;
+        dims_mwSize = mxGetDimensions(prhs[2]);
+
+        int *dims = new int[3];
+        dims[0] = (int)dims_mwSize[0];
+        dims[1] = (int)dims_mwSize[1];
+        dims[2] = (int)dims_mwSize[2];
+
+        cudaHostRegister(matlabArrayPtr, sizeof(float) * dims[0] * dims[1] * dims[2], 0);
+
+        if (MultiGPUGridder_instance->testMatrix != NULL)
+        {
+            std::cout << "MultiGPUGridder_instance->testMatrix: " << MultiGPUGridder_instance->testMatrix[0] << '\n';
+        }
+
+        MultiGPUGridder_instance->testMatrix = matlabArrayPtr;
+        MultiGPUGridder_instance->testMatrix_size = dims[0];
+
+        return;
+    }
+
+    if (!strcmp("MemoryTestPrint", cmd))
+    {
+
+        if (MultiGPUGridder_instance->testMatrix != NULL)
+        {
+            std::cout << "MultiGPUGridder_instance->testMatrix[0]: " << MultiGPUGridder_instance->testMatrix[0] << '\n';
+        }
+
+        return;
+    }
+
+    if (!strcmp("DivideByTwo", cmd))
+    {
+
+        for (int i = 0; i < MultiGPUGridder_instance->testMatrix_size; i++)
+        {
+            MultiGPUGridder_instance->testMatrix[i] = MultiGPUGridder_instance->testMatrix[i] / 2;
+        }
+
+        return;
+    }
+
+
+
+        
 
     // Check there is a second input, which should be the class instance handle
     if (nrhs < 2)

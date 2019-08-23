@@ -10,97 +10,189 @@ gpuFFT::~gpuFFT()
 {
 }
 
-__global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
+template <typename T>
+__global__ void cufftShift_3D_slice_kernel(T* data, int N, int nSlices)
 {
-	// 3D Volume, 2D Slice, 1D Line
-	int sLine = N;
-	int sSlice = N * N;
-	int sVolume = N * N * N;
+    // In place FFT shift using GPU
+    // Modified from https://raw.githubusercontent.com/marwan-abdellah/cufftShift/master/Src/CUDA/Kernels/in-place/cufftShift_3D_IP.cu
+    // GNU Lesser General Public License
+    
+    // 3D Volume & 2D Slice & 1D Line
+    int sLine = N;
+    int sSlice = N * N;
+    int sVolume = N * N * N;
 
-	// Transformations Equations
-	int sEq1 = (sVolume + sSlice + sLine) / 2;
-	int sEq2 = (sVolume + sSlice - sLine) / 2;
-	int sEq3 = (sVolume - sSlice + sLine) / 2;
-	int sEq4 = (sVolume - sSlice - sLine) / 2;
+    // Transformations Equations
+    int sEq1 = (sVolume + sSlice + sLine) / 2;
+    int sEq2 = (sVolume + sSlice - sLine) / 2;
+    int sEq3 = (sVolume - sSlice + sLine) / 2;
+    int sEq4 = (sVolume - sSlice - sLine) / 2;
 
-	// Thread Index 2D
-	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
+    // Thread
+    int xThreadIdx = threadIdx.x;
+    int yThreadIdx = threadIdx.y;
+
+    // Block Width & Height
+    int blockWidth = blockDim.x;
+    int blockHeight = blockDim.y;
+
+    // Thread Index 2D
+    int xIndex = blockIdx.x * blockWidth + xThreadIdx;
+    int yIndex = blockIdx.y * blockHeight + yThreadIdx;
+
+    T regTemp;
 
 	// Each thread will do all the slices for some X, Y position in the 3D matrix
 	for (int zIndex = 0; zIndex < nSlices; zIndex++)
 	{
-		// Thread Index Converted into 1D Index
-		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
 
-		if (zIndex < N / 2)
-		{
-			if (xIndex < N / 2)
-			{
-				if (yIndex < N / 2)
-				{
-					// First Quad
-					output[index].x = input[index + sEq1].x;
-					output[index].y = input[index + sEq1].y;
-				}
-				else
-				{
-					// Third Quad
-					output[index].x = input[index + sEq3].x;
-					output[index].y = input[index + sEq3].y;
-				}
-			}
-			else
-			{
-				if (yIndex < N / 2)
-				{
-					// Second Quad
-					output[index].x = input[index + sEq2].x;
-					output[index].y = input[index + sEq2].y;
-				}
-				else
-				{
-					// Fourth Quad
-					output[index].x = input[index + sEq4].x;
-					output[index].y = input[index + sEq4].y;
-				}
-			}
-		}
-		else
-		{
-			if (xIndex < N / 2)
-			{
-				if (yIndex < N / 2)
-				{
-					// First Quad
-					output[index].x = input[index - sEq4].x;
-					output[index].y = input[index - sEq4].y;
-				}
-				else
-				{
-					// Third Quad
-					output[index].x = input[index - sEq2].x;
-					output[index].y = input[index - sEq2].y;
-				}
-			}
-			else
-			{
-				if (yIndex < N / 2)
-				{
-					// Second Quad
-					output[index].x = input[index - sEq3].x;
-					output[index].y = input[index - sEq3].y;
-				}
-				else
-				{
-					// Fourth Quad
-					output[index].x = input[index - sEq1].x;
-					output[index].y = input[index - sEq1].y;
-				}
-			}
-		}
-	}
+        // Thread Index Converted into 1D Index
+        int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+
+        if (zIndex < N / 2)
+        {
+            if (xIndex < N / 2)
+            {
+                if (yIndex < N / 2)
+                {
+                    regTemp = data[index];
+
+                    // First Quad
+                    data[index] = data[index + sEq1];
+
+                    // Fourth Quad
+                    data[index + sEq1] = regTemp;
+                }
+                else
+                {
+                    regTemp = data[index];
+
+                    // Third Quad
+                    data[index] = data[index + sEq3];
+
+                    // Second Quad
+                    data[index + sEq3] = regTemp;
+                }
+            }
+            else
+            {
+                if (yIndex < N / 2)
+                {
+                    regTemp = data[index];
+
+                    // Second Quad
+                    data[index] = data[index + sEq2];
+
+                    // Third Quad
+                    data[index + sEq2] = regTemp;
+                }
+                else
+                {
+                    regTemp = data[index];
+
+                    // Fourth Quad
+                    data[index] = data[index + sEq4];
+
+                    // First Quad
+                    data[index + sEq4] = regTemp;
+                }
+            }
+        }
+    }
 }
+
+
+// __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
+// {
+// 	// 3D Volume, 2D Slice, 1D Line
+// 	int sLine = N;
+// 	int sSlice = N * N;
+// 	int sVolume = N * N * N;
+
+// 	// Transformations Equations
+// 	int sEq1 = (sVolume + sSlice + sLine) / 2;
+// 	int sEq2 = (sVolume + sSlice - sLine) / 2;
+// 	int sEq3 = (sVolume - sSlice + sLine) / 2;
+// 	int sEq4 = (sVolume - sSlice - sLine) / 2;
+
+// 	// Thread Index 2D
+// 	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
+// 	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
+
+// 	// Each thread will do all the slices for some X, Y position in the 3D matrix
+// 	for (int zIndex = 0; zIndex < nSlices; zIndex++)
+// 	{
+// 		// Thread Index Converted into 1D Index
+// 		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+
+// 		if (zIndex < N / 2)
+// 		{
+// 			if (xIndex < N / 2)
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// First Quad
+// 					output[index].x = input[index + sEq1].x;
+// 					output[index].y = input[index + sEq1].y;
+// 				}
+// 				else
+// 				{
+// 					// Third Quad
+// 					output[index].x = input[index + sEq3].x;
+// 					output[index].y = input[index + sEq3].y;
+// 				}
+// 			}
+// 			else
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// Second Quad
+// 					output[index].x = input[index + sEq2].x;
+// 					output[index].y = input[index + sEq2].y;
+// 				}
+// 				else
+// 				{
+// 					// Fourth Quad
+// 					output[index].x = input[index + sEq4].x;
+// 					output[index].y = input[index + sEq4].y;
+// 				}
+// 			}
+// 		}
+// 		else
+// 		{
+// 			if (xIndex < N / 2)
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// First Quad
+// 					output[index].x = input[index - sEq4].x;
+// 					output[index].y = input[index - sEq4].y;
+// 				}
+// 				else
+// 				{
+// 					// Third Quad
+// 					output[index].x = input[index - sEq2].x;
+// 					output[index].y = input[index - sEq2].y;
+// 				}
+// 			}
+// 			else
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// Second Quad
+// 					output[index].x = input[index - sEq3].x;
+// 					output[index].y = input[index - sEq3].y;
+// 				}
+// 				else
+// 				{
+// 					// Fourth Quad
+// 					output[index].x = input[index - sEq1].x;
+// 					output[index].y = input[index - sEq1].y;
+// 				}
+// 			}
+// 		}
+// 	}
+// }
 
 __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
@@ -194,7 +286,6 @@ __global__ void ComplexToReal(cufftComplex* ComplexImg, float* RealImg, int imgS
     }
 }
 
-
 __global__ void PadVolumeKernel(float* input, float* output, int inputImgSize, int outputImgSize, int padding)
 {
     // Zero pad a volume using the GPU
@@ -203,12 +294,10 @@ __global__ void PadVolumeKernel(float* input, float* output, int inputImgSize, i
     int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
     
-
     // Are we outside the bounds of the image?
     if (i >= inputImgSize || i < 0 || j >= inputImgSize || j < 0){
         return;
     }
-
 
     // // Iterate over the input image (i.e. the smaller image)
     for (int k = 0; k < inputImgSize; k++){  
@@ -225,7 +314,6 @@ __global__ void PadVolumeKernel(float* input, float* output, int inputImgSize, i
         output[ndx_2] = input[ndx_1];
     }
 }
-
 
 float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
 {
@@ -266,7 +354,7 @@ float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
         dim3 dimGridCrop(gridSize, gridSize, 1);
         dim3 dimBlockCrop(blockSize, blockSize, 1);
 
-        PadVolumeKernel<<< dimGridCrop, dimBlockCrop>>>(d_input, d_output, inputImgSize, outputImgSize, padding);
+        PadVolumeKernel<<< dimGridCrop, dimBlockCrop >>>(d_input, d_output, inputImgSize, outputImgSize, padding);
 
         // Copy the result back to the host
         cudaMemcpy(outputVol, d_output, sizeof(float) * outputImgSize * outputImgSize * outputImgSize, cudaMemcpyDeviceToHost);
@@ -299,7 +387,6 @@ float *gpuFFT::PadVolume(float *inputVol, int inputImgSize, int outputImgSize)
 
 }
 
-
 float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding)
 {
     // Convert a CUDA array to CAS array
@@ -310,7 +397,6 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // Step 4: fftshift
     // Step 5: Convert to CAS volume using CUDA kernel
     
-
     // STEP 1
     // Example: input size = 128; interpFactor = 2; extra padding = 3; -> padded size = 262
     int paddedVolSize = inputVolSize * interpFactor;
@@ -326,15 +412,15 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
 
     int array_size = paddedVolSize * paddedVolSize * paddedVolSize;
     
-    // Allocate memory for the resulting CAS volume
+    // Allocate memory for the resulting CAS volumes
     float * d_CAS_Vol, *h_CAS_Vol;
     cudaMalloc(&d_CAS_Vol, sizeof(float) * array_size);
     h_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
 
     // Create temporary arrays to hold the cufftComplex array        
-    cufftComplex *h_complex_array, *d_complex_array, *d_complex_output_array;
+    cufftComplex *h_complex_array, *d_complex_array; //, *d_complex_output_array;
     cudaMalloc(&d_complex_array, sizeof(cufftComplex) * array_size);
-    cudaMalloc(&d_complex_output_array, sizeof(cufftComplex) * array_size);
+    // cudaMalloc(&d_complex_output_array, sizeof(cufftComplex) * array_size);
     h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * array_size);
     
     // Convert the padded volume to a cufftComplex array
@@ -355,16 +441,18 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     dim3 dimBlock(blockSize, blockSize, 1);
 
     // STEP 2
-    // Apply a 3D FFT Shift
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, paddedVolSize, paddedVolSize);
+    // Apply an in place 3D FFT Shift
+    cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
+    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, paddedVolSize, paddedVolSize);
         
     // STEP 3
     // Execute the forward FFT on the 3D array
-    cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
+    cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_array, (cufftComplex *) d_complex_array, CUFFT_FORWARD);
 
     // STEP 4
-    // Apply a second 3D FFT Shift
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, paddedVolSize, paddedVolSize);
+    // Apply a second in place 3D FFT Shift
+    cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
+    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, paddedVolSize, paddedVolSize);
 
     // STEP 5
     // Convert the complex result of the forward FFT to a CAS img type
@@ -379,8 +467,10 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     
     // Free the temporary memory
     cudaFree(d_complex_array);
-    cudaFree(d_complex_output_array);
+    // cudaFree(d_complex_output_array);
     cudaFree(d_CAS_Vol);
+    std::free(h_CAS_Vol);
+    std::free(inputVol_Padded);
 
     // STEP 6
     // Pad the result with the additional padding

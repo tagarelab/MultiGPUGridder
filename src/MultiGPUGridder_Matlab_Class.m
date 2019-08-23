@@ -207,5 +207,17 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function varargout = VolumeToCAS(this, varargin)
             [varargout{1:nargout}] = mexFunctionWrapper('VolumeToCAS', this.objectHandle, single(varargin{:}));
         end
+        %% MemoryTest - Test
+        function varargout = MemoryTestSavePtr(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('MemoryTestSavePtr', this.objectHandle, single(varargin{:}));
+        end
+        %% DivideByTwo - Test
+        function varargout = DivideByTwo(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('DivideByTwo', this.objectHandle, varargin{:});
+        end
+        %% MemoryTestPrint - Test
+        function varargout = MemoryTestPrint(this, varargin)
+            [varargout{1:nargout}] = mexFunctionWrapper('MemoryTestPrint', this.objectHandle, varargin{:});
+        end
     end
 end

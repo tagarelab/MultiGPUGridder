@@ -13,6 +13,8 @@ interpVol(interpBox.origB:interpBox.origE,interpBox.origB:interpBox.origE,interp
 % fftw('swisdom',fftinfo);
 % fftinfo=fftw('planner','estimate');
 %tic;
+fftw('swisdom',[]);
+fftw('dwisdom',[]) ;
 interpFft=fftshift(fftn(fftshift(interpVol)));
 %toc;
 interpCAS=ToCAS(interpFft);

@@ -23,11 +23,19 @@
 // NVTX labeling tools (for the nvidia profiling)
 //#include <nvToolsExt.h>
 #include <cuda_profiler_api.h>
+#include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
+
+
 
 class MultiGPUGridder
 {
 
 public:
+
+	float * testMatrix = NULL;
+
+	int testMatrix_size;
+
 	// Number of GPUs to use with the CUDA kernel
 	int numGPUs = 1; // Default is 1
 
