@@ -82,8 +82,9 @@ protected:
     virtual void FreeMemory();
 
 public:
-    // Constructor
-    AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor);
+    // // Constructor
+    // AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor);
+    AbstractGridder();
 
     // Deconstructor
     ~AbstractGridder();

@@ -4,27 +4,13 @@
 
 // extern "C" bool mxUnshareArray(mxArray *array_ptr, bool noDeepCopy);
 
-int *GetMatlabDimensions(const mxArray *MatlabInputPointer)
-{
-
-    // Get the matrix size of the input Matlab pointer
-    const mwSize *dims_mwSize;
-    dims_mwSize = mxGetDimensions(MatlabInputPointer);
-
-    int *dims = new int[3];
-    dims[0] = (int)dims_mwSize[0];
-    dims[1] = (int)dims_mwSize[1];
-    dims[2] = (int)dims_mwSize[2];
-
-    return dims;
-}
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     // This is the wrapper for the corresponding Matlab class
     // Which allows for calling the C++ and CUDA functions while maintaining the memory pointers
 
-     mxUnshareArray(const_cast<mxArray *>(prhs[0]), true);  //</mxArray>
+     //mxUnshareArray(const_cast<mxArray *>(prhs[0]), true);  //</mxArray>
 
     // Get the input command string
     char cmd[64];

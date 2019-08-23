@@ -2,8 +2,6 @@
 #define __CLASS_HANDLE_H__
 
 #include <mex.h>
-#include "MultiGPUGridder.h"
-
 #include <iostream>
 #include <stdint.h>
 #include <string>

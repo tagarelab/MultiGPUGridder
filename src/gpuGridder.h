@@ -16,6 +16,12 @@ class gpuGridder : public AbstractGridder
 {
 
 public:
+
+    // Constructor
+    // gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor) { };
+
+    // gpuGridder() : AbstractGridder() { };
+
     // Run the forward projection and return the projection images
     float *ForwardProject();
 
@@ -45,6 +51,7 @@ protected:
     void CASToVolume();
 
 private:
+
     // Free all of the allocated memory
     void FreeMemory();
 

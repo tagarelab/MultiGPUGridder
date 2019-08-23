@@ -23,27 +23,15 @@ if(WITH_NVPROF)
 endif()
 
 #find_package(Cuda)
-add_library(MultiGPUGridder SHARED
-		gpuBackProject.h
-		gpuBackProjectKernel.cu
-		gpuForwardProject.h
-		gpuForwardProjectKernel.cu
-		
-		MemoryManager.h
-		MemoryManager.cpp
-		
-		MultiGPUGridder.h
-		MultiGPUGridder.cpp
+#find_package(Matlab)
 
-		gpuFFT.h
-		gpuFFT.cu
-
-		AbstractGridder.h
-		AbstractGridder.cpp
+add_library(gridderLib SHARED
 
 		gpuGridder.h
-		gpuGridder.cpp		
+		gpuGridder.cpp
 		
+		AbstractGridder.h
+		AbstractGridder.cpp
   )
 
 if(WITH_CUFFT)
@@ -52,6 +40,26 @@ endif()
 
 if(WITH_MATLAB)
 	find_package(Matlab)
-	matlab_add_mex(NAME mexFunctionWrapper SRC mexFunctionWrapper.cpp LINK_TO MultiGPUGridder)
+	matlab_add_mex(NAME mexCreateClassTest SRC mexCreateClass.cpp LINK_TO gridderLib)
 	message(STATUS "Matlab library located")
 endif()
+
+
+
+
+#mexFunctionWrapper.h
+#mexCreateClass.cpp
+
+#gpuBackProject.h
+#gpuBackProjectKernel.cu
+#gpuForwardProject.h
+#gpuForwardProjectKernel.cu
+
+#MemoryManager.h
+#MemoryManager.cpp
+
+#MultiGPUGridder.h
+#MultiGPUGridder.cpp
+
+#gpuFFT.h
+#gpuFFT.cu

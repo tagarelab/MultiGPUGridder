@@ -1,46 +1,46 @@
 #include "AbstractGridder.h"
 
-AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
-{
-    // Constructor for the abstract gridder class
-    // Set the volume size
-    if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
-    {
-        this->VolumeSize = VolumeSize;
-    }
-    else
-    {
-        std::cerr << "Volume size must be a non-zero even integer." << '\n';
-    }
+// AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
+// {
+//     // Constructor for the abstract gridder class
+//     // Set the volume size
+//     if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
+//     {
+//         this->VolumeSize = VolumeSize;
+//     }
+//     else
+//     {
+//         std::cerr << "Volume size must be a non-zero even integer." << '\n';
+//     }
 
-    // Set the coordinate axes size
-    if (numCoordAxes > 0) // Check that the number of coordinate axes is greater than zero
-    {
-        this->numCoordAxes = numCoordAxes;
-    }
-    else
-    {
-        std::cerr << "Number of coordinate axes must be a non-zero integer." << '\n';
-    }
+//     // Set the coordinate axes size
+//     if (numCoordAxes > 0) // Check that the number of coordinate axes is greater than zero
+//     {
+//         this->numCoordAxes = numCoordAxes;
+//     }
+//     else
+//     {
+//         std::cerr << "Number of coordinate axes must be a non-zero integer." << '\n';
+//     }
 
-    // Set the interpolation factor parameter
-    if (interpFactor > 0) // Check that the interpolation factor is greater than zero
-    {
-        this->interpFactor = interpFactor;
-    }
-    else
-    {
-        std::cerr << "Interpolation factor must be a non-zero float value." << '\n';
-    }
-}
+//     // Set the interpolation factor parameter
+//     if (interpFactor > 0) // Check that the interpolation factor is greater than zero
+//     {
+//         this->interpFactor = interpFactor;
+//     }
+//     else
+//     {
+//         std::cerr << "Interpolation factor must be a non-zero float value." << '\n';
+//     }
+// }
 
-AbstractGridder::~AbstractGridder()
-{
-    // Deconstructor for the abstract gridder class
+// AbstractGridder::~AbstractGridder()
+// {
+//     // Deconstructor for the abstract gridder class
 
-    // Free all of the allocated memory
-    FreeMemory();
-}
+//     // Free all of the allocated memory
+//     FreeMemory();
+// }
 
 void AbstractGridder::SetInterpFactor(float interpFactor)
 {
