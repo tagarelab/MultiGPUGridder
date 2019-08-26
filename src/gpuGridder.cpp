@@ -39,21 +39,6 @@ void gpuGridder::VolumeToCASVolume()
     std::cout << "CASVolume: ";
 }
 
-// Which GPU(s) to use for processing?
-std::vector<int> GPUs;
-
-// Pointers to the CASVolume array on the device (i.e. the GPU)
-std::vector<float *> d_CASVolume;
-
-// Pointers to the CAS images array on the device (i.e. the GPU)
-std::vector<float *> d_CASImgs;
-
-// Pointers to the coordinate axes vector on the device (i.e. the GPU)
-std::vector<float *> d_CoordAxes;
-
-// Pointers to the Kaiser bessel vector on the device (i.e. the GPU)
-std::vector<float *> d_KB_Table;
-
 void gpuGridder::AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vector, int ArraySize)
 {
     // Allocate an array on a GPU
@@ -77,7 +62,7 @@ void gpuGridder::AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vecto
         float *devPtr;
         cudaMalloc(&devPtr, sizeof(float) * (ArraySize));
 
-         // Add the pointer to the corresponding vector of device pointers
+        // Add the pointer to the corresponding vector of device pointers
         Ptr_Vector.push_back(devPtr);
     }
 }
@@ -107,15 +92,46 @@ void gpuGridder::InitilizeGPUArrays()
         // Allocate the coordinate axes array
         AllocateGPUArray(GPU_Device, d_CoordAxes, this->numCoordAxes * 9); // 9 float elements per cordinate axes
 
-        // Allocate the Kaiser bessel lookup table 
+        // Allocate the Kaiser bessel lookup table
         AllocateGPUArray(GPU_Device, d_KB_Table, this->kerSize);
-
     }
 }
 
+
+void gpuGridder::SetVolume(float *Volume)
+{
+    // First save the given pointer
+    this->Volume = Volume;
+
+    // Next, pin the volume to host (i.e. CPU) memory in order to enable the async CUDA stream copying
+    // This will let us copy the volume to all GPUs at the same time
+    this->VolumeBytes = sizeof(float) * this->VolumeSize[0] * this->VolumeSize[1] * this->VolumeSize[2];
+    cudaHostRegister(this->Volume, this->VolumeBytes, 0);
+    
+}
+
+
+
+
 void gpuGridder::CopyVolumeToGPUs()
 {
-    // Copy the volume to each of the GPUs
+    // Copy the volume to each of the GPUs (the volume is already pinned to CPU memory during SetVolume())
+
+    // Create CUDA streams for asyc memory copying of the gpuVols
+    // One stream per GPU for now
+    int nStreams = this->GPUs.size();
+    cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t) * nStreams);
+
+    for (int i = 0; i < this->GPUs.size(); i++)
+    {
+        // Set the current GPU device
+        cudaSetDevice(this->GPUs[i]);
+
+        // Sends data to device asynchronously
+        cudaMemcpyAsync(d_CASVolume[i], this->CASVolume, VolumeBytes, cudaMemcpyHostToDevice, stream[i]);
+
+    }
+
 }
 
 void gpuGridder::ForwardProject()
@@ -128,14 +144,24 @@ void gpuGridder::ForwardProject()
 
     if (newVolumeFlag == 1)
     {
-        // (1): Run the volume to CAS volume function
+        // (1): Initilize the needed arrays on each GPU
+        InitilizeGPUArrays();
+
+        // (2): Run the volume to CAS volume function
         VolumeToCASVolume();
 
-        // (2): Copy the CASVolume to each of the GPUs
+        // (3): Copy the CASVolume to each of the GPUs
         CopyVolumeToGPUs();
-
-        // (3):
     }
+
+    // Check the error flag to see if we had any issues during the initilization
+    if (this->ErrorFlag != 0)
+    {
+        return;
+    }
+
+    // Synchronize all of the CUDA streams before running the kernel
+    cudaDeviceSynchronize();
 
     // Run the forward projection CUDA kernel
 

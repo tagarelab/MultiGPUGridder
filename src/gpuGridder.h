@@ -37,6 +37,9 @@ public:
     // // Reset the volume to all zeros
     // void ResetVolume();
 
+    // Set the volume
+    void SetVolume(float *Volume);
+
     // Return the volume
     float *GetVolume();
 

@@ -12,6 +12,9 @@ protected:
     // Size of the volume (the volume must be square)
     int * VolumeSize;
 
+    // Size of the volume in bytes (size of volume times the size of float)
+    int VolumeBytes;
+    
     // CASVolume to use for forward/back projection
     float *CASVolume;
 
