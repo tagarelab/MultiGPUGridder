@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <stdio.h>
+#include <vector>
 
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
@@ -46,16 +47,41 @@ protected:
     // // Get a new images array and then convert them to CAS
     // void SetImages(float *imgs);
 
-    // // Convert the volume to a CAS volume
-    // void VolumeToCAS();
+    // Convert the volume to a CAS volume
+    void VolumeToCASVolume();
 
     // // Convert the CAS volume back to volume
     // void CASToVolume();
 
 private:
+    // Which GPU(s) to use for processing?
+    std::vector<int> GPUs;
+
+    // Pointers to the CASVolume array on the device (i.e. the GPU)
+    std::vector<float *> d_CASVolume;
+
+    // Pointers to the CAS images array on the device (i.e. the GPU)
+    std::vector<float *> d_CASImgs;
+
+    // Pointers to the coordinate axes vector on the device (i.e. the GPU)
+    std::vector<float *> d_CoordAxes;
+
+    // Pointers to the Kaiser bessel vector on the device (i.e. the GPU)
+    std::vector<float *> d_KB_Table;
+
+    // Initilize the GPU arrays
+    void InitilizeGPUArrays();
+
+    // Copy the volume to each of the GPUs
+    void CopyVolumeToGPUs();
+
+    // Allocate GPU arrays
+    void AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vector, int ArraySize);
+
+    // Flag to test that all arrays were allocated successfully
+    bool ErrorFlag = false;
     // // Free all of the allocated memory
     // void FreeMemory();
 
-    // // Which GPU to use for processing?
-    // int GPU;
+
 };

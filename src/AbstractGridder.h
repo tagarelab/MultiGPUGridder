@@ -19,10 +19,10 @@ protected:
     int CASVolumeSize;
 
     // Interpolation factor for zero padding the volume
-    float interpFactor; // = 2;
+    float interpFactor = 2;
 
     // Extra padding for the volume
-    int extraPadding; // = 3;
+    int extraPadding = 3;
 
     // Projection images
     float *imgs;
@@ -43,10 +43,10 @@ protected:
     float *coordAxes;
 
     // Size of the Kaiser bessel vector
-    int kerSize; // = 501;
+    int kerSize = 501;
 
     // Width of the Kaiser bessel function
-    float kerHWidth; // = 2;
+    float kerHWidth = 2;
 
     // Kaiser bessel window function array of predefined values
     // Provide default vector values (useful if Matlab is not available)
@@ -54,7 +54,7 @@ protected:
 
     // Maximum number of coordinate axes / CASImg size to initilize
     // Essentially this limits the amount of memory allocated for these variables
-    int MaxAxesToAllocate; // = 100;
+    int MaxAxesToAllocate = 100;
 
     // // Convert the volume to a CAS volume
     // virtual void VolumeToCAS();
@@ -76,6 +76,9 @@ protected:
 
     // Set the output image size parameter
     void SetImgSize(int *imgSize);
+
+    // Set the CAS image size parameter
+    void SetCASImageSize(int *imgSize);
 
     // Set the interpolation factor parameter
     void SetInterpFactor(float interpFactor);

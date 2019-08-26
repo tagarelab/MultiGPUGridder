@@ -10,6 +10,8 @@
 
 #include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
 
+
+
 class gpuFFT
 {
 private:

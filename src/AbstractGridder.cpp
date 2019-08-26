@@ -82,7 +82,7 @@ float *AbstractGridder::GetImages()
 }
 
 void AbstractGridder::SetVolumeSize(int VolumeSize)
-{ 
+{
     std::cout << "VolumeSize: " << VolumeSize << '\n';
     this->VolumeSize = new int[3];
     this->VolumeSize[0] = VolumeSize;
@@ -90,35 +90,40 @@ void AbstractGridder::SetVolumeSize(int VolumeSize)
     this->VolumeSize[2] = VolumeSize;
 };
 
-int* AbstractGridder::GetVolumeSize()
+int *AbstractGridder::GetVolumeSize()
 {
     return this->VolumeSize;
 }
 
 void AbstractGridder::SetVolume(float *Volume)
 {
-    this->Volume = Volume; 
+    this->Volume = Volume;
 }
 
-float * AbstractGridder::GetVolume()
+float *AbstractGridder::GetVolume()
 {
-    return this->Volume; 
+    return this->Volume;
 }
 
 void AbstractGridder::SetImageSize(int *imgSize)
-{ 
+{
     // Set the output image size parameter
     this->imgSize = new int[3];
     this->imgSize[0] = imgSize[0];
     this->imgSize[1] = imgSize[1];
     this->imgSize[2] = imgSize[2];
+};
 
+void AbstractGridder::SetCASImageSize(int *imgSize)
+{
+    // Set the CAS image size parameter
+    this->CASimgSize = new int[3];
+    this->CASimgSize[0] = imgSize[0];
+    this->CASimgSize[1] = imgSize[1];
+    this->CASimgSize[2] = imgSize[2];
 };
 
 void AbstractGridder::SetImages(float *imgs)
 {
-    this->imgs = imgs; 
+    this->imgs = imgs;
 }
-
-
-

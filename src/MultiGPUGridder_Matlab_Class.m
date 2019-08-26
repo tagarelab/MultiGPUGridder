@@ -40,8 +40,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
         end 
         %% ForwardProject - Run the forward projection function
-        function ForwardProject(varargin)
-            mexForwardProject(varargin{:});
+        function ForwardProject(this, varargin)
+            mexForwardProject(this.objectHandle);
         end      
     end
 end

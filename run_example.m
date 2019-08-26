@@ -35,8 +35,10 @@ gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.Image
 gridder.Set()
 
 
- x = gridder.Get('Volume')
+ x = gridder.Get('Volume');
 
+ 
+ disp("ForwardProject...")
  gridder.ForwardProject()
 return
 %%

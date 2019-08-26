@@ -1,5 +1,11 @@
 #include "gpuFFT.h"
 
+#define Log(x)                  \
+    {                           \
+        std::cout << x << '\n'; \
+    }
+
+
 // Constructor
 gpuFFT::gpuFFT(/* args */)
 {
@@ -318,6 +324,11 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // STEP 1
     // Example: input size = 128; interpFactor = 2; extra padding = 3; -> padded size = 262
     int paddedVolSize = inputVolSize * interpFactor;
+
+    Log(inputVolSize);
+    Log(interpFactor);
+    Log(extraPadding);
+    Log(paddedVolSize);
 
     // Pad the input volume with zeros
     float* inputVol_Padded = PadVolume(inputVol, inputVolSize, paddedVolSize);
