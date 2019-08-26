@@ -1,38 +1,38 @@
 #include "AbstractGridder.h"
 
-// AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
-// {
-//     // Constructor for the abstract gridder class
-//     // Set the volume size
-//     if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
-//     {
-//         this->VolumeSize = VolumeSize;
-//     }
-//     else
-//     {
-//         std::cerr << "Volume size must be a non-zero even integer." << '\n';
-//     }
+AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
+{
+    // Constructor for the abstract gridder class
+    // Set the volume size
+    if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
+    {
+        SetVolumeSize(VolumeSize);
+    }
+    else
+    {
+        std::cerr << "Volume size must be a non-zero even integer." << '\n';
+    }
 
-//     // Set the coordinate axes size
-//     if (numCoordAxes > 0) // Check that the number of coordinate axes is greater than zero
-//     {
-//         this->numCoordAxes = numCoordAxes;
-//     }
-//     else
-//     {
-//         std::cerr << "Number of coordinate axes must be a non-zero integer." << '\n';
-//     }
+    // Set the coordinate axes size
+    if (numCoordAxes > 0) // Check that the number of coordinate axes is greater than zero
+    {
+        this->numCoordAxes = numCoordAxes;
+    }
+    else
+    {
+        std::cerr << "Number of coordinate axes must be a non-zero integer." << '\n';
+    }
 
-//     // Set the interpolation factor parameter
-//     if (interpFactor > 0) // Check that the interpolation factor is greater than zero
-//     {
-//         this->interpFactor = interpFactor;
-//     }
-//     else
-//     {
-//         std::cerr << "Interpolation factor must be a non-zero float value." << '\n';
-//     }
-// }
+    // Set the interpolation factor parameter
+    if (interpFactor > 0) // Check that the interpolation factor is greater than zero
+    {
+        this->interpFactor = interpFactor;
+    }
+    else
+    {
+        std::cerr << "Interpolation factor must be a non-zero float value." << '\n';
+    }
+}
 
 // AbstractGridder::~AbstractGridder()
 // {
@@ -80,3 +80,45 @@ float *AbstractGridder::GetImages()
     // Return the projection images as a float array
     return this->imgs;
 }
+
+void AbstractGridder::SetVolumeSize(int VolumeSize)
+{ 
+    std::cout << "VolumeSize: " << VolumeSize << '\n';
+    this->VolumeSize = new int[3];
+    this->VolumeSize[0] = VolumeSize;
+    this->VolumeSize[1] = VolumeSize;
+    this->VolumeSize[2] = VolumeSize;
+};
+
+int* AbstractGridder::GetVolumeSize()
+{
+    return this->VolumeSize;
+}
+
+void AbstractGridder::SetVolume(float *Volume)
+{
+    this->Volume = Volume; 
+}
+
+float * AbstractGridder::GetVolume()
+{
+    return this->Volume; 
+}
+
+void AbstractGridder::SetImageSize(int *imgSize)
+{ 
+    // Set the output image size parameter
+    this->imgSize = new int[3];
+    this->imgSize[0] = imgSize[0];
+    this->imgSize[1] = imgSize[1];
+    this->imgSize[2] = imgSize[2];
+
+};
+
+void AbstractGridder::SetImages(float *imgs)
+{
+    this->imgs = imgs; 
+}
+
+
+

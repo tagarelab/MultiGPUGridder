@@ -5,7 +5,7 @@
 #include "gpuForwardProject.h"
 #include "gpuBackProject.h"
 #include "gpuFFT.h"
-#include "AbstractGridder.h"
+// #include "AbstractGridder.h"
 
 #include <cstdlib>
 #include <stdio.h>

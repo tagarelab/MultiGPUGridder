@@ -18,9 +18,9 @@ public:
     gpuFFT();
     ~gpuFFT();
 
-    float *PadVolume(float *inputVol, int inputImgSize, int outputImgSize);
+    static float *PadVolume(float *inputVol, int inputImgSize, int outputImgSize);
 
-    float* VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding);
+    static float* VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding);
 
 };
 

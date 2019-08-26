@@ -1,4 +1,5 @@
 #include "AbstractGridder.h"
+#include "gpuFFT.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -16,45 +17,45 @@ class gpuGridder : public AbstractGridder
 {
 
 public:
-
     // Constructor
-    // gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor) { };
+    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor){};
 
-    // gpuGridder() : AbstractGridder() { };
+    // ~gpuGridder() : ~AbstractGridder() { };
+
+    // ~gpuGridder(){};
 
     // Run the forward projection and return the projection images
-    float *ForwardProject();
+    void ForwardProject();
 
-    // Run the back projection and return the volume
-    float *BackProject();
+    // // Run the back projection and return the volume
+    // float *BackProject();
 
     // Set the volume
-    void SetVolume(float *Volume, int *VolumeSize);
+    // void SetVolume(float *Volume, int *VolumeSize);
 
-    // Reset the volume to all zeros
-    void ResetVolume();
+    // // Reset the volume to all zeros
+    // void ResetVolume();
 
     // Return the volume
     float *GetVolume();
 
-    // Set the GPU for this object to use for processiong
-    void SetGPU(int GPU){this->GPU = GPU;};
+    // // Set the GPU for this object to use for processiong
+    // void SetGPU(int GPU){this->GPU = GPU;};
 
 protected:
-    // Get a new images array and then convert them to CAS
-    void SetImages(float *imgs);
+    // // Get a new images array and then convert them to CAS
+    // void SetImages(float *imgs);
 
-    // Convert the volume to a CAS volume
-    void VolumeToCAS();
+    // // Convert the volume to a CAS volume
+    // void VolumeToCAS();
 
-    // Convert the CAS volume back to volume
-    void CASToVolume();
+    // // Convert the CAS volume back to volume
+    // void CASToVolume();
 
 private:
+    // // Free all of the allocated memory
+    // void FreeMemory();
 
-    // Free all of the allocated memory
-    void FreeMemory();
-
-    // Which GPU to use for processing?
-    int GPU;
+    // // Which GPU to use for processing?
+    // int GPU;
 };

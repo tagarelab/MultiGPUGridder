@@ -27,12 +27,20 @@ endif()
 
 add_library(gridderLib SHARED
 
+		AbstractGridder.h
+		AbstractGridder.cpp
+	
 		gpuGridder.h
 		gpuGridder.cpp
 		
-		AbstractGridder.h
-		AbstractGridder.cpp
+		gpuFFT.h
+		gpuFFT.cu
+
+		
   )
+
+# Compile with -fPIC flag on
+# set_property(TARGET gridderLib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(WITH_CUFFT)
 	CUDA_ADD_CUFFT_TO_TARGET(MultiGPUGridder )
@@ -40,7 +48,13 @@ endif()
 
 if(WITH_MATLAB)
 	find_package(Matlab)
-	matlab_add_mex(NAME mexCreateClassTest SRC mexCreateClass.cpp LINK_TO gridderLib)
+	matlab_add_mex(NAME mexCreateGridder SRC mexCreateGridder.cpp LINK_TO gridderLib)
+	matlab_add_mex(NAME mexDeleteGridder SRC mexDeleteGridder.cpp LINK_TO gridderLib)
+	matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp LINK_TO gridderLib)
+	matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp LINK_TO gridderLib)	
+	matlab_add_mex(NAME mexForwardProject SRC mexForwardProject.cpp LINK_TO gridderLib)	
+	
+
 	message(STATUS "Matlab library located")
 endif()
 
@@ -60,6 +74,3 @@ endif()
 
 #MultiGPUGridder.h
 #MultiGPUGridder.cpp
-
-#gpuFFT.h
-#gpuFFT.cu

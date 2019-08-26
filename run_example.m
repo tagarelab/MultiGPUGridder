@@ -1,11 +1,20 @@
 clc
 close all
-clear obj 
+clear gridder 
 clear all
+
+% bdclose all; % clear all libraries out of memory ( supposedly )
+% clear all;   % clear all workspace variables, mex, etc. ( supposedly )
+rehash;      % cause all .m files to be reparsed when invoked again
+
 
 addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
+
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
 
 
 disp("Resetting devices...")
@@ -13,6 +22,36 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
+VolumeSize = 64;
+
+gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(10), single(2));
+
+gridder.NumAxes = int32(100);
+gridder.VolumeSize = int32(VolumeSize);
+gridder.Volume = zeros(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
+gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
+gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
+
+gridder.Set()
+
+
+ x = gridder.Get('Volume')
+
+ gridder.ForwardProject()
+return
+%%
+
+gridder.Delete();
+
+
+
+
+clear gridder
+
+
+
+return
+abc
 %% Create a volume 
 % Initialize parameters
 tic
