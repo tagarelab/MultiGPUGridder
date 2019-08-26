@@ -18,9 +18,9 @@ addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/ut
 
 
 disp("Resetting devices...")
-% for i = 1:4
-    reset(gpuDevice());
-% end
+for i = 1:4
+    reset(gpuDevice(i));
+end
 
 VolumeSize = 64;
 

@@ -118,6 +118,12 @@ void gpuGridder::InitilizeGPUArrays()
     for (int i = 0; i < GPUs.size(); i++)
     {
         int GPU_Device = GPUs[i];
+        Log("GPU_Device");
+        Log(GPU_Device);
+
+        Log("this->CASVolumeSize");
+        Log(this->CASVolumeSize);
+
         cudaSetDevice(GPU_Device);
 
         // Allocate the CAS volume
@@ -177,14 +183,14 @@ void gpuGridder::ForwardProject()
 
     if (newVolumeFlag == 1)
     {
-        // (1): Initilize the needed arrays on each GPU
-        InitilizeGPUArrays();
-
-        // (2): Run the volume to CAS volume function
+        // (1): Run the volume to CAS volume function
         VolumeToCASVolume();
 
+        // (2): Initilize the needed arrays on each GPU
+        InitilizeGPUArrays();
+
         // (3): Copy the CASVolume to each of the GPUs
-        CopyVolumeToGPUs();
+        // CopyVolumeToGPUs();
     }
 
     // Check the error flag to see if we had any issues during the initilization
