@@ -43,6 +43,9 @@ public:
     // Return the volume
     float *GetVolume();
 
+    // Set which GPUs to use
+    void SetGPUs(int* GPU_List, int Num_GPUs);
+    
     // // Set the GPU for this object to use for processiong
     // void SetGPU(int GPU){this->GPU = GPU;};
 

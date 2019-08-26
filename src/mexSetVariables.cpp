@@ -8,7 +8,7 @@
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    if (nrhs != 3)
+    if (nrhs != 3 && nrhs != 4)
     {
         mexErrMsgTxt("mexCreateClass: There should be 3 inputs: Volume size, number of coordinate axes, and the interpolation factor.");
     }
@@ -51,4 +51,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         gpuGridderObj->SetImages((float *)mxGetData(prhs[2]));
     }
+
+    // Set the GPUS to use
+    if (!strcmp("SetGPUs", cmd))
+    {
+        int *GPU_Array = (int *)mxGetData(prhs[2]);
+        int Number_GPUs = (int)mxGetScalar(prhs[3]);
+
+        Log("GPU_Array:");
+        Log(GPU_Array[0]);
+
+
+        Log("Number_GPUs:");
+        Log(Number_GPUs);
+
+        gpuGridderObj->SetGPUs(GPU_Array, Number_GPUs);
+    }
+
+    
 }

@@ -12,6 +12,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         Volume;
         ImageSize;
         Images;
+        GPUs = int32([0, 1, 2, 3]);
         
     end
     methods
@@ -29,6 +30,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, this.Volume);
             [varargout{1:nargout}] = mexSetVariables('SetImageSize', this.objectHandle, this.ImageSize);
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, this.Images);
+            [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, this.GPUs, length(this.GPUs));
         end 
         %% GetVariables - Get the variables of the C++ class instance 
         function varargout = Get(this, variableName)                 

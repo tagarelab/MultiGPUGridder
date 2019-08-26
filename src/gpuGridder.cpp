@@ -1,5 +1,10 @@
 #include "gpuGridder.h"
 
+#define Log(x)                  \
+    {                           \
+        std::cout << x << '\n'; \
+    }
+
 // gpuGridder::gpuGridder()
 // {
 //     // Constructor
@@ -41,7 +46,7 @@ void gpuGridder::VolumeToCASVolume()
 
 void gpuGridder::AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vector, int ArraySize)
 {
-    // Allocate an array on a GPU
+    // Set the current GPU
     cudaSetDevice(GPU_Device);
 
     // Check to make sure the GPU has enough available memory left
@@ -67,9 +72,41 @@ void gpuGridder::AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vecto
     }
 }
 
+void gpuGridder::SetGPUs(int* GPU_List, int Num_GPUs)
+{
+    // Set which GPUs to use
+
+    // Check how many GPUs there are on the computer
+    int numGPUDetected;
+    cudaGetDeviceCount(&numGPUDetected);
+
+    Log("numGPUDetected:");
+    Log(numGPUDetected);
+
+    // First clear the vector which remembers the GPUs to use
+    this->GPUs.clear();
+
+    // Next, fill in the vector with the new values
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        // Check wether the given number is valid
+        if (GPU_List[i] < 0 || GPU_List[i] >= numGPUDetected) //  An invalid numGPUs selection was chosen
+        {
+            std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer. Use SetNumberGPUs() function." << '\n';
+            this->ErrorFlag = 1;
+            return;
+        }
+
+        this->GPUs.push_back(GPU_List[i]);
+        Log("GPU Added:");
+        Log(GPU_List[i]);
+    }
+}
+
 void gpuGridder::InitilizeGPUArrays()
 {
     // Initilize the GPU arrays
+    Log("InitilizeGPUArrays()");
 
     // First make sure the vectors of pointers are empty
     d_CASVolume.clear();
@@ -97,9 +134,10 @@ void gpuGridder::InitilizeGPUArrays()
     }
 }
 
-
 void gpuGridder::SetVolume(float *Volume)
 {
+    Log("SetVolume()");
+
     // First save the given pointer
     this->Volume = Volume;
 
@@ -107,15 +145,12 @@ void gpuGridder::SetVolume(float *Volume)
     // This will let us copy the volume to all GPUs at the same time
     this->VolumeBytes = sizeof(float) * this->VolumeSize[0] * this->VolumeSize[1] * this->VolumeSize[2];
     cudaHostRegister(this->Volume, this->VolumeBytes, 0);
-    
 }
-
-
-
 
 void gpuGridder::CopyVolumeToGPUs()
 {
     // Copy the volume to each of the GPUs (the volume is already pinned to CPU memory during SetVolume())
+    Log("CopyVolumeToGPUs()");
 
     // Create CUDA streams for asyc memory copying of the gpuVols
     // One stream per GPU for now
@@ -129,9 +164,7 @@ void gpuGridder::CopyVolumeToGPUs()
 
         // Sends data to device asynchronously
         cudaMemcpyAsync(d_CASVolume[i], this->CASVolume, VolumeBytes, cudaMemcpyHostToDevice, stream[i]);
-
     }
-
 }
 
 void gpuGridder::ForwardProject()
