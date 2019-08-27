@@ -101,34 +101,35 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     }//End img_i
 }
 
-void gpuForwardProject(gpuGridder * gridder)
+void gpuForwardProjectLaunch(gpuGridder * gridder)
 { 
     std::cout << "Running gpuForwardProject()..." << '\n';
+
+    return;
 	
     // Copy the relevent parameters to a local variable to make the code cleaner
-    int gridSize = gridder->GetGridSize();
-    int blockSize = gridder->GetBlockSize();
-    int nAxes = gridder->GetNumAxes();
+    int gridSize         = gridder->GetGridSize();
+    int blockSize        = gridder->GetBlockSize();
+    int nAxes            = gridder->GetNumAxes();
     int MaxAxesAllocated = gridder->GetMaxAxesAllocated();
-    int nStreams = gridder->GetNumStreams();
-    int GPU_Device = gridder->GetGPUDevice();
-    int* imgSizePtr = gridder->GetImgSize();    
-    int* volSizePtr = gridder->GetVolumeSize();
-    float maskRadius = gridder->GetMaskRadius();
-
+    int nStreams         = gridder->GetNumStreams();
+    int GPU_Device       = gridder->GetGPUDevice();
+    int* imgSizePtr      = gridder->GetImgSize();    
+    int* volSizePtr      = gridder->GetVolumeSize();
+    float maskRadius     = gridder->GetMaskRadius();
 
     int imgSize  = imgSizePtr[0]; // The volume must be a square for now so just use the first dimension
-    int volSize = volSizePtr[0];  // The volume must be a square for now so just use the first dimension
+    int volSize  = volSizePtr[0]; // The volume must be a square for now so just use the first dimension
 
     // Pointers to memory already allocated on the GPU (i.e. the device)
     float * d_CASVolume = gridder->GetCASVolumePtr();
-    float * d_CASImgs = gridder->GetCASImgsPtr();
+    float * d_CASImgs   = gridder->GetCASImgsPtr();
     float * d_CoordAxes = gridder->GetCoordAxesPtr();
-    float * d_KB_Table = gridder->GetKBTablePtr();
+    float * d_KB_Table  = gridder->GetKBTablePtr();
 
     // Pointers to pinned CPU memory
     float * coordAxes_CPU_Pinned = gridder->GetCoordAxesPtr();
-    float * CASImgs_CPU_Pinned = gridder->GetCASImgsPtr_CPU();
+    float * CASImgs_CPU_Pinned   = gridder->GetCASImgsPtr_CPU();
 
     // CUDA streams
     cudaStream_t *streams = gridder->GetStreamsPtr();
@@ -213,8 +214,7 @@ void gpuForwardProject(gpuGridder * gridder)
 				&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
 			
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
-			processed_nAxes = processed_nAxes + numAxesPerStream;
-                
+			processed_nAxes = processed_nAxes + numAxesPerStream;                
         }
 
 		// Increment the batch number
@@ -224,7 +224,6 @@ void gpuForwardProject(gpuGridder * gridder)
 		// TO DO: Consider replacing with cudaStreamWaitEvent or similar to prevent blocking of the CPU
 		// cudaDeviceSynchronize();
 	}
-
 
     return; 
 }

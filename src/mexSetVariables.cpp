@@ -55,17 +55,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Set the GPUS to use
     if (!strcmp("SetGPUs", cmd))
     {
-        int *GPU_Array = (int *)mxGetData(prhs[2]);
-        int Number_GPUs = (int)mxGetScalar(prhs[3]);
+        // int *GPU_Array = (int *)mxGetData(prhs[2]);
+        // int Number_GPUs = (int)mxGetScalar(prhs[3]);
 
-        Log("GPU_Array:");
-        Log(GPU_Array[0]);
+        // Log("GPU_Array:");
+        // Log(GPU_Array[0]);
 
 
-        Log("Number_GPUs:");
-        Log(Number_GPUs);
+        // Log("Number_GPUs:");
+        // Log(Number_GPUs);
     
-        gpuGridderObj->SetGPU(GPU_Array[0]);
+        gpuGridderObj->SetGPU(0);
     }
 
     

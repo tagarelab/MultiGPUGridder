@@ -322,9 +322,10 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // Step 5: Convert to CAS volume using CUDA kernel
     
     // STEP 1
-    // Example: input size = 128; interpFactor = 2; extra padding = 3; -> padded size = 262
+    // Example: input size = 128; interpFactor = 2; paddedVolSize = 256
     int paddedVolSize = inputVolSize * interpFactor;
 
+    Log("VolumeToCAS():");
     Log(inputVolSize);
     Log(interpFactor);
     Log(extraPadding);
@@ -376,7 +377,7 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
 
     // STEP 4
     // Apply a second in place 3D FFT Shift
-    cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
+    cufftShift_3D_slice_kernel<<< dimGrid, dimBlock>>> (d_complex_array, paddedVolSize, paddedVolSize);
 
     // STEP 5
     // Convert the complex result of the forward FFT to a CAS img type
@@ -387,11 +388,17 @@ float* gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, 
     // Copy the resulting CAS volume back to the host
     cudaMemcpy(h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);        
 
+    // Wait for the stream to finish copying the result back to the host
+    // cudaStreamSynchronize(Stream);
+    cudaDeviceSynchronize(); // TO DO: replace with stream sync
+
     // STEP 6
     // Pad the result with the additional padding
+    // Example: input size = 128; interpFactor = 2; extra padding = 3; -> paddedVolSize_Extra= 262
     int paddedVolSize_Extra = paddedVolSize + extraPadding * 2;
 
     // Pad the padded volume with the extra zero padding
+    // TO DO: make PadVolume completely on the GPU to remove the stream sync step above
     float *outputVol = PadVolume(h_CAS_Vol, paddedVolSize, paddedVolSize_Extra);
 
     // Free the temporary memory

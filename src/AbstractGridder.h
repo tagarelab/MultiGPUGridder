@@ -22,14 +22,14 @@ protected:
     int CASVolumeSize;
 
     // Interpolation factor for zero padding the volume
-    static float interpFactor;
+    float interpFactor;
 
     // Extra padding for the volume
-    static int extraPadding;
+    int extraPadding;
 
     // Maximum number of coordinate axes and output projection images to allocate to memory
     // This aims to limit the amount of memory allocated for these variables
-    static int MaxAxesAllocated;
+    int MaxAxesAllocated;
 
     // Projection images
     float *imgs;
@@ -53,10 +53,10 @@ protected:
     float *GetCoordAxesPtr() { return this->coordAxes; }
 
     // Size of the Kaiser bessel vector
-    static int kerSize;
+    int kerSize;
 
     // Width of the Kaiser bessel function
-    static float kerHWidth;
+    float kerHWidth;
 
     // Kaiser bessel window function array of predefined values
     // Provide default vector values (useful if Matlab is not available)
@@ -110,6 +110,12 @@ public:
 
     // Return the volume size
     int *GetVolumeSize();
+
+    // Return the CAS volume size
+    int GetCASVolumeSize() { return this->CASVolumeSize; }
+
+    // Return the pointer to the CAS volume
+    float *GetCASVolume() { return this->CASVolume; }
 
     // Get the image size
     int *GetImgSize() { return this->imgSize; }

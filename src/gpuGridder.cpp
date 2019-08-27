@@ -17,16 +17,6 @@
 
 void gpuGridder::VolumeToCASVolume()
 {
-    // Convert the volume to CAS volume
-    this->CASVolume = gpuFFT::VolumeToCAS(this->Volume, this->VolumeSize[0], this->interpFactor, this->extraPadding);
-
-    // DEBUG
-    for (int i = 0; i < 10; i++)
-    {
-        std::cout << this->CASVolume[i] << " ";
-    }
-    std::cout << '\n';
-    // END DEBUG
 
     // Save the volume size of the CAS volume
     // Example: A volume size of 128, interp factor 2, extra padding of 3 would give -> 262 CAS volume size
@@ -38,13 +28,28 @@ void gpuGridder::VolumeToCASVolume()
     CASimgSize[1] = this->CASVolumeSize;
     CASimgSize[2] = this->numCoordAxes;
 
+    std::cout << "this->CASVolumeSize: " << this->CASVolumeSize << '\n';
+    std::cout << "this->VolumeSize[0]: " << this->VolumeSize[0] << '\n';
+    std::cout << "this->interpFactor: " << this->interpFactor << '\n';
+    std::cout << "this->extraPadding: " << this->extraPadding << '\n';
+    std::cout << "CASVolume: ";
+
     this->SetCASImageSize(CASimgSize);
 
-    std::cout << "this->CASVolumeSize: " << this->CASVolumeSize << '\n';
-    std::cout << "CASVolume: ";
+    // Convert the volume to CAS volume 
+    this->CASVolume = gpuFFT::VolumeToCAS(this->Volume, this->VolumeSize[0], this->interpFactor, this->extraPadding);
+
+    // DEBUG
+    for (int i = 0; i < 10; i++)
+    {
+        std::cout << this->CASVolume[i] << " ";
+    }
+    std::cout << '\n';
+    // END DEBUG
+
 }
 
-void gpuGridder::AllocateGPUArray(int GPU_Device, float * d_Ptr, int ArraySize)
+void gpuGridder::AllocateGPUArray(int GPU_Device, float *d_Ptr, int ArraySize)
 {
     // Set the current GPU
     cudaSetDevice(GPU_Device);
@@ -118,7 +123,6 @@ void gpuGridder::InitilizeGPUArrays()
 
     // Allocate the Kaiser bessel lookup table
     AllocateGPUArray(this->GPU_Device, d_KB_Table, this->kerSize);
-
 }
 
 void gpuGridder::SetVolume(float *Volume)
@@ -139,45 +143,41 @@ void gpuGridder::CopyVolumeToGPU()
     // Copy the volume to the GPUs (the volume is already pinned to CPU memory during SetVolume())
     Log("CopyVolumeToGPU()");
 
-    // Create CUDA streams for asyc memory copying of the gpuVol
-    cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreams);
-
     // Set the current GPU device
     cudaSetDevice(this->GPU_Device);
 
     // Sends data to device asynchronously
-    // TO DO: Input a stream to use instead of just the first one
-    cudaMemcpyAsync(this->d_CASVolume, this->CASVolume, VolumeBytes, cudaMemcpyHostToDevice, stream[0]);
-    
+    // TO DO: Input a stream to use instead of just the first one?
+    cudaMemcpyAsync(this->d_CASVolume, this->CASVolume, VolumeBytes, cudaMemcpyHostToDevice, this->streams[0]);
 }
-
 
 void gpuGridder::CreateCUDAStreams()
 {
     // Create the CUDA streams to usefor async memory transfers and for running the kernels
     if (this->nStreams >= 1)
     {
-        this->streams = (cudaStream_t *)malloc(sizeof(cudaStream_t)*this->nStreams);
-    } else
+        this->streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreams);
+    }
+    else
     {
         std::cerr << "Failed to create CUDA streams. The number of streams must be a positive integer." << '\n';
         this->ErrorFlag = 1;
-    }  
+    }
 }
 
 void gpuGridder::DestroyCUDAStreams()
 {
     // Destroy the streams
-    for (int i = 0; i < this->nStreams; i++) {
+    for (int i = 0; i < this->nStreams; i++)
+    {
         cudaStreamDestroy(this->streams[i]);
-    }   
+    }
 }
-
 
 
 void gpuGridder::ForwardProject()
 {
-    std::cout << "ForwardProject()" << '\n';
+    Log("ForwardProject()");
 
     // Do we need to convert the volume, copy to the GPUs, etc?
     // Assume for now that we have a new volume for each call to ForwardProject()
@@ -185,13 +185,22 @@ void gpuGridder::ForwardProject()
 
     if (newVolumeFlag == 1)
     {
-        // (1): Run the volume to CAS volume function
+        // (1): Create the CUDA streams
+        this->nStreams = 4;
+
+        CreateCUDAStreams();
+
+        // (2): Run the volume to CAS volume function
         VolumeToCASVolume();
 
-        // (2): Initilize the needed arrays on each GPU
-        InitilizeGPUArrays();
+        // (3): Initilize the needed arrays on each GPU
+        // InitilizeGPUArrays();
 
-        // (3): Copy the CASVolume to each of the GPUs
+
+
+        return; // debug
+
+        // (4): Copy the CASVolume to each of the GPUs
         // TO DO: might need to run device sync here?
         CopyVolumeToGPU();
     }
@@ -204,9 +213,14 @@ void gpuGridder::ForwardProject()
     }
 
     // Synchronize all of the CUDA streams before running the kernel
+    // TO DO: cudaEventSyncronize() may be faster than cudaDeviceSynchronize()
     cudaDeviceSynchronize();
 
     // Run the forward projection CUDA kernel
+    Log("gpuForwardProjectLaunch()");
+    gpuForwardProjectLaunch(this);
+
+    Log("gpuForwardProjectLaunch() Done");
 
     return;
 

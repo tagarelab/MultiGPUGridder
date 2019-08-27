@@ -22,6 +22,6 @@
 class gpuGridder;
 
 // Function for creating the CUDA streams and launchinh the forward projection kernel
-static void gpuForwardProject(gpuGridder * gridder);
+void gpuForwardProjectLaunch(gpuGridder * gridder);
 
 #endif //__GPUFORWARDPROJECT_H__

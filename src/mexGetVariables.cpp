@@ -48,4 +48,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         return;
     }
 
+    // Return the CAS volume from pinned memory (for debugging)
+    if (!strcmp("CASVolume", cmd))
+    {
+
+        // Get the matrix size of the GPU volume
+        int CASVolSize = gpuGridderObj->GetCASVolumeSize();
+
+        mwSize dims[3];
+        dims[0] = CASVolSize;
+        dims[1] = CASVolSize;
+        dims[2] = CASVolSize;
+
+        std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
+      
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Call the method
+        float *CASVolume = gpuGridderObj->GetCASVolume();
+
+        // Copy the data to the Matlab array
+        std::memcpy((float *)mxGetData(Matlab_Pointer), CASVolume, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
 }

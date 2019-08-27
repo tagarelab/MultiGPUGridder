@@ -131,7 +131,6 @@ private:
     // Allocate GPU arrays
     void AllocateGPUArray(int GPU_Device, float *d_Ptr, int ArraySize);
 
-
     // // Free all of the allocated memory
     // void FreeMemory();
 };

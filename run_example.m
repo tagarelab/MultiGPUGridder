@@ -23,23 +23,62 @@ disp("Resetting devices...")
 % end
 
 VolumeSize = 64;
+interpFactor = 2;
+
+load mri;
+img = squeeze(D);
+img = imresize3(img,[VolumeSize, VolumeSize, VolumeSize]);
+MRI_volume = single(img);
+% easyMontage(vol,1);
+
 
 gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(10), single(2));
 
 gridder.NumAxes = int32(100);
 gridder.VolumeSize = int32(VolumeSize);
-gridder.Volume = zeros(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
+gridder.Volume = MRI_volume; %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 
 gridder.Set()
 
 
- x = gridder.Get('Volume');
+Volume = gridder.Get('Volume');
 
+slice = 60
+subplot(1,3,1)
+imagesc(Volume(:,:,slice));
+subplot(1,3,2)
+imagesc(MRI_volume(:,:,slice));
+subplot(1,3,3)
+imagesc(Volume(:,:,slice) - MRI_volume(:,:,slice));
+colorbar
  
- disp("ForwardProject...")
- gridder.ForwardProject()
+
+
+
+
+disp("ForwardProject...")
+gridder.ForwardProject()
+
+
+CASVolume = gridder.Get('CASVolume');
+max(CASVolume(:))
+
+ % Compare with GT
+[CASVol_GT, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(MRI_volume, interpFactor);
+ 
+max(CASVolume(:)) / max(CASVol_GT(:)) 
+
+slice = 60
+subplot(1,3,1)
+imagesc(CASVolume(:,:,slice));
+subplot(1,3,2)
+imagesc(CASVol_GT(:,:,slice));
+subplot(1,3,3)
+imagesc(CASVolume(:,:,slice) ./ CASVol_GT(:,:,slice));
+colorbar
+ 
 return
 %%
 

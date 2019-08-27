@@ -37,9 +37,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             switch variableName
                 case 'Volume'
                     [varargout{1:nargout}] = mexGetVariables('GetVolume', this.objectHandle);
+                case 'CASVolume'
+                    [varargout{1:nargout}] = mexGetVariables('CASVolume', this.objectHandle);
                 case 'Images'
                     [varargout{1:nargout}] = mexGetVariables('GetImages', this.objectHandle);
-            end
+                otherwise
+                    disp('Failed to locate variable')
+            end                       
+            
         end 
         %% ForwardProject - Run the forward projection function
         function ForwardProject(this, varargin)
