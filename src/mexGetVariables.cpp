@@ -21,7 +21,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     gpuGridder *gpuGridderObj = convertMat2Ptr<gpuGridder>(prhs[1]);
 
     // Return the summed volume from all of the GPUs (for getting the back projection kernel result)
-    if (!strcmp("GetVolume", cmd))
+    if (!strcmp("Volume", cmd))
     {
 
         // Get the matrix size of the GPU volume
@@ -75,5 +75,37 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         return;
     }
+
+    // Return the CAS images from pinned memory (for debugging)
+    if (!strcmp("CASImages", cmd))
+    {
+
+        // Get the matrix size of the GPU volume
+        int CASVolSize = gpuGridderObj->GetCASVolumeSize();
+        int nAxes = gpuGridderObj->GetNumAxes();
+
+        mwSize dims[3];
+        dims[0] = CASVolSize;
+        dims[1] = CASVolSize;
+        dims[2] = nAxes;
+
+        std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
+      
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Call the method
+        float *CASImages = gpuGridderObj->GetCASImgsPtr_CPU();
+
+        // Copy the data to the Matlab array
+        std::memcpy((float *)mxGetData(Matlab_Pointer), CASImages, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
+
+    cudaDeviceReset(); // DEBUG
 
 }

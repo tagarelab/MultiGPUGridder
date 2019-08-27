@@ -9,6 +9,11 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 
+#define Log2(x, y)                           \
+    {                                       \
+        std::cout << x << " " << y << '\n'; \
+    }
+
 #include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
 
 // NVTX labeling tools (for the nvidia profiling)
@@ -22,6 +27,6 @@
 class gpuGridder;
 
 // Function for creating the CUDA streams and launchinh the forward projection kernel
-void gpuForwardProjectLaunch(gpuGridder * gridder);
+void gpuForwardProjectLaunch(gpuGridder *gridder);
 
 #endif //__GPUFORWARDPROJECT_H__

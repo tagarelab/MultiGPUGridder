@@ -69,16 +69,16 @@ public:
     int GetBlockSize() { return this->blockSize; }
 
     // Get the device CAS volume pointer
-    float *GetCASVolumePtr() { return this->d_CASVolume; }
+    float *GetCASVolumePtr_Device() { return this->d_CASVolume; }
 
     // Get the device CAS images pointer
-    float *GetCASImgsPtr() { return this->d_CASImgs; }
+    float *GetCASImgsPtr_Device() { return this->d_CASImgs; }
 
     // Get the device coordinate axes pointer
-    float *GetCoordAxesPtr() { return this->d_CoordAxes; }
+    float *GetCoordAxesPtr_Device() { return this->d_CoordAxes; }
 
     // Get the device kaiser bessel lookup table pointer
-    float *GetKBTablePtr() { return this->d_KB_Table; }
+    float *GetKBTablePtr_Device() { return this->d_KB_Table; }
 
 protected:
     // // Get a new images array and then convert them to CAS
@@ -128,11 +128,16 @@ private:
     // Copy the volume to the GPU
     void CopyVolumeToGPU();
 
+    // Copy the Kaiser Bessel lookup table to the GPU
+    void KB_Table_To_GPU();
+
     // Allocate GPU arrays
-    void AllocateGPUArray(int GPU_Device, float *d_Ptr, int ArraySize);
+    float * AllocateGPUArray(int GPU_Device, int ArraySize);
 
     // // Free all of the allocated memory
     // void FreeMemory();
+
+
 };
 
 #endif

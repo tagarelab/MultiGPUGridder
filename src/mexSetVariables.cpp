@@ -26,7 +26,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Set the volume size
     if (!strcmp("SetVolumeSize", cmd))
     {
-
         int *VolumeSize = (int *)mxGetData(prhs[2]);
 
         std::cout << "SetVolumeSize: " << VolumeSize[0] << '\n';
@@ -38,6 +37,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("SetVolume", cmd))
     {
         gpuGridderObj->SetVolume((float *)mxGetData(prhs[2]));
+    }
+
+    // Set the pointer to the coordinate axes
+    if (!strcmp("SetCoordAxes", cmd))
+    {
+        gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]));
+
+        // Set the number of coordinate axes
+        gpuGridderObj->SetNumAxes((int)mxGetScalar(prhs[3]));
     }
 
     // Set the pointer to the CAS volume
@@ -56,6 +64,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("SetImages", cmd))
     {
         gpuGridderObj->SetImages((float *)mxGetData(prhs[2]));
+    }
+
+    // Set the pointer to the CAS images
+    if (!strcmp("SetCASImages", cmd))
+    {
+        // Pin the memory to the CPU
+        // int CASImgbytes = (int)mxGetScalar(prhs[3]) * sizeof(float);
+        // cudaHostRegister((float *)mxGetData(prhs[2]), CASImgbytes, 0);
+
+        gpuGridderObj->SetCASImages((float *)mxGetData(prhs[2]));
     }
 
     // Set the GPUS to use

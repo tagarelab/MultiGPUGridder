@@ -24,6 +24,8 @@ disp("Resetting devices...")
 
 VolumeSize = 64;
 interpFactor = 2;
+n1_axes = 20;
+n2_axes = 20;
 
 load mri;
 img = squeeze(D);
@@ -31,14 +33,22 @@ img = imresize3(img,[VolumeSize, VolumeSize, VolumeSize]);
 MRI_volume = single(img);
 % easyMontage(vol,1);
 
+% Define the projection directions
+coordAxes=single([1 0 0 0 1 0 0 0 1]');
+coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
+coordAxes = coordAxes(:);
+nCoordAxes = length(coordAxes)/9;
+
+
 
 gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(10), single(2));
-
-gridder.NumAxes = int32(100);
+gridder.coordAxes = single(coordAxes);
+gridder.NumAxes = int32(nCoordAxes);
 gridder.VolumeSize = int32(VolumeSize);
 gridder.Volume = MRI_volume; %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
 gridder.CASVolumeSize = repmat(gridder.VolumeSize * gridder.interpFactor + gridder.extraPadding * 2, 1, 3)
 gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
+gridder.CASImages = zeros([gridder.CASVolumeSize(1), gridder.CASVolumeSize(1), gridder.NumAxes], 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 
@@ -65,9 +75,14 @@ tic
 gridder.ForwardProject()
 toc
 
-% CASVolume = gridder.Get('CASVolume');
-max(gridder.CASVolume(:))
 
+% CASVolume = gridder.Get('CASVolume');
+
+CASImages = gridder.Get('CASImages');
+
+max(gridder.CASVolume(:))
+max(gridder.CASImages(:))
+max(CASImages(:))
  % Compare with GT
  tic
 [CASVol_GT, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(MRI_volume, interpFactor);
@@ -75,13 +90,15 @@ max(gridder.CASVolume(:))
 % max(CASVolume(:)) / max(CASVol_GT(:)) 
 % 
 slice = 60
-subplot(1,3,1)
+subplot(1,4,1)
 imagesc(gridder.CASVolume(:,:,slice));
-subplot(1,3,2)
+subplot(1,4,2)
 imagesc(CASVol_GT(:,:,slice));
-subplot(1,3,3)
+subplot(1,4,3)
 imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
 colorbar
+subplot(1,4,4)
+imagesc(gridder.CASImages(:,:,1))
  
 return
 %%
