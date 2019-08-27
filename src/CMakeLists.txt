@@ -3,11 +3,13 @@
 # Have to select the x64 option in CMAKE
 
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+SET(CMAKE_CXX_STANDARD 11)
+
 project(cmake_and_cuda LANGUAGES CXX CUDA)
 
 #include(CTest)
 
-SET(CMAKE_CXX_STANDARD 11)
+
 
 option(WITH_NVPROF    "Enable NVidia profiler bindings (requires CUDA)" FALSE)
 option(WITH_MATLAB    "Compile the Matlab mex wrapper  (requires MATLAB)" TRUE)
@@ -36,7 +38,9 @@ add_library(gridderLib SHARED
 		gpuFFT.h
 		gpuFFT.cu
 
-		
+		gpuForwardProject.h
+		gpuForwardProjectKernel.cu
+
   )
 
 # Compile with -fPIC flag on
@@ -66,8 +70,7 @@ endif()
 
 #gpuBackProject.h
 #gpuBackProjectKernel.cu
-#gpuForwardProject.h
-#gpuForwardProjectKernel.cu
+
 
 #MemoryManager.h
 #MemoryManager.cpp

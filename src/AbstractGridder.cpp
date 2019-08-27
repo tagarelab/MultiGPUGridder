@@ -3,6 +3,13 @@
 AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
 {
     // Constructor for the abstract gridder class
+
+    // Initlize these variable here for now
+    this->kerSize = 501;
+    this->kerHWidth = 2;
+    this->extraPadding = 3;
+    this->ErrorFlag = false;
+
     // Set the volume size
     if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
     {
@@ -98,6 +105,11 @@ int *AbstractGridder::GetVolumeSize()
 void AbstractGridder::SetVolume(float *Volume)
 {
     this->Volume = Volume;
+}
+
+void AbstractGridder::SetMaskRadius(float maskRadius)
+{
+    this->maskRadius = maskRadius;
 }
 
 float *AbstractGridder::GetVolume()

@@ -101,42 +101,45 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     }//End img_i
 }
 
-void gpuForwardProject(
-    std::vector<float *> gpuVol_Vector, std::vector<float *> gpuCASImgs_Vector,          // Vector of GPU array pointers
-    std::vector<float *> gpuCoordAxes_Vector, std::vector<float *> ker_bessel_Vector,    // Vector of GPU array pointers
-    float *CASImgs_CPU_Pinned, float *coordAxes_CPU_Pinned,                              // Pointers to pinned CPU arrays for input / output
-    int volSize, int imgSize, int nAxes, float maskRadius, int kerSize, float kerHWidth, // kernel Parameters and constants
-    int numGPUs, int nStreams, int gridSize, int blockSize,                              // Streaming parameters
-	int MaxAxesAllocated
-    
-)
+void gpuForwardProject(gpuGridder * gridder)
 { 
     std::cout << "Running gpuForwardProject()..." << '\n';
 	
+    // Copy the relevent parameters to a local variable to make the code cleaner
+    int gridSize = gridder->GetGridSize();
+    int blockSize = gridder->GetBlockSize();
+    int nAxes = gridder->GetNumAxes();
+    int MaxAxesAllocated = gridder->GetMaxAxesAllocated();
+    int nStreams = gridder->GetNumStreams();
+    int GPU_Device = gridder->GetGPUDevice();
+    int* imgSizePtr = gridder->GetImgSize();    
+    int* volSizePtr = gridder->GetVolumeSize();
+    float maskRadius = gridder->GetMaskRadius();
+
+
+    int imgSize  = imgSizePtr[0]; // The volume must be a square for now so just use the first dimension
+    int volSize = volSizePtr[0];  // The volume must be a square for now so just use the first dimension
+
+    // Pointers to memory already allocated on the GPU (i.e. the device)
+    float * d_CASVolume = gridder->GetCASVolumePtr();
+    float * d_CASImgs = gridder->GetCASImgsPtr();
+    float * d_CoordAxes = gridder->GetCoordAxesPtr();
+    float * d_KB_Table = gridder->GetKBTablePtr();
+
+    // Pointers to pinned CPU memory
+    float * coordAxes_CPU_Pinned = gridder->GetCoordAxesPtr();
+    float * CASImgs_CPU_Pinned = gridder->GetCASImgsPtr_CPU();
+
+    // CUDA streams
+    cudaStream_t *streams = gridder->GetStreamsPtr();
+    
+    // Set the current GPU device to run the kernel
+    cudaSetDevice(GPU_Device);    
+
     // Define CUDA kernel dimensions
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
 
-    // Create the CUDA streams
-	cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t)*nStreams);
-
-    for (int i = 0; i < nStreams; i++) // Loop through the streams
-    { 
-		int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs
-        cudaSetDevice(curr_GPU);         
-        cudaStreamCreate(&stream[i]);
-    }
-
-	// Initilize a vector which will remember how many axes have been assigned to each GPU
-	// during the current batch. This is needed for calculating the offset for the stream when 
-	// the number of streams is greater than the number of GPUs. This resets to zeros after each
-	// batch since the same GPU memory is used for the next batch.
-	std::vector<int> numAxesGPU_Batch;
-	for (int i = 0; i < numGPUs; i++)
-	{
-		numAxesGPU_Batch.push_back(0);
-	}
-	
 	// How many coordinate axes to assign to each stream?
 	int numAxesPerStream;
 	if (nAxes <= MaxAxesAllocated)
@@ -153,16 +156,13 @@ void gpuForwardProject(
     int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
 
 	// While we have coordinate axes to process, loop through the GPUs and the streams
-	int MaxBatches = 10000; // Maximum iterations in case we get stuck in the while loop
+	int MaxBatches = 1000; // Maximum iterations in case we get stuck in the while loop for some reason
 	int batch = 0;
 
 	while (processed_nAxes < nAxes && batch < MaxBatches)
 	{
 		for (int i = 0; i < nStreams; i++) // Loop through the streams 
 		{
-            int curr_GPU = i % numGPUs; // Use the remainder operator to split evenly between GPUs                     
-			cudaSetDevice(curr_GPU);    // This needs to match the GPU where the stream was created on
-
             // If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
 			if (processed_nAxes + numAxesPerStream >= nAxes)
 			{
@@ -181,17 +181,21 @@ void gpuForwardProject(
 			int coord_Axes_CPU_streamBytes = numAxesPerStream * 9 * sizeof(float);
 
 			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
-			int gpuCASImgs_Offset = numAxesGPU_Batch[curr_GPU] * imgSize * imgSize;
-			int gpuCoordAxes_Stream_Offset = numAxesGPU_Batch[curr_GPU] * 9;
+			int gpuCASImgs_Offset = processed_nAxes * imgSize * imgSize;
+			int gpuCoordAxes_Stream_Offset = processed_nAxes * 9;
 
         	// Copy the section of gpuCoordAxes which this stream will process on the current GPU
-			cudaMemcpyAsync(&gpuCoordAxes_Vector[curr_GPU][gpuCoordAxes_Stream_Offset], &coordAxes_CPU_Pinned[CoordAxes_CPU_Offset], coord_Axes_CPU_streamBytes, cudaMemcpyHostToDevice, stream[i]);
+            cudaMemcpyAsync(
+                &d_CoordAxes[gpuCoordAxes_Stream_Offset], 
+                &coordAxes_CPU_Pinned[CoordAxes_CPU_Offset],
+                coord_Axes_CPU_streamBytes,
+                cudaMemcpyHostToDevice, streams[i]);
                  
             // Run the forward projection kernel     
-			gpuForwardProjectKernel <<< dimGrid, dimBlock, 0, stream[i] >> > (
-				gpuVol_Vector[curr_GPU], volSize, &gpuCASImgs_Vector[curr_GPU][gpuCASImgs_Offset],
-				imgSize, &gpuCoordAxes_Vector[curr_GPU][gpuCoordAxes_Stream_Offset], numAxesPerStream,
-				maskRadius, ker_bessel_Vector[curr_GPU], 501, 2);
+			gpuForwardProjectKernel <<< dimGrid, dimBlock, 0, streams[i] >> > (
+				d_CASVolume, volSize, &d_CASImgs[gpuCASImgs_Offset],
+				imgSize, &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream,
+				maskRadius, d_KB_Table, 501, 2);
 
 			// Have to use unsigned long long since the array may be longer than the max value int32 can represent
 			// imgSize is the size of the zero padded projection images
@@ -206,34 +210,21 @@ void gpuForwardProject(
 			// Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
 			cudaMemcpyAsync(
 				&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-				&gpuCASImgs_Vector[curr_GPU][gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+				&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
 			
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
 			processed_nAxes = processed_nAxes + numAxesPerStream;
-
-			// Update the number of axes which have been assigned to this GPU during the current batch
-            numAxesGPU_Batch[curr_GPU] = numAxesGPU_Batch[curr_GPU] + numAxesPerStream;
                 
         }
-
-		// Reset the number of axes assigned to each gpu to all zeros before starting another batch
-		for (int curr_GPU = 0; curr_GPU < numGPUs; curr_GPU++)
-		{
-			numAxesGPU_Batch[curr_GPU] = 0;
-		}
 
 		// Increment the batch number
 		batch++;
 
 		// Synchronize before running the next batch
 		// TO DO: Consider replacing with cudaStreamWaitEvent or similar to prevent blocking of the CPU
-		cudaDeviceSynchronize();
+		// cudaDeviceSynchronize();
 	}
 
-    // Destroy the streams
-    for (int i = 0; i < nStreams; i++) {
-        cudaStreamDestroy(stream[i]);
-    }   
 
     return; 
 }

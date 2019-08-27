@@ -44,7 +44,7 @@ void gpuGridder::VolumeToCASVolume()
     std::cout << "CASVolume: ";
 }
 
-void gpuGridder::AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vector, int ArraySize)
+void gpuGridder::AllocateGPUArray(int GPU_Device, float * d_Ptr, int ArraySize)
 {
     // Set the current GPU
     cudaSetDevice(GPU_Device);
@@ -59,20 +59,18 @@ void gpuGridder::AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vecto
     {
         std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
 
+        d_Ptr = NULL; // Set the pointer to NULL
+
         this->ErrorFlag = 1; // Set the error flag to 1 to remember that this failed
     }
     else
     {
         // There is enough memory left on the current GPU
-        float *devPtr;
-        cudaMalloc(&devPtr, sizeof(float) * (ArraySize));
-
-        // Add the pointer to the corresponding vector of device pointers
-        Ptr_Vector.push_back(devPtr);
+        cudaMalloc(&d_Ptr, sizeof(float) * (ArraySize));
     }
 }
 
-void gpuGridder::SetGPUs(int* GPU_List, int Num_GPUs)
+void gpuGridder::SetGPU(int GPU_Device)
 {
     // Set which GPUs to use
 
@@ -83,61 +81,44 @@ void gpuGridder::SetGPUs(int* GPU_List, int Num_GPUs)
     Log("numGPUDetected:");
     Log(numGPUDetected);
 
-    // First clear the vector which remembers the GPUs to use
-    this->GPUs.clear();
-
-    // Next, fill in the vector with the new values
-    for (int i = 0; i < Num_GPUs; i++)
+    // Check wether the given GPU_Device value is valid
+    if (GPU_Device < 0 || GPU_Device >= numGPUDetected) //  An invalid numGPUs selection was chosen
     {
-        // Check wether the given number is valid
-        if (GPU_List[i] < 0 || GPU_List[i] >= numGPUDetected) //  An invalid numGPUs selection was chosen
-        {
-            std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer. Use SetNumberGPUs() function." << '\n';
-            this->ErrorFlag = 1;
-            return;
-        }
-
-        this->GPUs.push_back(GPU_List[i]);
-        Log("GPU Added:");
-        Log(GPU_List[i]);
+        std::cerr << "Error in GPU selection. Please provide an integer between 0 and the number of NVIDIA graphic cards on your computer. Use SetNumberGPUs() function." << '\n';
+        this->ErrorFlag = 1;
+        return;
     }
+
+    this->GPU_Device = GPU_Device;
+    Log("GPU Added:");
+    Log(GPU_Device);
 }
 
 void gpuGridder::InitilizeGPUArrays()
 {
-    // Initilize the GPU arrays
+    // Initilize the GPU arrays and allocate the needed memory on the GPU
     Log("InitilizeGPUArrays()");
 
-    // First make sure the vectors of pointers are empty
-    d_CASVolume.clear();
-    d_CASImgs.clear();
-    d_CoordAxes.clear();
-    d_KB_Table.clear();
+    Log("GPU_Device");
+    Log(this->GPU_Device);
 
-    // Loop through each of the GPUs and allocate the needed memory
-    for (int i = 0; i < GPUs.size(); i++)
-    {
-        int GPU_Device = GPUs[i];
-        Log("GPU_Device");
-        Log(GPU_Device);
+    Log("this->CASVolumeSize");
+    Log(this->CASVolumeSize);
 
-        Log("this->CASVolumeSize");
-        Log(this->CASVolumeSize);
+    cudaSetDevice(this->GPU_Device);
 
-        cudaSetDevice(GPU_Device);
+    // Allocate the CAS volume
+    AllocateGPUArray(this->GPU_Device, d_CASVolume, this->CASVolumeSize * this->CASVolumeSize * this->CASVolumeSize);
 
-        // Allocate the CAS volume
-        AllocateGPUArray(GPU_Device, d_CASVolume, this->CASVolumeSize * this->CASVolumeSize * this->CASVolumeSize);
+    // Allocate the CAS images
+    AllocateGPUArray(this->GPU_Device, d_CASImgs, this->CASimgSize[0] * this->CASimgSize[1] * this->CASimgSize[2]);
 
-        // Allocate the CAS images
-        AllocateGPUArray(GPU_Device, d_CASImgs, this->CASimgSize[0] * this->CASimgSize[1] * this->CASimgSize[2]);
+    // Allocate the coordinate axes array
+    AllocateGPUArray(this->GPU_Device, d_CoordAxes, this->numCoordAxes * 9); // 9 float elements per cordinate axes
 
-        // Allocate the coordinate axes array
-        AllocateGPUArray(GPU_Device, d_CoordAxes, this->numCoordAxes * 9); // 9 float elements per cordinate axes
+    // Allocate the Kaiser bessel lookup table
+    AllocateGPUArray(this->GPU_Device, d_KB_Table, this->kerSize);
 
-        // Allocate the Kaiser bessel lookup table
-        AllocateGPUArray(GPU_Device, d_KB_Table, this->kerSize);
-    }
 }
 
 void gpuGridder::SetVolume(float *Volume)
@@ -153,25 +134,46 @@ void gpuGridder::SetVolume(float *Volume)
     cudaHostRegister(this->Volume, this->VolumeBytes, 0);
 }
 
-void gpuGridder::CopyVolumeToGPUs()
+void gpuGridder::CopyVolumeToGPU()
 {
-    // Copy the volume to each of the GPUs (the volume is already pinned to CPU memory during SetVolume())
-    Log("CopyVolumeToGPUs()");
+    // Copy the volume to the GPUs (the volume is already pinned to CPU memory during SetVolume())
+    Log("CopyVolumeToGPU()");
 
-    // Create CUDA streams for asyc memory copying of the gpuVols
-    // One stream per GPU for now
-    int nStreams = this->GPUs.size();
-    cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t) * nStreams);
+    // Create CUDA streams for asyc memory copying of the gpuVol
+    cudaStream_t *stream = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreams);
 
-    for (int i = 0; i < this->GPUs.size(); i++)
-    {
-        // Set the current GPU device
-        cudaSetDevice(this->GPUs[i]);
+    // Set the current GPU device
+    cudaSetDevice(this->GPU_Device);
 
-        // Sends data to device asynchronously
-        cudaMemcpyAsync(d_CASVolume[i], this->CASVolume, VolumeBytes, cudaMemcpyHostToDevice, stream[i]);
-    }
+    // Sends data to device asynchronously
+    // TO DO: Input a stream to use instead of just the first one
+    cudaMemcpyAsync(this->d_CASVolume, this->CASVolume, VolumeBytes, cudaMemcpyHostToDevice, stream[0]);
+    
 }
+
+
+void gpuGridder::CreateCUDAStreams()
+{
+    // Create the CUDA streams to usefor async memory transfers and for running the kernels
+    if (this->nStreams >= 1)
+    {
+        this->streams = (cudaStream_t *)malloc(sizeof(cudaStream_t)*this->nStreams);
+    } else
+    {
+        std::cerr << "Failed to create CUDA streams. The number of streams must be a positive integer." << '\n';
+        this->ErrorFlag = 1;
+    }  
+}
+
+void gpuGridder::DestroyCUDAStreams()
+{
+    // Destroy the streams
+    for (int i = 0; i < this->nStreams; i++) {
+        cudaStreamDestroy(this->streams[i]);
+    }   
+}
+
+
 
 void gpuGridder::ForwardProject()
 {
@@ -190,13 +192,15 @@ void gpuGridder::ForwardProject()
         InitilizeGPUArrays();
 
         // (3): Copy the CASVolume to each of the GPUs
-        // CopyVolumeToGPUs();
+        // TO DO: might need to run device sync here?
+        CopyVolumeToGPU();
     }
 
     // Check the error flag to see if we had any issues during the initilization
     if (this->ErrorFlag != 0)
     {
-        return;
+        std::cerr << "Error during intilization." << '\n';
+        return; // Don't run the kernel and return
     }
 
     // Synchronize all of the CUDA streams before running the kernel

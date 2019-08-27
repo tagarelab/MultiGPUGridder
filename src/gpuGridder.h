@@ -1,5 +1,9 @@
+#ifndef GPU_GRIDDER
+#define GPU_GRIDDER
+
 #include "AbstractGridder.h"
 #include "gpuFFT.h"
+#include "gpuForwardProject.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -44,10 +48,37 @@ public:
     float *GetVolume();
 
     // Set which GPUs to use
-    void SetGPUs(int* GPU_List, int Num_GPUs);
-    
+    void SetGPU(int GPU_Device);
+
     // // Set the GPU for this object to use for processiong
     // void SetGPU(int GPU){this->GPU = GPU;};
+
+    // Get the GPU device number to use for processing
+    int GetGPUDevice() { return this->GPU_Device; }
+
+    // Get the number of CUDA streams
+    int GetNumStreams() { return this->nStreams; }
+
+    // Get the pointer to the CUDA streams
+    cudaStream_t *GetStreamsPtr() { return this->streams; }
+
+    // Get the CUDA grid size
+    int GetGridSize() { return this->gridSize; }
+
+    // Get the CUDA block size
+    int GetBlockSize() { return this->blockSize; }
+
+    // Get the device CAS volume pointer
+    float *GetCASVolumePtr() { return this->d_CASVolume; }
+
+    // Get the device CAS images pointer
+    float *GetCASImgsPtr() { return this->d_CASImgs; }
+
+    // Get the device coordinate axes pointer
+    float *GetCoordAxesPtr() { return this->d_CoordAxes; }
+
+    // Get the device kaiser bessel lookup table pointer
+    float *GetKBTablePtr() { return this->d_KB_Table; }
 
 protected:
     // // Get a new images array and then convert them to CAS
@@ -59,35 +90,50 @@ protected:
     // // Convert the CAS volume back to volume
     // void CASToVolume();
 
+    // How many streams to use on this device?
+    int nStreams;
+
+    // Pointer to the CASVolume array on the device (i.e. the GPU)
+    float *d_CASVolume;
+
+    // Pointer to the CAS images array on the device (i.e. the GPU)
+    float *d_CASImgs;
+
+    // Pointer to the coordinate axes vector on the device (i.e. the GPU)
+    float *d_CoordAxes;
+
+    // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
+    float *d_KB_Table;
+
+    // Kernel launching parameters
+    int gridSize;
+    int blockSize;
+
+    // Several CUDA streams
+    cudaStream_t *streams;
+
 private:
-    // Which GPU(s) to use for processing?
-    std::vector<int> GPUs;
+    // Which GPU to use for processing?
+    int GPU_Device;
 
-    // Pointers to the CASVolume array on the device (i.e. the GPU)
-    std::vector<float *> d_CASVolume;
+    // Create the CUDA streams
+    void CreateCUDAStreams();
 
-    // Pointers to the CAS images array on the device (i.e. the GPU)
-    std::vector<float *> d_CASImgs;
-
-    // Pointers to the coordinate axes vector on the device (i.e. the GPU)
-    std::vector<float *> d_CoordAxes;
-
-    // Pointers to the Kaiser bessel vector on the device (i.e. the GPU)
-    std::vector<float *> d_KB_Table;
+    // Delete the CUDA streams
+    void DestroyCUDAStreams();
 
     // Initilize the GPU arrays
     void InitilizeGPUArrays();
 
-    // Copy the volume to each of the GPUs
-    void CopyVolumeToGPUs();
+    // Copy the volume to the GPU
+    void CopyVolumeToGPU();
 
     // Allocate GPU arrays
-    void AllocateGPUArray(int GPU_Device, std::vector<float *> Ptr_Vector, int ArraySize);
+    void AllocateGPUArray(int GPU_Device, float *d_Ptr, int ArraySize);
 
-    // Flag to test that all arrays were allocated successfully
-    bool ErrorFlag = false;
+
     // // Free all of the allocated memory
     // void FreeMemory();
-
-
 };
+
+#endif

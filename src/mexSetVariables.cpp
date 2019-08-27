@@ -64,8 +64,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         Log("Number_GPUs:");
         Log(Number_GPUs);
-
-        gpuGridderObj->SetGPUs(GPU_Array, Number_GPUs);
+    
+        gpuGridderObj->SetGPU(GPU_Array[0]);
     }
 
     
