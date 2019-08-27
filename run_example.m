@@ -78,28 +78,38 @@ toc
 
 % CASVolume = gridder.Get('CASVolume');
 
-CASImages = gridder.Get('CASImages');
+% CASImages = gridder.Get('CASImages');
 
-max(gridder.CASVolume(:))
-max(gridder.CASImages(:))
-max(CASImages(:))
+% max(gridder.CASVolume(:))
+% max(gridder.CASImages(:))
+% max(CASImages(:))
  % Compare with GT
  tic
 [CASVol_GT, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(MRI_volume, interpFactor);
  toc
 % max(CASVolume(:)) / max(CASVol_GT(:)) 
-% 
-slice = 60
-subplot(1,4,1)
-imagesc(gridder.CASVolume(:,:,slice));
-subplot(1,4,2)
-imagesc(CASVol_GT(:,:,slice));
-subplot(1,4,3)
-imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
-colorbar
-subplot(1,4,4)
-imagesc(gridder.CASImages(:,:,1))
- 
+%%
+for slice = 1:30
+%     slice = 60
+    subplot(1,5,1)
+    imagesc(gridder.CASVolume(:,:,slice));
+    subplot(1,5,2)
+    imagesc(CASVol_GT(:,:,slice));
+    subplot(1,5,3)
+    imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
+    colorbar
+    subplot(1,5,4)
+    imagesc(gridder.CASImages(:,:,slice))
+
+    subplot(1,5,5)
+    imagesc(real(fftshift2(fft2(fftshift2(gridder.CASImages(:,:,slice))))))
+    axis square
+    colormap gray
+    
+    pause(0.1)
+end
+
+
 return
 %%
 
