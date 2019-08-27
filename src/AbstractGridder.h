@@ -123,8 +123,11 @@ public:
     // Set the kaiser bessel vector
     void SetKerBesselVector(float *ker_bessel_Vector, int kerSize);
 
-    // Set the volume
+    // Set the volume pointer
     void SetVolume(float *Volume);
+
+    // Set the CAS volume pointer
+    void SetCASVolume(float *CASVolume);
 
     // Set the volume size
     void SetVolumeSize(int VolumeSize);

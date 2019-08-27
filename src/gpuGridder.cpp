@@ -37,7 +37,8 @@ void gpuGridder::VolumeToCASVolume()
     this->SetCASImageSize(CASimgSize);
 
     // Convert the volume to CAS volume 
-    this->CASVolume = gpuFFT::VolumeToCAS(this->Volume, this->VolumeSize[0], this->interpFactor, this->extraPadding);
+    // this->CASVolume = new float[this->CASVolumeSize * this->CASVolumeSize * this->CASVolumeSize];
+    gpuFFT::VolumeToCAS(this->Volume, this->VolumeSize[0], this->CASVolume, this->interpFactor, this->extraPadding);
 
     // DEBUG
     for (int i = 0; i < 10; i++)
@@ -214,7 +215,7 @@ void gpuGridder::ForwardProject()
 
     // Synchronize all of the CUDA streams before running the kernel
     // TO DO: cudaEventSyncronize() may be faster than cudaDeviceSynchronize()
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 
     // Run the forward projection CUDA kernel
     Log("gpuForwardProjectLaunch()");

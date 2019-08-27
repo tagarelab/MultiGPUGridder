@@ -37,46 +37,50 @@ gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(10), single(2));
 gridder.NumAxes = int32(100);
 gridder.VolumeSize = int32(VolumeSize);
 gridder.Volume = MRI_volume; %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
+gridder.CASVolumeSize = repmat(gridder.VolumeSize * gridder.interpFactor + gridder.extraPadding * 2, 1, 3)
+gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 
 gridder.Set()
 
 
-Volume = gridder.Get('Volume');
+% Volume = gridder.Get('Volume');
 
-slice = 60
-subplot(1,3,1)
-imagesc(Volume(:,:,slice));
-subplot(1,3,2)
-imagesc(MRI_volume(:,:,slice));
-subplot(1,3,3)
-imagesc(Volume(:,:,slice) - MRI_volume(:,:,slice));
-colorbar
- 
+% slice = 60
+% subplot(1,3,1)
+% imagesc(gridder.Volume(:,:,slice));
+% subplot(1,3,2)
+% imagesc(MRI_volume(:,:,slice));
+% subplot(1,3,3)
+% imagesc(gridder.Volume(:,:,slice) - MRI_volume(:,:,slice));
+% colorbar
+%  
 
 
 
 
 disp("ForwardProject...")
+tic
 gridder.ForwardProject()
+toc
 
-
-CASVolume = gridder.Get('CASVolume');
-max(CASVolume(:))
+% CASVolume = gridder.Get('CASVolume');
+max(gridder.CASVolume(:))
 
  % Compare with GT
+ tic
 [CASVol_GT, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(MRI_volume, interpFactor);
- 
-max(CASVolume(:)) / max(CASVol_GT(:)) 
-
+ toc
+% max(CASVolume(:)) / max(CASVol_GT(:)) 
+% 
 slice = 60
 subplot(1,3,1)
-imagesc(CASVolume(:,:,slice));
+imagesc(gridder.CASVolume(:,:,slice));
 subplot(1,3,2)
 imagesc(CASVol_GT(:,:,slice));
 subplot(1,3,3)
-imagesc(CASVolume(:,:,slice) ./ CASVol_GT(:,:,slice));
+imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
 colorbar
  
 return

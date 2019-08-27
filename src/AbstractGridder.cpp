@@ -13,7 +13,6 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->MaxAxesAllocated = 1000;
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
 
-
     // Set the volume size
     if (VolumeSize > 0 && VolumeSize % 2 == 0) // Check that the size is greater than zero and an even number
     {
@@ -106,10 +105,14 @@ int *AbstractGridder::GetVolumeSize()
     return this->VolumeSize;
 }
 
-
 void AbstractGridder::SetVolume(float *Volume)
 {
     this->Volume = Volume;
+}
+
+void AbstractGridder::SetCASVolume(float *CASVolume)
+{
+    this->CASVolume = CASVolume;
 }
 
 void AbstractGridder::SetMaskRadius(float maskRadius)

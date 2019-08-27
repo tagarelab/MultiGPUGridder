@@ -40,6 +40,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         gpuGridderObj->SetVolume((float *)mxGetData(prhs[2]));
     }
 
+    // Set the pointer to the CAS volume
+    if (!strcmp("SetCASVolume", cmd))
+    {
+        gpuGridderObj->SetCASVolume((float *)mxGetData(prhs[2]));
+    }
+
     // Set the output projection images size
     if (!strcmp("SetImageSize", cmd))
     {

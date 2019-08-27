@@ -9,6 +9,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         
         NumAxes;        
         VolumeSize;
+        CASVolumeSize;
+        CASVolume;
         Volume;
         ImageSize;
         Images;
@@ -28,6 +30,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function Set(this)
             [varargout{1:nargout}] = mexSetVariables('SetVolumeSize', this.objectHandle, this.VolumeSize);
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, this.Volume);
+            [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, this.CASVolume);              
             [varargout{1:nargout}] = mexSetVariables('SetImageSize', this.objectHandle, this.ImageSize);
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, this.Images);
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, this.GPUs, length(this.GPUs));

@@ -20,9 +20,9 @@ public:
     gpuFFT();
     ~gpuFFT();
 
-    static float *PadVolume(float *inputVol, int inputImgSize, int outputImgSize);
+    static void PadVolume(float *inputVol, float* outputVol, int inputImgSize, int outputImgSize);
 
-    static float* VolumeToCAS(float* inputVol, int inputVolSize, int interpFactor, int extraPadding);
+    static void VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, int interpFactor, int extraPadding);
 
 };
 
