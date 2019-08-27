@@ -75,6 +75,21 @@ tic
 gridder.ForwardProject()
 toc
 
+[origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+
+imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+
+
+
+
+% gpuGridder = gpuBatchGridder(VolumeSize,n1_axes*n2_axes+1,interpFactor);
+% gpuGridder.setVolume(MRI_volume);
+% imgs_GT  = gpuGridder.forwardProject(coordAxes);
+% 
+% CASImgs_GT = gather(gpuGridder.gridder.gpuCASImgs)
+% 
+% imagesc(real(fftshift2(fft2(fftshift2(CASImgs_GT(:,:,1))))))
+
 
 % CASVolume = gridder.Get('CASVolume');
 
@@ -102,7 +117,7 @@ for slice = 1:30
     imagesc(gridder.CASImages(:,:,slice))
 
     subplot(1,5,5)
-    imagesc(real(fftshift2(fft2(fftshift2(gridder.CASImages(:,:,slice))))))
+    imagesc(real(imgs(:,:,slice)))
     axis square
     colormap gray
     
@@ -180,6 +195,8 @@ obj.SetMaskRadius(single(size(vol,1)*interpFactor/2 - 1));
 
 disp("SetVolume()...")
 obj.setVolume(single(CASVol))
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
+
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)

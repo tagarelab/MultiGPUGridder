@@ -17,195 +17,195 @@ gpuFFT::~gpuFFT()
 }
 
 
-__global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
-{
-	// 3D Volume, 2D Slice, 1D Line
-	int sLine = N;
-	int sSlice = N * N;
-	int sVolume = N * N * N;
-
-	// Transformations Equations
-	int sEq1 = (sVolume + sSlice + sLine) / 2;
-	int sEq2 = (sVolume + sSlice - sLine) / 2;
-	int sEq3 = (sVolume - sSlice + sLine) / 2;
-	int sEq4 = (sVolume - sSlice - sLine) / 2;
-
-	// Thread Index 2D
-	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-
-	// Each thread will do all the slices for some X, Y position in the 3D matrix
-	for (int zIndex = 0; zIndex < nSlices; zIndex++)
-	{
-		// Thread Index Converted into 1D Index
-		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
-
-		if (zIndex < N / 2)
-		{
-			if (xIndex < N / 2)
-			{
-				if (yIndex < N / 2)
-				{
-					// First Quad
-					output[index].x = input[index + sEq1].x;
-					output[index].y = input[index + sEq1].y;
-				}
-				else
-				{
-					// Third Quad
-					output[index].x = input[index + sEq3].x;
-					output[index].y = input[index + sEq3].y;
-				}
-			}
-			else
-			{
-				if (yIndex < N / 2)
-				{
-					// Second Quad
-					output[index].x = input[index + sEq2].x;
-					output[index].y = input[index + sEq2].y;
-				}
-				else
-				{
-					// Fourth Quad
-					output[index].x = input[index + sEq4].x;
-					output[index].y = input[index + sEq4].y;
-				}
-			}
-		}
-		else
-		{
-			if (xIndex < N / 2)
-			{
-				if (yIndex < N / 2)
-				{
-					// First Quad
-					output[index].x = input[index - sEq4].x;
-					output[index].y = input[index - sEq4].y;
-				}
-				else
-				{
-					// Third Quad
-					output[index].x = input[index - sEq2].x;
-					output[index].y = input[index - sEq2].y;
-				}
-			}
-			else
-			{
-				if (yIndex < N / 2)
-				{
-					// Second Quad
-					output[index].x = input[index - sEq3].x;
-					output[index].y = input[index - sEq3].y;
-				}
-				else
-				{
-					// Fourth Quad
-					output[index].x = input[index - sEq1].x;
-					output[index].y = input[index - sEq1].y;
-				}
-			}
-		}
-	}
-}
-
-
-// template <typename T>
-// __global__ void cufftShift_3D_slice_kernel(T* data, int N, int nSlices)
+// __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
 // {
-//     // In place FFT shift using GPU
-//     // Modified from https://raw.githubusercontent.com/marwan-abdellah/cufftShift/master/Src/CUDA/Kernels/in-place/cufftShift_3D_IP.cu
-//     // GNU Lesser General Public License
+// 	// 3D Volume, 2D Slice, 1D Line
+// 	int sLine = N;
+// 	int sSlice = N * N;
+// 	int sVolume = N * N * N;
 
-//     // 3D Volume & 2D Slice & 1D Line
-//     int sLine = N;
-//     int sSlice = N * N;
-//     int sVolume = N * N * N;
+// 	// Transformations Equations
+// 	int sEq1 = (sVolume + sSlice + sLine) / 2;
+// 	int sEq2 = (sVolume + sSlice - sLine) / 2;
+// 	int sEq3 = (sVolume - sSlice + sLine) / 2;
+// 	int sEq4 = (sVolume - sSlice - sLine) / 2;
 
-//     // Transformations Equations
-//     int sEq1 = (sVolume + sSlice + sLine) / 2;
-//     int sEq2 = (sVolume + sSlice - sLine) / 2;
-//     int sEq3 = (sVolume - sSlice + sLine) / 2;
-//     int sEq4 = (sVolume - sSlice - sLine) / 2;
-
-//     // Thread
-//     int xThreadIdx = threadIdx.x;
-//     int yThreadIdx = threadIdx.y;
-
-//     // Block Width & Height
-//     int blockWidth  = blockDim.x;
-//     int blockHeight = blockDim.y;
-
-//     // Thread Index 2D
-//     int xIndex = blockIdx.x * blockWidth + xThreadIdx;
-//     int yIndex = blockIdx.y * blockHeight + yThreadIdx;
-
-//     // Are we within the image bounds?
-//     if (xIndex < 0 || xIndex >= N || yIndex < 0 || yIndex >= N )
-//     {
-//         return;
-//     }
-
-//     T regTemp;
+// 	// Thread Index 2D
+// 	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
+// 	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
 
 // 	// Each thread will do all the slices for some X, Y position in the 3D matrix
 // 	for (int zIndex = 0; zIndex < nSlices; zIndex++)
 // 	{
+// 		// Thread Index Converted into 1D Index
+// 		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
 
-//         // Thread Index Converted into 1D Index
-//         int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
-
-//         if (zIndex < N / 2)
-//         {
-//             if (xIndex < N / 2)
-//             {
-//                 if (yIndex < N / 2)
-//                 {
-//                     regTemp = data[index];
-
-//                     // First Quad
-//                     data[index] = data[index + sEq1];
-
-//                     // Fourth Quad
-//                     data[index + sEq1] = regTemp;
-//                 }
-//                 else
-//                 {
-//                     regTemp = data[index];
-
-//                     // Third Quad
-//                     data[index] = data[index + sEq3];
-
-//                     // Second Quad
-//                     data[index + sEq3] = regTemp;
-//                 }
-//             }
-//             else
-//             {
-//                 if (yIndex < N / 2)
-//                 {
-//                     regTemp = data[index];
-
-//                     // Second Quad
-//                     data[index] = data[index + sEq2];
-
-//                     // Third Quad
-//                     data[index + sEq2] = regTemp;
-//                 }
-//                 else
-//                 {
-//                     regTemp = data[index];
-
-//                     // Fourth Quad
-//                     data[index] = data[index + sEq4];
-
-//                     // First Quad
-//                     data[index + sEq4] = regTemp;
-//                 }
-//             }
-//         }
-//     }
+// 		if (zIndex < N / 2)
+// 		{
+// 			if (xIndex < N / 2)
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// First Quad
+// 					output[index].x = input[index + sEq1].x;
+// 					output[index].y = input[index + sEq1].y;
+// 				}
+// 				else
+// 				{
+// 					// Third Quad
+// 					output[index].x = input[index + sEq3].x;
+// 					output[index].y = input[index + sEq3].y;
+// 				}
+// 			}
+// 			else
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// Second Quad
+// 					output[index].x = input[index + sEq2].x;
+// 					output[index].y = input[index + sEq2].y;
+// 				}
+// 				else
+// 				{
+// 					// Fourth Quad
+// 					output[index].x = input[index + sEq4].x;
+// 					output[index].y = input[index + sEq4].y;
+// 				}
+// 			}
+// 		}
+// 		else
+// 		{
+// 			if (xIndex < N / 2)
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// First Quad
+// 					output[index].x = input[index - sEq4].x;
+// 					output[index].y = input[index - sEq4].y;
+// 				}
+// 				else
+// 				{
+// 					// Third Quad
+// 					output[index].x = input[index - sEq2].x;
+// 					output[index].y = input[index - sEq2].y;
+// 				}
+// 			}
+// 			else
+// 			{
+// 				if (yIndex < N / 2)
+// 				{
+// 					// Second Quad
+// 					output[index].x = input[index - sEq3].x;
+// 					output[index].y = input[index - sEq3].y;
+// 				}
+// 				else
+// 				{
+// 					// Fourth Quad
+// 					output[index].x = input[index - sEq1].x;
+// 					output[index].y = input[index - sEq1].y;
+// 				}
+// 			}
+// 		}
+// 	}
 // }
+
+
+template <typename T>
+__global__ void cufftShift_3D_slice_kernel(T* data, int N, int nSlices)
+{
+    // In place FFT shift using GPU
+    // Modified from https://raw.githubusercontent.com/marwan-abdellah/cufftShift/master/Src/CUDA/Kernels/in-place/cufftShift_3D_IP.cu
+    // GNU Lesser General Public License
+
+    // 3D Volume & 2D Slice & 1D Line
+    int sLine = N;
+    int sSlice = N * N;
+    int sVolume = N * N * N;
+
+    // Transformations Equations
+    int sEq1 = (sVolume + sSlice + sLine) / 2;
+    int sEq2 = (sVolume + sSlice - sLine) / 2;
+    int sEq3 = (sVolume - sSlice + sLine) / 2;
+    int sEq4 = (sVolume - sSlice - sLine) / 2;
+
+    // Thread
+    int xThreadIdx = threadIdx.x;
+    int yThreadIdx = threadIdx.y;
+
+    // Block Width & Height
+    int blockWidth  = blockDim.x;
+    int blockHeight = blockDim.y;
+
+    // Thread Index 2D
+    int xIndex = blockIdx.x * blockWidth + xThreadIdx;
+    int yIndex = blockIdx.y * blockHeight + yThreadIdx;
+
+    // Are we within the image bounds?
+    if (xIndex < 0 || xIndex >= N || yIndex < 0 || yIndex >= N )
+    {
+        return;
+    }
+
+    T regTemp;
+
+	// Each thread will do all the slices for some X, Y position in the 3D matrix
+	for (int zIndex = 0; zIndex < nSlices; zIndex++)
+	{
+
+        // Thread Index Converted into 1D Index
+        int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+
+        if (zIndex < N / 2)
+        {
+            if (xIndex < N / 2)
+            {
+                if (yIndex < N / 2)
+                {
+                    regTemp = data[index];
+
+                    // First Quad
+                    data[index] = data[index + sEq1];
+
+                    // Fourth Quad
+                    data[index + sEq1] = regTemp;
+                }
+                else
+                {
+                    regTemp = data[index];
+
+                    // Third Quad
+                    data[index] = data[index + sEq3];
+
+                    // Second Quad
+                    data[index + sEq3] = regTemp;
+                }
+            }
+            else
+            {
+                if (yIndex < N / 2)
+                {
+                    regTemp = data[index];
+
+                    // Second Quad
+                    data[index] = data[index + sEq2];
+
+                    // Third Quad
+                    data[index + sEq2] = regTemp;
+                }
+                else
+                {
+                    regTemp = data[index];
+
+                    // Fourth Quad
+                    data[index] = data[index + sEq4];
+
+                    // First Quad
+                    data[index + sEq4] = regTemp;
+                }
+            }
+        }
+    }
+}
 
 __global__ void ComplexImgsToCASImgs(float* CASimgs, cufftComplex* imgs, int imgSize)
 {
@@ -348,7 +348,7 @@ void gpuFFT::PadVolume(float *inputVol, float * outputVol, int inputImgSize, int
     //     outputVol[i] = 0;
     // }
 
-    // How much to crop on each side?
+    // How much to add to each side?
     int padding = (outputImgSize - inputImgSize) / 2;
 
     // For very small matrix sizes it might be faster to use the CPU instead of the GPU
@@ -405,6 +405,41 @@ void gpuFFT::PadVolume(float *inputVol, float * outputVol, int inputImgSize, int
 
 }
 
+
+__global__ void CropImgs(float* input, float* output, int inputImgSize, int outputImgSize, int nSlices)
+{
+    // Given the final projection images, crop out the zero padding to reduce memory size and transfer speed back to the CPU
+    // inputImgSize is the size of the CASImgs (i.e. larger)
+    // outputImgSize is the size of the images (i.e. smaller)
+
+    // Index of the output (smaller) image
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+
+    // Are we outside the bounds of the smaller input image?
+    if (i >= inputImgSize || i < 0 || j >= inputImgSize || j < 0){
+        return;
+    }
+
+    // How much zero padding to remove from each side?
+    int padding = (inputImgSize - outputImgSize) / 2;
+
+    for (int k = 0; k < nSlices; k++){
+
+        // Get the linear index of the output (smaller) image
+        int ndx_1 = i + j * outputImgSize + k * outputImgSize * outputImgSize;   
+
+        // Get the linear index of the input (larger) image
+        int ndx_2 = 
+        (i + padding) + 
+        (j + padding) * inputImgSize +
+        (k + padding) * inputImgSize *  inputImgSize;  
+
+        output[ndx_1] = input[ndx_2];
+
+    }
+}
+
 void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, int interpFactor, int extraPadding)
 {
     // Convert a CUDA array to CAS array
@@ -441,9 +476,9 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
     h_CAS_Vol = (float *) malloc(sizeof(float) * array_size);
 
     // Create temporary arrays to hold the cufftComplex array        
-    cufftComplex *h_complex_array, *d_complex_array, *d_complex_output_array;
+    cufftComplex *h_complex_array, *d_complex_array;//, *d_complex_output_array;
     cudaMalloc(&d_complex_array, sizeof(cufftComplex) * array_size);
-    cudaMalloc(&d_complex_output_array, sizeof(cufftComplex) * array_size);
+    // cudaMalloc(&d_complex_output_array, sizeof(cufftComplex) * array_size);
     h_complex_array = (cufftComplex *) malloc(sizeof(cufftComplex) * array_size);
     
     // Convert the padded volume to a cufftComplex array
@@ -465,17 +500,17 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
 
     // STEP 2
     // Apply an in place 3D FFT Shift
-    //cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, paddedVolSize, paddedVolSize);
+    cufftShift_3D_slice_kernel<<< dimGrid, dimBlock >>> (d_complex_array, paddedVolSize, paddedVolSize);
+    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_array, d_complex_output_array, paddedVolSize, paddedVolSize);
 
     // STEP 3
     // Execute the forward FFT on the 3D array
-    cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_output_array, (cufftComplex *) d_complex_output_array, CUFFT_FORWARD);
+    cufftExecC2C(forwardFFTPlan, (cufftComplex *) d_complex_array, (cufftComplex *) d_complex_array, CUFFT_FORWARD);
 
     // STEP 4
     // Apply a second in place 3D FFT Shift
-    //cufftShift_3D_slice_kernel<<< dimGrid, dimBlock>>> (d_complex_array, paddedVolSize, paddedVolSize);
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, paddedVolSize, paddedVolSize);
+    cufftShift_3D_slice_kernel<<< dimGrid, dimBlock>>> (d_complex_array, paddedVolSize, paddedVolSize);
+    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_complex_output_array, d_complex_array, paddedVolSize, paddedVolSize);
 
     // STEP 5
     // Convert the complex result of the forward FFT to a CAS img type
@@ -488,7 +523,7 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
 
     // Wait for the stream to finish copying the result back to the host
     // cudaStreamSynchronize(Stream);
-    // cudaDeviceSynchronize(); // TO DO: replace with stream sync
+    cudaDeviceSynchronize(); // TO DO: replace with stream sync
 
     // STEP 6
     // Pad the result with the additional padding
@@ -507,5 +542,57 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
 
     // Return the resulting CAS volume
     return;
+
+}
+
+void gpuFFT::CASImgsToImgs(cudaStream_t& stream, int gridSize, int blockSize, int CASImgSize, int ImgSize, float* d_CASImgs, float* d_imgs, int numImgs)
+{
+    // Convert a CAS images array to images
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    // Allocate a temporary cufftComplex array 
+    cufftComplex *d_ComplexCASImgs;
+    cudaMalloc(&d_ComplexCASImgs, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+
+    // Convert the CASImgs to complex cufft type
+    CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_ComplexCASImgs, CASImgSize, numImgs);
+
+    // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_ComplexCASImgs, CASImgSize, numImgs);
+
+    // Create a plan for taking the inverse of the CAS imgs
+    cufftHandle inverseFFTPlan;   
+    int nRows = CASImgSize;
+    int nCols = CASImgSize;
+    int batch = numImgs;            // --- Number of batched executions
+    int rank = 2;                   // --- 2D FFTs
+    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    int idist = nRows*nCols;        // --- Distance between batches
+    int odist = nRows*nCols;        // --- Distance between batches
+
+    int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    int onembed[] = {nRows, nCols}; // --- Output size with pitch
+
+    int istride = 1;                // --- Distance between two successive input/output elements
+    int ostride = 1;                // --- Distance between two successive input/output elements
+
+    cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
+    cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+
+    // Inverse FFT
+    cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_ComplexCASImgs, (cufftComplex *) d_ComplexCASImgs, CUFFT_INVERSE);
+
+    // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_ComplexCASImgs, CASImgSize, numImgs);
+
+    // Convert from the complex images to the real (resued the d_CAS_imgs GPU array)
+    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_ComplexCASImgs, d_CASImgs, CASImgSize, numImgs);            
+
+    // Run kernel to crop the projection images (to remove the zero padding)    
+    CropImgs<<< dimGrid, dimBlock, 0, stream>>>(d_CASImgs, d_imgs, CASImgSize, ImgSize, numImgs);
+
+    // CropImgs(float* input, float* output, int inputImgSize, int outputImgSize, int nSlices)
 
 }

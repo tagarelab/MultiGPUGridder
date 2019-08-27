@@ -38,8 +38,6 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     {
         return;
     }
-    // img[i + j*volSize] = 2;
-    // return;
 
     for(img_i=0;img_i<nAxes;img_i++)
     {
@@ -113,11 +111,11 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     int MaxAxesAllocated = gridder->GetMaxAxesAllocated();
     int nStreams         = gridder->GetNumStreams();
     int GPU_Device       = gridder->GetGPUDevice();
-    // int* imgSizePtr      = gridder->GetImgSize();    
+    int* ImgSizePtr      = gridder->GetImgSize();    
     int* volSizePtr      = gridder->GetVolumeSize();
     float maskRadius     = gridder->GetMaskRadius();
 
-    // int imgSize  = imgSizePtr[0]; // The volume must be a square for now so just use the first dimension
+    int ImgSize  = ImgSizePtr[0]; // The volume must be a square for now so just use the first dimension
     int volSize  = volSizePtr[0]; // The volume must be a square for now so just use the first dimension
 
     int CASImgSize  = gridder->GetCASVolumeSize(); // The volume must be a square for now so just use the first dimension
@@ -141,6 +139,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     float * d_CASImgs   = gridder->GetCASImgsPtr_Device();
     float * d_CoordAxes = gridder->GetCoordAxesPtr_Device();
     float * d_KB_Table  = gridder->GetKBTablePtr_Device();
+    float * d_Imgs      = gridder->GetImgsPtr_Device();
 
     // Pointers to pinned CPU memory
     float * coordAxes_CPU_Pinned = gridder->GetCoordAxesPtr_CPU();
@@ -219,7 +218,8 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
 			int coord_Axes_CPU_streamBytes = numAxesPerStream * 9 * sizeof(float);
 
 			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
-			int gpuCASImgs_Offset = numAxesGPU_Batch * CASImgSize * CASImgSize;
+            int gpuCASImgs_Offset = numAxesGPU_Batch * CASImgSize * CASImgSize;
+            int gpuImgs_Offset = numAxesGPU_Batch * ImgSize * ImgSize;
 			int gpuCoordAxes_Stream_Offset = numAxesGPU_Batch * 9;
 
             Log2("CoordAxes_CPU_Offset", CoordAxes_CPU_Offset);
@@ -253,7 +253,12 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
 			// 	d_CASVolume, CASVolSize, &d_CASImgs[gpuCASImgs_Offset],
 			// 	CASImgSize, &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream,
 			// 	maskRadius, d_KB_Table, 501, 2);
-
+            
+            // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
+            gpuFFT::CASImgsToImgs(
+                streams[i], gridSize, blockSize, CASImgSize,
+                ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset],
+                numAxesPerStream);
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
 			// imgSize is the size of the zero padded projection images

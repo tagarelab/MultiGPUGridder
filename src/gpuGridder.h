@@ -74,6 +74,9 @@ public:
     // Get the device CAS images pointer
     float *GetCASImgsPtr_Device() { return this->d_CASImgs; }
 
+    // Get the device images pointer
+    float *GetImgsPtr_Device() { return this->d_Imgs; }
+    
     // Get the device coordinate axes pointer
     float *GetCoordAxesPtr_Device() { return this->d_CoordAxes; }
 
@@ -98,6 +101,9 @@ protected:
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
     float *d_CASImgs;
+
+    // Pointer to the images array on the device (i.e. the GPU)
+    float *d_Imgs;
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
     float *d_CoordAxes;
@@ -132,12 +138,10 @@ private:
     void KB_Table_To_GPU();
 
     // Allocate GPU arrays
-    float * AllocateGPUArray(int GPU_Device, int ArraySize);
+    float *AllocateGPUArray(int GPU_Device, int ArraySize);
 
     // // Free all of the allocated memory
     // void FreeMemory();
-
-
 };
 
 #endif

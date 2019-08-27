@@ -138,7 +138,10 @@ void gpuGridder::InitilizeGPUArrays()
     // Allocate the CAS images
     this->d_CASImgs = AllocateGPUArray(this->GPU_Device, this->CASimgSize[0] * this->CASimgSize[1] * this->CASimgSize[2]);
     // cudaMemset(this->d_CASImgs, 0,  sizeof(float) * (this->CASimgSize[0] * this->CASimgSize[1] * this->CASimgSize[2]));
- 
+
+    // Allocate the images
+    this->d_Imgs = AllocateGPUArray(this->GPU_Device, this->imgSize[0] * this->imgSize[1] * this->imgSize[2]);
+
     // Allocate the coordinate axes array
     this->d_CoordAxes = AllocateGPUArray(this->GPU_Device, this->numCoordAxes * 9); // 9 float elements per cordinate axes
 
@@ -208,7 +211,6 @@ void gpuGridder::CreateCUDAStreams()
         {
             cudaStreamCreate(&streams[i]);
         }
-
     }
     else
     {
@@ -278,9 +280,6 @@ void gpuGridder::ForwardProject()
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
-    Log("this->CASimgSize[0]");
-    Log(this->CASimgSize[0]);
-
     this->blockSize = this->CASimgSize[0] / gridSize;
 
     // Run the forward projection CUDA kernel
