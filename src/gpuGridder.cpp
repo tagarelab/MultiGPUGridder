@@ -244,7 +244,7 @@ void gpuGridder::ForwardProject()
     if (newVolumeFlag == 1)
     {
         // (1): Create the CUDA streams
-        this->nStreams = 4;
+        this->nStreams = 1;
 
         CreateCUDAStreams();
 

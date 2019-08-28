@@ -95,6 +95,9 @@ toc
 
 CASImages = gridder.Get('CASImages');
 
+% 
+% Images = gridder.Get('Images');
+
 % max(gridder.CASVolume(:))
 % max(gridder.CASImages(:))
 % max(CASImages(:))
@@ -104,24 +107,46 @@ CASImages = gridder.Get('CASImages');
  toc
 % max(CASVolume(:)) / max(CASVol_GT(:)) 
 %%
+
+
+GT_Imgs = load("gpuGridderImg.mat");
+GT_Imgs = GT_Imgs.gpuGridderImg;
+
+max(gridder.Images(:)) / max(GT_Imgs(:))
+
+
+
 for slice = 1:30
-%     slice = 60
-    subplot(1,5,1)
+    
+%     
+%     slice = 1
+    subplot(3,3,1)
     imagesc(gridder.CASVolume(:,:,slice));
-    subplot(1,5,2)
+    subplot(3,3,2)
     imagesc(CASVol_GT(:,:,slice));
-    subplot(1,5,3)
+    subplot(3,3,3)
     imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
     colorbar
-    subplot(1,5,4)
+    subplot(3,3,4)
     imagesc(gridder.CASImages(:,:,slice))
     axis square
-    subplot(1,5,5)
+    h(1) = subplot(3,3,7);
 
-    imagesc(real(fftshift2(fft2(fftshift2(gridder.Images(:,:,slice))))))
+%     imagesc(real(fftshift2(fft2(fftshift2(gridder.Images(:,:,slice))))))
+    imagesc(gridder.Images(:,:,slice))
     axis square
-    colormap gray
+    colormap jet
+
+    h(2) = subplot(3,3,8);
+    imagesc(gridder.Images(:,:,slice))
+    axis square
+    colormap jet
     
+    subplot(3,3,9)
+    imagesc(gridder.Images(:,:,slice) - GT_Imgs(:,:,slice))
+    axis square
+    colormap jet
+
     pause(0.1)
 end
 

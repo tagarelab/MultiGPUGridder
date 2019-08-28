@@ -275,6 +275,8 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
                 ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset], &d_CASImgsComplex[gpuCASImgs_Offset],
                 numAxesPerStream);
 
+                cudaDeviceSynchronize();
+
                 // cudaMemcpyAsync(
                 //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
                 //      &d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
@@ -297,6 +299,8 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             Log2("gpuImgs_streamBytes", gpuImgs_streamBytes);
 
             Log2("cudaMemcpyAsync", i);
+                
+            cudaDeviceSynchronize();
 
 			// Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
 			cudaMemcpyAsync(

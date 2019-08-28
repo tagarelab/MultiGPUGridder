@@ -47,7 +47,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 case 'CASVolume'
                     [varargout{1:nargout}] = mexGetVariables('CASVolume', this.objectHandle);
 %                 case 'Images'
-%                     [varargout{1:nargout}] = mexGetVariables('GetImages', this.objectHandle);
+%                     [varargout{1:nargout}] = mexGetVariables('Images', this.objectHandle);
                 case 'CASImages'
                     [varargout{1:nargout}] = mexGetVariables('CASImages', this.objectHandle);
                 otherwise
