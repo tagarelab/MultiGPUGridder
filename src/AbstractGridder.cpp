@@ -10,7 +10,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->extraPadding = 3;
     this->ErrorFlag = false;
     this->interpFactor = 2;
-    this->MaxAxesAllocated = 1000;
+    this->MaxAxesAllocated = 10000;
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
 
     // Kaiser bessel window function array of predefined values

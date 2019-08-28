@@ -24,7 +24,7 @@ disp("Resetting devices...")
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 20;
+n1_axes = 200;
 n2_axes = 20;
 
 load mri;
@@ -111,8 +111,23 @@ CASImages = gridder.Get('CASImages');
  toc
 % max(CASVolume(:)) / max(CASVol_GT(:)) 
 %%
-% close all
+close all
 
+easyMontage(gridder.Images, 1)
+colormap jet
+
+for i = 1:size(gridder.Images,3)
+    x = gridder.Images(:,:,i);
+    
+    if max(x(:)) == 0
+        disp(i)
+        break
+    end
+end
+
+return;
+
+%%
 
 GT_Imgs = load("gpuGridderImg.mat");
 GT_Imgs = GT_Imgs.gpuGridderImg;
@@ -122,7 +137,7 @@ max(gridder.Images(:)) / max(GT_Imgs(:))
 GT_CASImgs = load("gpuGridderCASImgs.mat");
 GT_CASImgs = GT_CASImgs.gpuGridderCASImgs;
 
-for slice = 1:10
+for slice = 1
     
 %     
 %     slice = 1

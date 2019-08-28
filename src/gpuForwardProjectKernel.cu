@@ -148,17 +148,17 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     float * Imgs_CPU_Pinned      = gridder->GetImgsPtr_CPU();
 
     // CUDA streams
-    cudaStream_t *streams = gridder->GetStreamsPtr();
+    // cudaStream_t *streams = gridder->GetStreamsPtr();
     cudaSetDevice(GPU_Device);     
-    // cudaStream_t * streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * nStreams);
+    cudaStream_t * streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * nStreams);
     
-    // for (int i = 0; i < nStreams; i++) // Loop through the streams
-    // {             
-    //     cudaStreamCreate(&streams[i]);
-    // }
+    for (int i = 0; i < nStreams; i++) // Loop through the streams
+    {             
+        cudaStreamCreate(&streams[i]);
+    }
 
     // TEST
-    cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize[0]*CASImgSize[1]*CASImgSize[2]) ;
+    // cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize[0]*CASImgSize[1]*CASImgSize[2]) ;
     // END TEST
 
 
@@ -270,9 +270,9 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             Log2("cudaMemcpyAsync", i);
 
 			// Lastly, copy the resulting projection images back to the host pinned memory (CPU)
-			cudaMemcpyAsync(
-				&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-			 	&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+			// cudaMemcpyAsync(
+			// 	&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+			//  	&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
 
             cudaDeviceSynchronize();
 
@@ -294,7 +294,10 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
                 ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset], &d_CASImgsComplex[gpuCASImgs_Offset],
                 numAxesPerStream);
 
-
+                cudaMemcpyAsync(
+                    &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+                     &d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+    
                 cudaDeviceSynchronize();
 
                 // cudaMemcpyAsync(
@@ -342,7 +345,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             // CASImgs_CPU_Pinned[0] = 14;
             // END TEST
         
-            return; //debug
+            // return; //debug
 
         }
 
