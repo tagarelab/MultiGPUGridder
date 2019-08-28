@@ -243,9 +243,8 @@ __global__ void CASImgsToComplexImgs(float* CASimgs, cufftComplex* imgs, int img
     }
     
     // Each thread will do all the slices for position X and Y
-    for (int k=0; k < nSlices; k++)  {        
+    for (int k = 0; k < nSlices; k++)  {        
 
-        // CASimgs is the same dimensions as imgs
         int ndx_1 = i + j * imgSize + k * imgSize * imgSize;
         
         // Skip the first row and first column
@@ -260,7 +259,6 @@ __global__ void CASImgsToComplexImgs(float* CASimgs, cufftComplex* imgs, int img
             
         } else 
         {
-
             // Offset to skip the first row then subtract from the end of the matrix and add the offset where the particular image starts in CASimgs
             int ndx_2 = imgSize + imgSize * imgSize - (i + j * imgSize) + k * imgSize * imgSize;
 
@@ -405,7 +403,6 @@ void gpuFFT::PadVolume(float *inputVol, float * outputVol, int inputImgSize, int
 
 }
 
-
 __global__ void CropImgs(float* input, float* output, int inputImgSize, int outputImgSize, int nSlices)
 {
     // Given the final projection images, crop out the zero padding to reduce memory size and transfer speed back to the CPU
@@ -416,8 +413,8 @@ __global__ void CropImgs(float* input, float* output, int inputImgSize, int outp
     int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
 
-    // Are we outside the bounds of the smaller input image?
-    if (i >= inputImgSize || i < 0 || j >= inputImgSize || j < 0){
+    // Are we outside the bounds of the smaller output image?
+    if (i >= outputImgSize || i < 0 || j >= outputImgSize || j < 0){
         return;
     }
 
@@ -545,22 +542,27 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
 
 }
 
-void gpuFFT::CASImgsToImgs(cudaStream_t& stream, int gridSize, int blockSize, int CASImgSize, int ImgSize, float* d_CASImgs, float* d_imgs, int numImgs)
+void gpuFFT::CASImgsToImgs(
+    cudaStream_t& stream, int gridSize, int blockSize, int CASImgSize, 
+    int ImgSize, float* d_CASImgs, float* d_imgs, cufftComplex* d_CASImgsComplex, int numImgs)
 {
     // Convert a CAS images array to images
 
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
 
+    // cudaMemset(d_CASImgsComplex, 0, sizeof(cufftComplex)*CASImgSize*CASImgSize*numImgs) ;
+    // cudaMemset(d_imgs, 0, sizeof(float)*ImgSize*ImgSize*numImgs) ;
+
     // Allocate a temporary cufftComplex array 
-    cufftComplex *d_ComplexCASImgs;
-    cudaMalloc(&d_ComplexCASImgs, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+    // cufftComplex *d_ComplexCASImgs;
+    // cudaMalloc(&d_ComplexCASImgs, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
 
     // Convert the CASImgs to complex cufft type
-    CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_ComplexCASImgs, CASImgSize, numImgs);
+    CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs);
 
-    // Run FFTShift on gpuComplexImgs_Vector[i] (can't reuse the same input as the output for the FFT shift kernel)
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_ComplexCASImgs, CASImgSize, numImgs);
+    // Run FFTShift on d_CASImgsComplex
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_CASImgsComplex, CASImgSize, numImgs);
 
     // Create a plan for taking the inverse of the CAS imgs
     cufftHandle inverseFFTPlan;   
@@ -580,18 +582,24 @@ void gpuFFT::CASImgsToImgs(cudaStream_t& stream, int gridSize, int blockSize, in
 
     cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
     cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
-
+    
+    cudaDeviceSynchronize();
     // Inverse FFT
-    cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_ComplexCASImgs, (cufftComplex *) d_ComplexCASImgs, CUFFT_INVERSE);
+    cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex, (cufftComplex *) d_CASImgsComplex, CUFFT_INVERSE);
+    cudaDeviceSynchronize();
 
-    // FFTShift again (can't reuse the same input as the output for the FFT shift kernel)
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_ComplexCASImgs, CASImgSize, numImgs);
+    // FFTShift again on d_CASImgsComplex
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex, CASImgSize, numImgs);
 
-    // Convert from the complex images to the real (resued the d_CAS_imgs GPU array)
-    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_ComplexCASImgs, d_CASImgs, CASImgSize, numImgs);            
+    // Convert from the complex images to the real (resue the d_CASImgs GPU array)
 
-    // Run kernel to crop the projection images (to remove the zero padding)    
-    CropImgs<<< dimGrid, dimBlock, 0, stream>>>(d_CASImgs, d_imgs, CASImgSize, ImgSize, numImgs);
+    // cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize*CASImgSize*numImgs) ;
+    cudaDeviceSynchronize();
+    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgsComplex, d_CASImgs, CASImgSize, numImgs);            
+    cudaDeviceSynchronize();
+
+    // Run kernel to crop the projection images (to remove the zero padding)   
+    CropImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_imgs, CASImgSize, ImgSize, numImgs);
 
     // CropImgs(float* input, float* output, int inputImgSize, int outputImgSize, int nSlices)
 

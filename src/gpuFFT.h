@@ -24,7 +24,7 @@ public:
 
     static void VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, int interpFactor, int extraPadding);
 
-    static void CASImgsToImgs(cudaStream_t& stream, int gridSize, int blockSize, int CASImgSize, int ImgSize, float* d_CASImgs, float* d_imgs, int numImgs);
+    static void CASImgsToImgs(cudaStream_t& stream, int gridSize, int blockSize, int CASImgSize, int ImgSize, float* d_CASImgs, float* d_imgs, cufftComplex* d_CASImgsComplex, int numImgs);
 
 };
 

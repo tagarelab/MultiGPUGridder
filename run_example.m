@@ -48,7 +48,7 @@ gridder.VolumeSize = int32(VolumeSize);
 gridder.Volume = MRI_volume; %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
 gridder.CASVolumeSize = repmat(gridder.VolumeSize * gridder.interpFactor + gridder.extraPadding * 2, 1, 3)
 gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
-gridder.CASImages = zeros([gridder.CASVolumeSize(1), gridder.CASVolumeSize(1), gridder.NumAxes], 'single');
+gridder.CASImages = zeros([VolumeSize*interpFactor, VolumeSize*interpFactor, gridder.NumAxes], 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 
@@ -75,9 +75,9 @@ tic
 gridder.ForwardProject()
 toc
 
-[origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
-
-imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+% [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+% 
+% imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
 
 
 
@@ -93,7 +93,7 @@ imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []);
 
 % CASVolume = gridder.Get('CASVolume');
 
-% CASImages = gridder.Get('CASImages');
+CASImages = gridder.Get('CASImages');
 
 % max(gridder.CASVolume(:))
 % max(gridder.CASImages(:))
@@ -115,9 +115,10 @@ for slice = 1:30
     colorbar
     subplot(1,5,4)
     imagesc(gridder.CASImages(:,:,slice))
-
+    axis square
     subplot(1,5,5)
-    imagesc(real(imgs(:,:,slice)))
+
+    imagesc(real(fftshift2(fft2(fftshift2(gridder.Images(:,:,slice))))))
     axis square
     colormap gray
     

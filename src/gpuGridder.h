@@ -74,9 +74,12 @@ public:
     // Get the device CAS images pointer
     float *GetCASImgsPtr_Device() { return this->d_CASImgs; }
 
+    // Get the device complex CAS images pointer
+    cufftComplex *GetComplexCASImgsPtr_Device() { return this->d_CASImgsComplex; }
+
     // Get the device images pointer
     float *GetImgsPtr_Device() { return this->d_Imgs; }
-    
+
     // Get the device coordinate axes pointer
     float *GetCoordAxesPtr_Device() { return this->d_CoordAxes; }
 
@@ -110,6 +113,9 @@ protected:
 
     // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
     float *d_KB_Table;
+
+    // Pointer to the complex CAS images on the device (i.e. the GPU)
+    cufftComplex *d_CASImgsComplex;
 
     // Kernel launching parameters
     int gridSize;

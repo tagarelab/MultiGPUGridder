@@ -81,13 +81,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
 
         // Get the matrix size of the GPU volume
-        int CASVolSize = gpuGridderObj->GetCASVolumeSize();
-        int nAxes = gpuGridderObj->GetNumAxes();
+        int* CASImagesSize = gpuGridderObj->GetCASImagesSize();
+        // int nAxes = gpuGridderObj->GetNumAxes();
 
         mwSize dims[3];
-        dims[0] = CASVolSize;
-        dims[1] = CASVolSize;
-        dims[2] = nAxes;
+        dims[0] = CASImagesSize[0];
+        dims[1] = CASImagesSize[1];
+        dims[2] = CASImagesSize[2];
 
         std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
       

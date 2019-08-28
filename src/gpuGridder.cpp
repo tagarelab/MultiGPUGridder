@@ -29,6 +29,7 @@ void gpuGridder::VolumeToCASVolume()
     CASimgSize[2] = this->numCoordAxes;
 
     std::cout << "this->CASVolumeSize: " << this->CASVolumeSize << '\n';
+    std::cout << "this->CASimgSize: " << CASimgSize[0] << '\n';
     std::cout << "this->VolumeSize[0]: " << this->VolumeSize[0] << '\n';
     std::cout << "this->interpFactor: " << this->interpFactor << '\n';
     std::cout << "this->extraPadding: " << this->extraPadding << '\n';
@@ -140,7 +141,11 @@ void gpuGridder::InitilizeGPUArrays()
     // cudaMemset(this->d_CASImgs, 0,  sizeof(float) * (this->CASimgSize[0] * this->CASimgSize[1] * this->CASimgSize[2]));
 
     // Allocate the images
-    this->d_Imgs = AllocateGPUArray(this->GPU_Device, this->imgSize[0] * this->imgSize[1] * this->imgSize[2]);
+//    this->d_Imgs = AllocateGPUArray(this->GPU_Device, this->imgSize[0] * this->imgSize[1] * this->imgSize[2]);
+    cudaMalloc(&this->d_Imgs, sizeof(float) * this->imgSize[0] * this->imgSize[1] * this->imgSize[2]);
+
+    // Allocate the complex CAS images
+    cudaMalloc(&this->d_CASImgsComplex, sizeof(cufftComplex) * this->CASimgSize[0] * this->CASimgSize[1] * this->CASimgSize[2]);
 
     // Allocate the coordinate axes array
     this->d_CoordAxes = AllocateGPUArray(this->GPU_Device, this->numCoordAxes * 9); // 9 float elements per cordinate axes
@@ -280,7 +285,7 @@ void gpuGridder::ForwardProject()
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
-    this->blockSize = this->CASimgSize[0] / gridSize;
+    this->blockSize = ceil(this->CASimgSize[0] / gridSize);
 
     // Run the forward projection CUDA kernel
     Log("gpuForwardProjectLaunch()");

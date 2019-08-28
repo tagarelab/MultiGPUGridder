@@ -118,7 +118,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     int ImgSize  = ImgSizePtr[0]; // The volume must be a square for now so just use the first dimension
     int volSize  = volSizePtr[0]; // The volume must be a square for now so just use the first dimension
 
-    int CASImgSize  = gridder->GetCASVolumeSize(); // The volume must be a square for now so just use the first dimension
+    int* CASImgSize  = gridder->GetCASImagesSize(); // The volume must be a square for now so just use the first dimension
     int CASVolSize  = gridder->GetCASVolumeSize(); // The volume must be a square for now so just use the first dimension
 
     Log2("gridSize", gridSize);
@@ -129,9 +129,9 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     Log2("nStreams", nStreams);
     Log2("GPU_Device", GPU_Device);
     Log2("maskRadius", maskRadius);
-    // Log2("imgSize", imgSize);
+    Log2("ImgSize", ImgSize);
     Log2("volSize", volSize);
-    Log2("CASImgSize", CASImgSize);
+    Log2("CASImgSize[0]", CASImgSize[0]);
     Log2("CASVolSize", CASVolSize);
 
     // Pointers to memory already allocated on the GPU (i.e. the device)
@@ -140,10 +140,12 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     float * d_CoordAxes = gridder->GetCoordAxesPtr_Device();
     float * d_KB_Table  = gridder->GetKBTablePtr_Device();
     float * d_Imgs      = gridder->GetImgsPtr_Device();
+    cufftComplex * d_CASImgsComplex = gridder->GetComplexCASImgsPtr_Device();
 
     // Pointers to pinned CPU memory
     float * coordAxes_CPU_Pinned = gridder->GetCoordAxesPtr_CPU();
     float * CASImgs_CPU_Pinned   = gridder->GetCASImgsPtr_CPU();
+    float * Imgs_CPU_Pinned      = gridder->GetImgsPtr_CPU();
 
     // CUDA streams
     cudaStream_t *streams = gridder->GetStreamsPtr();
@@ -218,8 +220,8 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
 			int coord_Axes_CPU_streamBytes = numAxesPerStream * 9 * sizeof(float);
 
 			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
-            int gpuCASImgs_Offset = numAxesGPU_Batch * CASImgSize * CASImgSize;
-            int gpuImgs_Offset = numAxesGPU_Batch * ImgSize * ImgSize;
+            int gpuCASImgs_Offset          = numAxesGPU_Batch * CASImgSize[0] * CASImgSize[1];
+            int gpuImgs_Offset             = numAxesGPU_Batch * ImgSize * ImgSize;
 			int gpuCoordAxes_Stream_Offset = numAxesGPU_Batch * 9;
 
             Log2("CoordAxes_CPU_Offset", CoordAxes_CPU_Offset);
@@ -233,38 +235,20 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
                 &d_CoordAxes[gpuCoordAxes_Stream_Offset], 
                 &coordAxes_CPU_Pinned[CoordAxes_CPU_Offset],
                 coord_Axes_CPU_streamBytes,
-                cudaMemcpyHostToDevice, streams[i]);
-                
-            // cudaMemcpy(
-            //     &d_CoordAxes[gpuCoordAxes_Stream_Offset], 
-            //     &coordAxes_CPU_Pinned[CoordAxes_CPU_Offset],
-            //     coord_Axes_CPU_streamBytes,
-            //     cudaMemcpyHostToDevice);
+                cudaMemcpyHostToDevice, streams[i]);                
             
             Log2("gpuForwardProjectKernel", i);
             // Run the forward projection kernel     
 			gpuForwardProjectKernel <<< dimGrid, dimBlock, 0, streams[i] >> > (
 				d_CASVolume, CASVolSize, &d_CASImgs[gpuCASImgs_Offset],
-				CASImgSize, &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream,
+				CASImgSize[0], &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream,
 				maskRadius, d_KB_Table, 501, 2);
-
-            // Run the forward projection kernel     
-			// gpuForwardProjectKernel <<< dimGrid, dimBlock >> > (
-			// 	d_CASVolume, CASVolSize, &d_CASImgs[gpuCASImgs_Offset],
-			// 	CASImgSize, &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream,
-			// 	maskRadius, d_KB_Table, 501, 2);
-            
-            // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
-            gpuFFT::CASImgsToImgs(
-                streams[i], gridSize, blockSize, CASImgSize,
-                ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset],
-                numAxesPerStream);
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
 			// imgSize is the size of the zero padded projection images
 			unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
-			CASImgs_CPU_Offset[0] = (unsigned long long)(CASImgSize);
-			CASImgs_CPU_Offset[1] = (unsigned long long)(CASImgSize);
+			CASImgs_CPU_Offset[0] = (unsigned long long)(CASImgSize[0]);
+			CASImgs_CPU_Offset[1] = (unsigned long long)(CASImgSize[1]);
 			CASImgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
             
             Log2("CASImgs_CPU_Offset[0]", CASImgs_CPU_Offset[0]);
@@ -272,20 +256,52 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             Log2("CASImgs_CPU_Offset[2]", CASImgs_CPU_Offset[2]);
 
 			// How many bytes are the output images?
-			int gpuCASImgs_streamBytes = CASImgSize * CASImgSize * numAxesPerStream * sizeof(float);
+			int gpuCASImgs_streamBytes = CASImgSize[0] * CASImgSize[1] * numAxesPerStream * sizeof(float);
             
             Log2("gpuCASImgs_streamBytes", gpuCASImgs_streamBytes);
 
-            // return;
             Log2("cudaMemcpyAsync", i);
-			// Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
+
+			// Lastly, copy the resulting projection images back to the host pinned memory (CPU)
 			cudaMemcpyAsync(
 				&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-				&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
-            // cudaMemcpy(
-			// 	&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-			// 	&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost);
+			 	&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+
+            cudaDeviceSynchronize();
+
+            // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
+            gpuFFT::CASImgsToImgs(
+                streams[i], gridSize, blockSize, CASImgSize[0],
+                ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset], &d_CASImgsComplex[gpuCASImgs_Offset],
+                numAxesPerStream);
+
+                // cudaMemcpyAsync(
+                //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+                //      &d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+    
+
+            // Have to use unsigned long long since the array may be longer than the max value int32 can represent
+			// imgSize is the size of the zero padded projection images
+			unsigned long long *Imgs_CPU_Offset = new  unsigned long long[3];
+			Imgs_CPU_Offset[0] = (unsigned long long)(ImgSize);
+			Imgs_CPU_Offset[1] = (unsigned long long)(ImgSize);
+			Imgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
             
+            Log2("Imgs_CPU_Offset[0]", Imgs_CPU_Offset[0]);
+            Log2("Imgs_CPU_Offset[1]", Imgs_CPU_Offset[1]);
+            Log2("Imgs_CPU_Offset[2]", Imgs_CPU_Offset[2]);
+
+			// How many bytes are the output images?
+			int gpuImgs_streamBytes = ImgSize * ImgSize * numAxesPerStream * sizeof(float);
+            
+            Log2("gpuImgs_streamBytes", gpuImgs_streamBytes);
+
+            Log2("cudaMemcpyAsync", i);
+
+			// Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
+			cudaMemcpyAsync(
+				&Imgs_CPU_Pinned[Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2]],
+                &d_Imgs[gpuImgs_Offset], gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
                 
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + numAxesPerStream;    
@@ -294,13 +310,12 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             // Update the number of axes which have been assigned to this GPU during the current batch
             numAxesGPU_Batch = numAxesGPU_Batch + numAxesPerStream;
 
-
             // TEST
             // CASImgs_CPU_Pinned[0] = 14;
             // END TEST
         
-            // return; //debug
-            // return; // debug
+            return; //debug
+
         }
 
 		// Increment the batch number

@@ -114,6 +114,9 @@ public:
     // Return the CAS volume size
     int GetCASVolumeSize() { return this->CASVolumeSize; }
 
+    // Return the CAS images size
+    int* GetCASImagesSize() { return this->CASimgSize; }
+
     // Return the pointer to the CAS volume
     float *GetCASVolume() { return this->CASVolume; }
 
@@ -173,4 +176,7 @@ public:
 
     // Get the pointer to the CAS images array on the CPU
     float *GetCASImgsPtr_CPU() { return this->CASimgs; }
+
+    // Get the pointer to the images array on the CPU
+    float *GetImgsPtr_CPU() { return this->imgs; }
 };
