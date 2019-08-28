@@ -36,21 +36,25 @@ MRI_volume = single(img);
 % Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
+% coordAxes  = repmat(coordAxes, [1 n1_axes*n2_axes]);
 coordAxes = coordAxes(:);
 nCoordAxes = length(coordAxes)/9;
 
 
+KB_Vector = load("KB_Vector.mat");
+KBTable = KB_Vector.KB_Vector;
 
 gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(10), single(2));
 gridder.coordAxes = single(coordAxes);
 gridder.NumAxes = int32(nCoordAxes);
 gridder.VolumeSize = int32(VolumeSize);
-gridder.Volume = MRI_volume; %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
+gridder.Volume = single(MRI_volume); %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
 gridder.CASVolumeSize = repmat(gridder.VolumeSize * gridder.interpFactor + gridder.extraPadding * 2, 1, 3)
 gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
 gridder.CASImages = zeros([VolumeSize*interpFactor, VolumeSize*interpFactor, gridder.NumAxes], 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
+gridder.KBTable = single(KBTable);
 
 gridder.Set()
 
@@ -107,6 +111,7 @@ CASImages = gridder.Get('CASImages');
  toc
 % max(CASVolume(:)) / max(CASVol_GT(:)) 
 %%
+% close all
 
 
 GT_Imgs = load("gpuGridderImg.mat");
@@ -114,9 +119,10 @@ GT_Imgs = GT_Imgs.gpuGridderImg;
 
 max(gridder.Images(:)) / max(GT_Imgs(:))
 
+GT_CASImgs = load("gpuGridderCASImgs.mat");
+GT_CASImgs = GT_CASImgs.gpuGridderCASImgs;
 
-
-for slice = 1:30
+for slice = 1:10
     
 %     
 %     slice = 1
@@ -127,9 +133,41 @@ for slice = 1:30
     subplot(3,3,3)
     imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
     colorbar
+%     subplot(3,3,4)
+%     imagesc(gridder.CASImages(:,:,slice))
+%     axis square
+%     
+%     subplot(3,3,5)
+%     imagesc(GT_CASImgs(:,:,slice))
+%     axis square
+% 
+%     subplot(3,3,6)
+%     imagesc(gridder.CASImages(:,:,slice) - GT_CASImgs(:,:,slice))
+%     axis square
+%     colorbar
+
     subplot(3,3,4)
+%     imagesc(imgsFromCASImgs(gridder.CASImages(:,:,slice), interpBox, fftinfo))
     imagesc(gridder.CASImages(:,:,slice))
+    
     axis square
+    
+    subplot(3,3,5)
+    imagesc(GT_CASImgs(:,:,slice))
+    axis square
+
+    subplot(3,3,6)
+    imagesc(gridder.CASImages(:,:,slice) - GT_CASImgs(:,:,slice))
+    axis square
+    colorbar
+    
+    
+    
+    
+    
+    
+    
+    
     h(1) = subplot(3,3,7);
 
 %     imagesc(real(fftshift2(fft2(fftshift2(gridder.Images(:,:,slice))))))
@@ -138,15 +176,17 @@ for slice = 1:30
     colormap jet
 
     h(2) = subplot(3,3,8);
-    imagesc(gridder.Images(:,:,slice))
+    imagesc(GT_Imgs(:,:,slice))
     axis square
     colormap jet
     
-    subplot(3,3,9)
+    h(3) = subplot(3,3,9);
     imagesc(gridder.Images(:,:,slice) - GT_Imgs(:,:,slice))
     axis square
     colormap jet
-
+    colorbar
+    linkaxes(h, 'xy')
+    zoom on
     pause(0.1)
 end
 

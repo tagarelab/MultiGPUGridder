@@ -44,6 +44,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]));
 
+        float * coordAxesTest = (float *)mxGetData(prhs[2]);
+
+        for (int i= 0; i<10; i++)
+        {
+            std::cout << "coordAxesTest[i] " << coordAxesTest[i] << '\n';
+        }
+
         // Set the number of coordinate axes
         gpuGridderObj->SetNumAxes((int)mxGetScalar(prhs[3]));
     }
@@ -90,6 +97,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // Log(Number_GPUs);
     
         gpuGridderObj->SetGPU(0);
+    }
+
+
+    // Set the Kaiser Bessel lookup table
+    if (!strcmp("SetKBTable", cmd))
+    {
+        // KB Lookup table; Length of the table
+        gpuGridderObj->SetKerBesselVector((float *)mxGetData(prhs[2]), (int)mxGetScalar(prhs[3]));
     }
 
     

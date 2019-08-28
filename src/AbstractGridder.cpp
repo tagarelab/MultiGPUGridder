@@ -74,6 +74,8 @@ void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int kerSize)
     // Set the keiser bessel vector
     this->kerSize = kerSize;
 
+    this->ker_bessel_Vector = new float[kerSize];
+
     for (int i = 0; i < kerSize; i++)
     {
         this->ker_bessel_Vector[i] = ker_bessel_Vector[i];
@@ -155,4 +157,10 @@ void AbstractGridder::SetImages(float *imgs)
 void AbstractGridder::SetCASImages(float *CASimgs)
 {
     this->CASimgs = CASimgs;
+}
+
+void AbstractGridder::SetCoordAxes(float *coordAxes)
+{
+    // Set the coordinate axes pointer
+    this->coordAxes = coordAxes;
 }

@@ -157,6 +157,9 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     //     cudaStreamCreate(&streams[i]);
     // }
 
+    // TEST
+    cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize[0]*CASImgSize[1]*CASImgSize[2]) ;
+    // END TEST
 
 
     // Set the current GPU device to run the kernel
@@ -212,8 +215,6 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             Log2("processed_nAxes", processed_nAxes);
             Log2("numAxesPerStream", numAxesPerStream);
             Log2("numAxesGPU_Batch", numAxesGPU_Batch);
-
-            // return;
 						
 			// Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
 			int CoordAxes_CPU_Offset = processed_nAxes * 9;  // Each axes has 9 elements (X, Y, Z)
@@ -228,6 +229,12 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             Log2("coord_Axes_CPU_streamBytes", coord_Axes_CPU_streamBytes);
             Log2("gpuCASImgs_Offset", gpuCASImgs_Offset);
             Log2("gpuCoordAxes_Stream_Offset", gpuCoordAxes_Stream_Offset);
+
+            for (int j=0; j<9; j++)
+            {
+                std::cout << "coordAxes_CPU_Pinned[CoordAxes_CPU_Offset][j]: " << coordAxes_CPU_Pinned[CoordAxes_CPU_Offset+j] << '\n';
+            }
+
 
             Log2("cudaMemcpyAsync", i);
         	// Copy the section of gpuCoordAxes which this stream will process on the current GPU
@@ -270,10 +277,23 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             cudaDeviceSynchronize();
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
+            // gpuFFT::CASImgsToImgs(
+            //     streams[i], gridSize, blockSize, CASImgSize[0],
+            //     ImgSize, d_CASImgs, d_Imgs, &d_CASImgsComplex[0],
+            //     numAxesPerStream);
+
+            cudaDeviceSynchronize();
+
+            // cudaMemcpyAsync(
+            //     CASImgs_CPU_Pinned,
+            //         d_CASImgs, gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+
+                     
             gpuFFT::CASImgsToImgs(
                 streams[i], gridSize, blockSize, CASImgSize[0],
                 ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset], &d_CASImgsComplex[gpuCASImgs_Offset],
                 numAxesPerStream);
+
 
                 cudaDeviceSynchronize();
 
@@ -306,7 +326,11 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
 			cudaMemcpyAsync(
 				&Imgs_CPU_Pinned[Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2]],
                 &d_Imgs[gpuImgs_Offset], gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
-                
+            
+            // cudaMemcpyAsync(
+			// 	Imgs_CPU_Pinned,
+            //     d_Imgs, gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + numAxesPerStream;    
             cudaDeviceSynchronize();
