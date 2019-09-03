@@ -16,7 +16,6 @@ addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
 
-
 disp("Resetting devices...")
 % for i = 1:4
     reset(gpuDevice());
@@ -31,23 +30,21 @@ load mri;
 img = squeeze(D);
 img = imresize3(img,[VolumeSize, VolumeSize, VolumeSize]);
 MRI_volume = single(img);
-MRI_volume = MRI_volume * 0;
-MRI_volume = MRI_volume + 1;
 % easyMontage(vol,1);
 
 % Define the projection directions
 coordAxes=single([1 0 0 0 1 0 0 0 1]');
 coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 % coordAxes  = repmat(coordAxes, [1 n1_axes*n2_axes]);
-coordAxes = coordAxes(:);
-nCoordAxes = length(coordAxes)/9;
+
+nCoordAxes = length(coordAxes(:))/9;
 
 
 KB_Vector = load("KB_Vector.mat");
 KBTable = KB_Vector.KB_Vector;
 
-gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(10), single(2));
-gridder.coordAxes = single(coordAxes);
+gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(nCoordAxes), single(2));
+gridder.coordAxes = single(coordAxes(:));
 gridder.NumAxes = int32(nCoordAxes);
 gridder.VolumeSize = int32(VolumeSize);
 gridder.Volume = single(MRI_volume); %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
@@ -59,6 +56,7 @@ gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.Image
 gridder.KBTable = single(KBTable);
 
 gridder.Set()
+
 
 
 % Volume = gridder.Get('Volume');
@@ -74,12 +72,14 @@ gridder.Set()
 %  
 
 
-
+Volume = gridder.Get('Volume');
 
 disp("ForwardProject...")
 tic
 gridder.ForwardProject()
 toc
+
+
 
 % [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
 % 
@@ -98,27 +98,86 @@ toc
 
 
 CASVolume = gridder.Get('CASVolume');
+Images = gridder.Get('Images');
 
-% CASImages = gridder.Get('CASImages');
+CASImages = gridder.Get('CASImages');
 
 
 
 % easyMontage(gridder.CASVolume(:,:,1:10), 1)
-easyMontage(CASVolume(:,:,1:10), 1)
+% easyMontage(CASVolume, 1)
+% easyMontage(gridder.CASVolume(:,:,1:10), 1)
 
-colormap gray
+% colormap gray
 
-return
+
 % 
 % Images = gridder.Get('Images');
 
 % max(gridder.CASVolume(:))
 % max(gridder.CASImages(:))
 % max(CASImages(:))
- % Compare with GT
- tic
+
+% Compare with GT
+tic
 [CASVol_GT, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(MRI_volume, interpFactor);
- toc
+
+gpuGridder = gpuBatchGridder(VolumeSize,n1_axes*n2_axes+1,interpFactor);
+gpuGridder.setVolume(MRI_volume);
+gpuGridderImg  = gpuGridder.forwardProject(coordAxes);
+gpuGridderCASImgs = gather(gpuGridder.gridder.gpuCASImgs);
+gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
+
+
+% easyMontage(gridder.CASVolume - gpuGridderCASVolume, 1)
+% colorbar
+
+% easyMontage(gridder.CASImages(:,:,1:10) - gpuGridderCASImgs(:,:,1:10), 2)
+% colorbar
+
+toc
+ %%
+ 
+ for slice = 5
+    
+%     
+%     slice = 1
+
+    subplot(2,3,1)
+    imagesc(gridder.CASVolume(:,:,slice));
+    title("Slice " + num2str(slice))
+    subplot(2,3,2)
+    imagesc(CASVol_GT(:,:,slice));
+    title("Slice " + num2str(slice))
+    subplot(2,3,3)
+    imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
+    colormap jet
+    title("Slice " + num2str(slice))
+    colorbar
+ end
+ 
+ %%
+for slice = 1
+    
+    subplot(2,3,4)
+    imagesc(gridder.CASImages(:,:,slice));
+    title("Slice " + num2str(slice))
+    subplot(2,3,5)
+    imagesc(gpuGridderCASImgs(:,:,slice));
+    title("Slice " + num2str(slice))
+    subplot(2,3,6)
+    imagesc(gridder.CASImages(:,:,slice) - gpuGridderCASImgs(:,:,slice));
+    colormap jet
+    title("Slice " + num2str(slice))
+    colorbar
+    
+    
+    
+    
+    pause(0.5)
+ end
+ 
+ return
 % max(CASVolume(:)) / max(CASVol_GT(:)) 
 %%
 close all

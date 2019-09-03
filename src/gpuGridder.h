@@ -25,6 +25,9 @@ public:
     // Constructor
     gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor){};
 
+    // Declare the struct to hold the allocated memory information here
+    struct MemoryStructGPU;
+
     // ~gpuGridder() : ~AbstractGridder() { };
 
     // ~gpuGridder(){};
@@ -69,24 +72,38 @@ public:
     int GetBlockSize() { return this->blockSize; }
 
     // Get the device CAS volume pointer
-    float *GetCASVolumePtr_Device() { return this->d_CASVolume; }
+    float *GetCASVolumePtr_Device() { return this->d_CASVolume->ptr; }
 
     // Get the device CAS images pointer
-    float *GetCASImgsPtr_Device() { return this->d_CASImgs; }
+    float *GetCASImgsPtr_Device() { return this->d_CASImgs->ptr; }
 
     // Get the device complex CAS images pointer
-    cufftComplex *GetComplexCASImgsPtr_Device() { return this->d_CASImgsComplex; }
+    //cufftComplex *GetComplexCASImgsPtr_Device() { return this->d_CASImgsComplex; }
 
     // Get the device images pointer
-    float *GetImgsPtr_Device() { return this->d_Imgs; }
+    float *GetImgsPtr_Device() { return this->d_Imgs->ptr; }
 
     // Get the device coordinate axes pointer
-    float *GetCoordAxesPtr_Device() { return this->d_CoordAxes; }
+    float *GetCoordAxesPtr_Device() { return this->d_CoordAxes->ptr; }
 
     // Get the device kaiser bessel lookup table pointer
-    float *GetKBTablePtr_Device() { return this->d_KB_Table; }
+    float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
 
-protected:
+    // Extend the memory struct from the abstract gridder class to include GPU related information
+    struct MemoryStructGPU : public MemoryStruct
+    {
+        // Which GPU is the memory allocated on?
+        int GPU;
+
+        // Inherit constructors from MemoryStruct
+        using MemoryStruct::MemoryStruct; // inherit constructors from B
+        // MemoryStructGPU (int dims) : MemoryStruct(int dims){};
+        
+        
+    };
+
+protected: 
+
     // // Get a new images array and then convert them to CAS
     // void SetImages(float *imgs);
 
@@ -100,22 +117,22 @@ protected:
     int nStreams;
 
     // Pointer to the CASVolume array on the device (i.e. the GPU)
-    float *d_CASVolume;
+    MemoryStructGPU *d_CASVolume = new MemoryStructGPU(3);
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
-    float *d_CASImgs;
+    MemoryStructGPU *d_CASImgs = new MemoryStructGPU(3);
 
     // Pointer to the images array on the device (i.e. the GPU)
-    float *d_Imgs;
+    MemoryStructGPU *d_Imgs = new MemoryStructGPU(3);
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
-    float *d_CoordAxes;
+    MemoryStructGPU *d_CoordAxes = new MemoryStructGPU(3);
 
     // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
-    float *d_KB_Table;
+    MemoryStructGPU *d_KB_Table = new MemoryStructGPU(3);
 
     // Pointer to the complex CAS images on the device (i.e. the GPU)
-    cufftComplex *d_CASImgsComplex;
+    // cufftComplex *d_CASImgsComplex;
 
     // Kernel launching parameters
     int gridSize;

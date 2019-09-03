@@ -29,7 +29,10 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
     {
         /* Copy over the kernel */
         for (kerIndex=0;kerIndex<kerSize;kerIndex++) 
-        locKer[kerIndex]=*(ker+kerIndex);
+        {
+            // locKer[kerIndex]=*(ker+kerIndex);
+            locKer[kerIndex]=1;//test
+        }
     }
     __syncthreads();      
 
@@ -87,9 +90,11 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
                         wk=*(locKer+kerIndex);
                         w=wi*wj*wk;
 
-                        //w=expf(-(ri*ri+rj*rj+rk*rk)/(2*sigma*sigma));  
+                        // *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
+                        //     ( *(vol+k1*volSize*volSize+j1*volSize+i1));
 
-                        *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+//w;
+                        w = 1; // TEST
+                        *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
                                 w*( *(vol+k1*volSize*volSize+j1*volSize+i1));
 
                         // }
@@ -103,7 +108,7 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
 void gpuForwardProjectLaunch(gpuGridder * gridder)
 { 
     std::cout << "Running gpuForwardProject()..." << '\n';
-	
+   
     // Copy the relevent parameters to a local variable to make the code cleaner
     int gridSize         = gridder->GetGridSize();
     int blockSize        = gridder->GetBlockSize();
@@ -114,12 +119,12 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     int* ImgSizePtr      = gridder->GetImgSize();    
     int* volSizePtr      = gridder->GetVolumeSize();
     float maskRadius     = gridder->GetMaskRadius();
-
+   
     int ImgSize  = ImgSizePtr[0]; // The volume must be a square for now so just use the first dimension
     int volSize  = volSizePtr[0]; // The volume must be a square for now so just use the first dimension
 
     int* CASImgSize  = gridder->GetCASImagesSize(); // The volume must be a square for now so just use the first dimension
-    int CASVolSize  = gridder->GetCASVolumeSize(); // The volume must be a square for now so just use the first dimension
+    int* CASVolSize  = gridder->GetCASVolumeSize(); // The volume must be a square for now so just use the first dimension
 
     Log2("gridSize", gridSize);
     Log2("blockSize", blockSize);
@@ -132,7 +137,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     Log2("ImgSize", ImgSize);
     Log2("volSize", volSize);
     Log2("CASImgSize[0]", CASImgSize[0]);
-    Log2("CASVolSize", CASVolSize);
+    Log2("CASVolSize[0]", CASVolSize[0]);
 
     // Pointers to memory already allocated on the GPU (i.e. the device)
     float * d_CASVolume = gridder->GetCASVolumePtr_Device();
@@ -140,9 +145,10 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     float * d_CoordAxes = gridder->GetCoordAxesPtr_Device();
     float * d_KB_Table  = gridder->GetKBTablePtr_Device();
     float * d_Imgs      = gridder->GetImgsPtr_Device();
-    cufftComplex * d_CASImgsComplex = gridder->GetComplexCASImgsPtr_Device();
+    // cufftComplex * d_CASImgsComplex = gridder->GetComplexCASImgsPtr_Device();
 
     // Pointers to pinned CPU memory
+
     float * coordAxes_CPU_Pinned = gridder->GetCoordAxesPtr_CPU();
     float * CASImgs_CPU_Pinned   = gridder->GetCASImgsPtr_CPU();
     float * Imgs_CPU_Pinned      = gridder->GetImgsPtr_CPU();
@@ -234,7 +240,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             {
                 std::cout << "coordAxes_CPU_Pinned[CoordAxes_CPU_Offset][j]: " << coordAxes_CPU_Pinned[CoordAxes_CPU_Offset+j] << '\n';
             }
-
+            
 
             Log2("cudaMemcpyAsync", i);
         	// Copy the section of gpuCoordAxes which this stream will process on the current GPU
@@ -243,14 +249,16 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
                 &coordAxes_CPU_Pinned[CoordAxes_CPU_Offset],
                 coord_Axes_CPU_streamBytes,
                 cudaMemcpyHostToDevice, streams[i]);                
-            
+                
+            cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize[0]*CASImgSize[0]*nAxes) ; // test
+
             Log2("gpuForwardProjectKernel", i);
             // Run the forward projection kernel     
 			gpuForwardProjectKernel <<< dimGrid, dimBlock, 0, streams[i] >> > (
-				d_CASVolume, CASVolSize, &d_CASImgs[gpuCASImgs_Offset],
-				CASImgSize[0], &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream,
+				d_CASVolume, CASVolSize[0], &d_CASImgs[gpuCASImgs_Offset], //
+				CASImgSize[0], &d_CoordAxes[gpuCoordAxes_Stream_Offset], numAxesPerStream, // 
 				maskRadius, d_KB_Table, 501, 2);
-
+           
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
 			// imgSize is the size of the zero padded projection images
 			unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
@@ -270,39 +278,21 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             Log2("cudaMemcpyAsync", i);
 
 			// Lastly, copy the resulting projection images back to the host pinned memory (CPU)
-			// cudaMemcpyAsync(
-			// 	&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-			//  	&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+			cudaMemcpyAsync(
+				&CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+			 	&d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
 
             cudaDeviceSynchronize();
+
+            return;
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
-            // gpuFFT::CASImgsToImgs(
-            //     streams[i], gridSize, blockSize, CASImgSize[0],
-            //     ImgSize, d_CASImgs, d_Imgs, &d_CASImgsComplex[0],
-            //     numAxesPerStream);
-
-            cudaDeviceSynchronize();
-
-            // cudaMemcpyAsync(
-            //     CASImgs_CPU_Pinned,
-            //         d_CASImgs, gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
-
-                     
             gpuFFT::CASImgsToImgs(
                 streams[i], gridSize, blockSize, CASImgSize[0],
-                ImgSize, &d_CASImgs[gpuCASImgs_Offset], &d_Imgs[gpuImgs_Offset], &d_CASImgsComplex[gpuCASImgs_Offset],
-                numAxesPerStream);
+                ImgSize, d_CASImgs, d_Imgs, numAxesPerStream);
 
-                cudaMemcpyAsync(
-                    &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                     &d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
-    
-                cudaDeviceSynchronize();
-
-                // cudaMemcpyAsync(
-                //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                //      &d_CASImgs[gpuCASImgs_Offset], gpuCASImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+                   
+            cudaDeviceSynchronize();
     
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
@@ -329,10 +319,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
 			cudaMemcpyAsync(
 				&Imgs_CPU_Pinned[Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2]],
                 &d_Imgs[gpuImgs_Offset], gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
-            
-            // cudaMemcpyAsync(
-			// 	Imgs_CPU_Pinned,
-            //     d_Imgs, gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+
 
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + numAxesPerStream;    
@@ -345,7 +332,7 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
             // CASImgs_CPU_Pinned[0] = 14;
             // END TEST
         
-            // return; //debug
+            return; //debug
 
         }
 

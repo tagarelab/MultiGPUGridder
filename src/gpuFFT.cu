@@ -576,10 +576,14 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
 
 void gpuFFT::CASImgsToImgs(
     cudaStream_t& stream, int gridSize, int blockSize, int CASImgSize, 
-    int ImgSize, float* d_CASImgs, float* d_imgs, cufftComplex* d_CASImgsComplex, int numImgs)
+    int ImgSize, float* d_CASImgs, float* d_imgs, int numImgs)
 {
 
     std::cout << "CASImgsToImgs()" << '\n';
+    std::cout << "gridSize: " << gridSize << '\n';
+    std::cout << "blockSize: " << blockSize << '\n';
+    std::cout << "CASImgSize: " << CASImgSize << '\n';
+    std::cout << "ImgSize: " << ImgSize << '\n';
     std::cout << "numImgs: " << numImgs << '\n';
 
     // Check to make sure the GPU has enough available memory left
@@ -596,8 +600,8 @@ void gpuFFT::CASImgsToImgs(
     // cudaMemset(d_imgs, 0, sizeof(float)*ImgSize*ImgSize*numImgs) ;
 
     // Allocate a temporary cufftComplex array 
-    cufftComplex *d_CASImgsComplex_Output;
-    cudaMalloc(&d_CASImgsComplex_Output, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+    cufftComplex *d_CASImgsComplex;
+    cudaMalloc(&d_CASImgsComplex, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
 
     // Convert the CASImgs to complex cufft type
     CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs);
@@ -605,27 +609,29 @@ void gpuFFT::CASImgsToImgs(
     // Run FFTShift on d_CASImgsComplex
     cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_CASImgsComplex, CASImgSize, numImgs);
 
-    // // Create a plan for taking the inverse of the CAS imgs
-    // cufftHandle inverseFFTPlan;   
-    // int nRows = CASImgSize;
-    // int nCols = CASImgSize;
-    // int batch = numImgs;            // --- Number of batched executions
-    // int rank = 2;                   // --- 2D FFTs
-    // int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
-    // int idist = nRows*nCols;        // --- Distance between batches
-    // int odist = nRows*nCols;        // --- Distance between batches
+    // Create a plan for taking the inverse of the CAS imgs
+    cufftHandle inverseFFTPlan;   
+    int nRows = CASImgSize;
+    int nCols = CASImgSize;
+    int batch = numImgs;            // --- Number of batched executions
+    int rank = 2;                   // --- 2D FFTs
+    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    int idist = nRows*nCols;        // --- Distance between batches
+    int odist = nRows*nCols;        // --- Distance between batches
 
-    // int inembed[] = {nRows, nCols}; // --- Input size with pitch
-    // int onembed[] = {nRows, nCols}; // --- Output size with pitch
+    int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    int onembed[] = {nRows, nCols}; // --- Output size with pitch
 
-    // int istride = 1;                // --- Distance between two successive input/output elements
-    // int ostride = 1;                // --- Distance between two successive input/output elements
-
-    // cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
-    // cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+    int istride = 1;                // --- Distance between two successive input/output elements
+    int ostride = 1;                // --- Distance between two successive input/output elements
     
+    cudaDeviceSynchronize();
+    cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
+    cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+    cudaDeviceSynchronize();
+
     // Inverse FFT
-    // cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex_Test, (cufftComplex *) d_CASImgsComplex_Test, CUFFT_INVERSE);
+    cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex, (cufftComplex *) d_CASImgsComplex, CUFFT_INVERSE);
 
     // TEST
     // cufftComplex * h_CASImgsComplex = new cufftComplex[CASImgSize*CASImgSize*numImgs];
@@ -644,32 +650,32 @@ void gpuFFT::CASImgsToImgs(
 
     // STEP 3
     // Execute the forward FFT on each 2D array
-    for (int i = 0; i<numImgs; i++) // 
-    {
-        std::cout << "Inverse FFT " << i << '\n';
-        // Plan the inverse FFT
-        cufftHandle inverseFFTPlan;           
-        cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
-        // cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+    // for (int i = 0; i<10; i++) // numImgs
+    // {
+    //     std::cout << "Inverse FFT " << i << '\n';
+    //     // Plan the inverse FFT
+    //     cufftHandle inverseFFTPlan;           
+    //     cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
+    //     // cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
 
-        cufftResult_t result = cufftExecC2C(inverseFFTPlan,
-            (cufftComplex *) &d_CASImgsComplex[i*CASImgSize*CASImgSize],
-            (cufftComplex *) &d_CASImgsComplex_Output[i*CASImgSize*CASImgSize],
-            CUFFT_INVERSE);
+    //     cufftResult_t result = cufftExecC2C(inverseFFTPlan,
+    //         (cufftComplex *) &d_CASImgsComplex[i*CASImgSize*CASImgSize],
+    //         (cufftComplex *) &d_CASImgsComplex[i*CASImgSize*CASImgSize],
+    //         CUFFT_INVERSE);
         
-        std::cout << "result: " << result << '\n';
-        cudaDeviceSynchronize();
+    //     std::cout << "result: " << result << '\n';
+    //     cudaDeviceSynchronize();
 
-        cufftDestroy(inverseFFTPlan);
-    }
+    //     cufftDestroy(inverseFFTPlan);
+    // }
 
     // FFTShift again on d_CASImgsComplex
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex_Output, CASImgSize, numImgs);
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex, CASImgSize, numImgs);
 
     // cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize*CASImgSize*numImgs) ; // TEST TEST
 
     // Convert from the complex images to the real (resue the d_CASImgs GPU array)
-    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgsComplex_Output, d_CASImgs, CASImgSize, numImgs);            
+    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgsComplex, d_CASImgs, CASImgSize, numImgs);            
 
     cudaDeviceSynchronize();
 

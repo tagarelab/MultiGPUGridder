@@ -34,6 +34,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
       
+        if (dims[0] == 0)
+        {
+            mexErrMsgTxt("Failed to return Volume");
+        }
+
         // Create the output matlab array as type float
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
@@ -53,15 +58,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
 
         // Get the matrix size of the GPU volume
-        int CASVolSize = gpuGridderObj->GetCASVolumeSize();
+        int* CASVolSize = gpuGridderObj->GetCASVolumeSize();
 
         mwSize dims[3];
-        dims[0] = CASVolSize;
-        dims[1] = CASVolSize;
-        dims[2] = CASVolSize;
+        dims[0] = CASVolSize[0];
+        dims[1] = CASVolSize[1];
+        dims[2] = CASVolSize[2];
 
         std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
-      
+
+        if (dims[0] == 0)
+        {
+            mexErrMsgTxt("Failed to return CASVolume");
+        }
+
         // Create the output matlab array as type float
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
@@ -91,6 +101,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
       
+
+        if (dims[0] == 0)
+        {
+            mexErrMsgTxt("Failed to return CASImages");
+        }
+
         // Create the output matlab array as type float
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
@@ -104,6 +120,40 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         return;
     }
+
+    // Return the images from pinned memory (for debugging)
+    if (!strcmp("Images", cmd))
+    {
+
+        // Get the matrix size of the GPU volume
+        int* ImagesSize = gpuGridderObj->GetImgSize();
+
+        mwSize dims[3];
+        dims[0] = ImagesSize[0];
+        dims[1] = ImagesSize[1];
+        dims[2] = ImagesSize[2];
+
+        std::cout << "dims: " << dims[0] << " " << dims[1] << " " << dims[2] << '\n';
+      
+        if (dims[0] == 0)
+        {
+            mexErrMsgTxt("Failed to return Images");
+        }
+
+        // Create the output matlab array as type float
+        mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
+
+        // Call the method
+        float *Images = gpuGridderObj->GetImgsPtr_CPU();
+
+        // Copy the data to the Matlab array
+        std::memcpy((float *)mxGetData(Matlab_Pointer), Images, sizeof(float) * dims[0] * dims[1] * dims[2]);
+
+        plhs[0] = Matlab_Pointer;
+
+        return;
+    }
+
 
 
     cudaDeviceReset(); // DEBUG

@@ -31,6 +31,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         std::cout << "SetVolumeSize: " << VolumeSize[0] << '\n';
 
         gpuGridderObj->SetVolumeSize(VolumeSize[0]);
+
+        // DEBUG
+        int* volSize = gpuGridderObj->GetVolumeSize();
+        std::cout << "volSize: " << volSize[0] << " " << volSize[1] << " " << volSize[2] << '\n';
+      
+
     }
 
     // Set the pointer to the volume
