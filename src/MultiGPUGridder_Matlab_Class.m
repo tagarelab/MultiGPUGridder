@@ -31,15 +31,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end  
         %% SetVariables - Set the variables of the C++ class instance 
         function Set(this)
-            [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, this.coordAxes, this.NumAxes);
-            [varargout{1:nargout}] = mexSetVariables('SetVolumeSize', this.objectHandle, this.VolumeSize);
-            [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, this.Volume);
-            [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, this.CASVolume);              
-            [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, this.CASImages, length(this.CASImages(:)));  
-            [varargout{1:nargout}] = mexSetVariables('SetImageSize', this.objectHandle, this.ImageSize);
-            [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, this.Images);
-            [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, this.GPUs, length(this.GPUs));
-            [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, this.KBTable, int32(length(this.KBTable)));
+            [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes), int32(this.NumAxes));
+            [varargout{1:nargout}] = mexSetVariables('SetVolumeSize', this.objectHandle, int32(this.VolumeSize));
+            [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume));
+            [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume));              
+            [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(length(this.CASImages(:))));  
+            [varargout{1:nargout}] = mexSetVariables('SetImageSize', this.objectHandle, int32(this.ImageSize));
+            [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images));
+            [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
+            [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(length(this.KBTable)));
         end 
         %% GetVariables - Get the variables of the C++ class instance 
         function varargout = Get(this, variableName)                 

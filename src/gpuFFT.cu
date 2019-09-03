@@ -349,6 +349,8 @@ void gpuFFT::PadVolume(float *inputVol, float * outputVol, int inputImgSize, int
     // How much to add to each side?
     int padding = (outputImgSize - inputImgSize) / 2;
 
+    std::cout << "PadVolume() padding: " << padding << '\n';
+
     // For very small matrix sizes it might be faster to use the CPU instead of the GPU
     bool use_gpu = true;
 
@@ -625,7 +627,19 @@ void gpuFFT::CASImgsToImgs(
     // Inverse FFT
     // cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex_Test, (cufftComplex *) d_CASImgsComplex_Test, CUFFT_INVERSE);
 
+    // TEST
+    // cufftComplex * h_CASImgsComplex = new cufftComplex[CASImgSize*CASImgSize*numImgs];
 
+    // cudaMemcpy(h_CASImgsComplex, d_CASImgsComplex, CASImgSize*CASImgSize*numImgs*sizeof(cufftComplex), cudaMemcpyDeviceToHost);
+
+    // // Make the entire image equal to a scalar
+    // for (int i=0; i<CASImgSize*CASImgSize*numImgs; i++)
+    // {
+    //     h_CASImgsComplex[i].x = 2;   
+    // }
+
+    // cudaMemcpy(d_CASImgsComplex, h_CASImgsComplex, CASImgSize*CASImgSize*numImgs*sizeof(cufftComplex), cudaMemcpyHostToDevice);
+    // END TEST
 
 
     // STEP 3

@@ -18,6 +18,8 @@
 void gpuGridder::VolumeToCASVolume()
 {
 
+    Log("VolumeToCASVolume()");
+
     // Save the volume size of the CAS volume
     // Example: A volume size of 128, interp factor 2, extra padding of 3 would give -> 262 CAS volume size
     this->CASVolumeSize = this->VolumeSize[0] * this->interpFactor + this->extraPadding * 2;

@@ -31,6 +31,8 @@ load mri;
 img = squeeze(D);
 img = imresize3(img,[VolumeSize, VolumeSize, VolumeSize]);
 MRI_volume = single(img);
+MRI_volume = MRI_volume * 0;
+MRI_volume = MRI_volume + 1;
 % easyMontage(vol,1);
 
 % Define the projection directions
@@ -95,10 +97,18 @@ toc
 % imagesc(real(fftshift2(fft2(fftshift2(CASImgs_GT(:,:,1))))))
 
 
-% CASVolume = gridder.Get('CASVolume');
+CASVolume = gridder.Get('CASVolume');
 
-CASImages = gridder.Get('CASImages');
+% CASImages = gridder.Get('CASImages');
 
+
+
+% easyMontage(gridder.CASVolume(:,:,1:10), 1)
+easyMontage(CASVolume(:,:,1:10), 1)
+
+colormap gray
+
+return
 % 
 % Images = gridder.Get('Images');
 
