@@ -273,12 +273,11 @@ void gpuForwardProject::Execute()
             
             cudaDeviceSynchronize();
 
-            return;
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
-            // gpuFFT::CASImgsToImgs(
-            //     streams[i], this->gridSize, this->blockSize, CASImgSize,
-            //     ImgSize, this->d_CASImgs, this->d_Imgs, numAxesPerStream);
+            gpuFFT::CASImgsToImgs(
+                streams[i], this->gridSize, this->blockSize, CASImgSize,
+                ImgSize, this->d_CASImgs->GetPointer(gpuCASImgs_Offset), this->d_Imgs->GetPointer(gpuImgs_Offset), numAxesPerStream);
 
                    
             cudaDeviceSynchronize();
@@ -306,7 +305,7 @@ void gpuForwardProject::Execute()
 			// Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
 			cudaMemcpyAsync(
 				&Imgs_CPU_Pinned[Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2]],
-                &d_Imgs[gpuImgs_Offset], gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
+                d_Imgs->GetPointer(gpuImgs_Offset), gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
 
 
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream

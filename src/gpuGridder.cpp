@@ -20,7 +20,15 @@ void gpuGridder::VolumeToCASVolume()
     Log("VolumeToCASVolume()");
 
     // Convert the volume to CAS volume
-    gpuFFT::VolumeToCAS(this->Volume->ptr, this->Volume->size[0], this->CASVolume->ptr, this->interpFactor, this->extraPadding);
+    gpuFFT::VolumeToCAS(
+        this->Volume->GetPointer(),
+        this->Volume->GetSize(0),
+        this->CASVolume->GetPointer(),
+        this->interpFactor,
+        this->extraPadding);
+
+    // Copy the resulting CAS volume to the corresponding GPU array
+    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 }
 
 void gpuGridder::SetGPU(int GPU_Device)
@@ -123,53 +131,40 @@ void gpuGridder::ForwardProject()
 {
     Log("ForwardProject()");
 
+    this->newVolumeFlag = true;
+    this->FP_initilized = false;
 
-
-    // // Run the volume to CAS volume function
-    // VolumeToCASVolume();
-
-    // // test
-    // // Allocate the CAS volume
-    // this->d_CASVolume = new MemoryStructGPU(this->CASVolume->dims, this->CASVolume->size, this->GPU_Device);
-    // this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
-    // cudaDeviceSynchronize(); // needed?
-    // cudaMemcpy(this->CASVolume->GetPointer(), this->d_CASVolume->GetPointer(), this->d_CASVolume->bytes(), cudaMemcpyDeviceToHost);                
-    // return;
-
-
-
-    
-    std::cout << "this->Volume->ptr: " << this->Volume->ptr << '\n';
-    std::cout << "this->CASVolume->ptr: " << this->CASVolume->ptr << '\n';
-    std::cout << "this->imgs->ptr: " << this->imgs->ptr << '\n';
-    std::cout << "this->CASimgs->ptr: " << this->CASimgs->ptr << '\n';
-    std::cout << "this->coordAxes->ptr: " << this->coordAxes->ptr << '\n';
-    std::cout << "this->ker_bessel_Vector->ptr: " << this->ker_bessel_Vector->ptr << '\n';
-
-    // Do we need to convert the volume, copy to the GPUs, etc?
-    // Assume for now that we have a new volume for each call to ForwardProject()
-    bool newVolumeFlag = 1;
-
-    if (newVolumeFlag == 1)
+    // Has the forward projection been initilized?
+    if (this->FP_initilized == false)
     {
-        // NOTE: gridSize times blockSize needs to equal CASimgSize
-        this->gridSize = 32;
-        this->blockSize = ceil(this->CASimgs->GetSize(0) / this->gridSize);
-        this->nStreams = 1;
-
-        // Run the volume to CAS volume function
-        VolumeToCASVolume();
-
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
 
         // Initilize the forward projection object
         InitilizeForwardProjection();
 
+        // NOTE: gridSize times blockSize needs to equal CASimgSize
+        this->gridSize = 32;
+        this->blockSize = ceil(this->CASimgs->GetSize(0) / this->gridSize);
 
+        cudaDeviceSynchronize(); // needed?
+
+        // Reset the flag
+        this->FP_initilized = true;
     }
 
+    // Do we have a new volume? If so, run the volume to CAS volume function
+    // Assume for now that we have a new volume for each call to ForwardProject()
+    if (this->newVolumeFlag == true)
+    {
+        cudaDeviceSynchronize(); // needed?
+        
+        // Run the volume to CAS volume function
+        VolumeToCASVolume();
 
+        // Reset the flag
+        this->newVolumeFlag = false;
+    }
 
     // Check the error flags to see if we had any issues during the initilization
     if (this->ErrorFlag == 1 ||

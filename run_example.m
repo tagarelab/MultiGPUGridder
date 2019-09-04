@@ -132,7 +132,8 @@ max(CASVolume(:))
 
 % easyMontage(gridder.CASVolume(:,:,1:10), 1)
 % easyMontage(CASVolume, 1)
-% easyMontage(gridder.CASVolume(:,:,1:10), 1)
+
+easyMontage(gridder.Images(:,:,:), 1)
 
 % colormap gray
 
@@ -185,19 +186,19 @@ toc
     pause(0.1)
  end
  
- return
+ 
  
  %%
-for slice = 1
+for slice = 1:10
     
     subplot(2,3,4)
-    imagesc(gridder.CASImages(:,:,slice));
+    imagesc(gridder.Images(:,:,slice));
     title("Slice " + num2str(slice))
     subplot(2,3,5)
-    imagesc(gpuGridderCASImgs(:,:,slice));
+    imagesc(gpuGridderImg(:,:,slice));
     title("Slice " + num2str(slice))
     subplot(2,3,6)
-    imagesc(gridder.CASImages(:,:,slice) - gpuGridderCASImgs(:,:,slice));
+    imagesc(gridder.Images(:,:,slice) - gpuGridderImg(:,:,slice));
     colormap jet
     title("Slice " + num2str(slice))
     colorbar

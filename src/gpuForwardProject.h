@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <cstdlib>
@@ -6,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-// #include "gpuGridder.h"
+#include "gpuFFT.h"
 #include "MemoryStruct.h"
 #include "MemoryStructGPU.h"
 

@@ -24,9 +24,13 @@ class gpuGridder : public AbstractGridder
 {
 
 public:
-
     // Constructor
-    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor){};
+    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+    {
+        this->FP_initilized = false;
+        this->newVolumeFlag = true;
+        this->nStreams = 1;
+    };
 
     // ~gpuGridder() : ~AbstractGridder() { };
 
@@ -86,9 +90,7 @@ public:
     // Get the device kaiser bessel lookup table pointer
     float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
 
-
 protected:
-
     // // Get a new images array and then convert them to CAS
     // void SetImages(float *imgs);
 
@@ -102,19 +104,19 @@ protected:
     int nStreams;
 
     // Pointer to the CASVolume array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASVolume; 
+    MemoryStructGPU *d_CASVolume;
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASImgs; 
+    MemoryStructGPU *d_CASImgs;
 
     // Pointer to the images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_Imgs; 
+    MemoryStructGPU *d_Imgs;
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_CoordAxes; 
+    MemoryStructGPU *d_CoordAxes;
 
     // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_KB_Table; 
+    MemoryStructGPU *d_KB_Table;
 
     // Kernel launching parameters
     int gridSize;
@@ -134,8 +136,13 @@ private:
     void InitilizeForwardProjection();
 
     // Forward projection object
-    gpuForwardProject * ForwardProject_obj;
+    gpuForwardProject *ForwardProject_obj;
 
+    // Forward projection initilization flag
+    bool FP_initilized;
+
+    // Forward projection new volume flag
+    bool newVolumeFlag;
 
     // Allocate GPU arrays
     // float *AllocateGPUArray(int GPU_Device, int ArraySize);
