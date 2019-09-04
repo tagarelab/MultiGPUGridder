@@ -232,6 +232,7 @@ void gpuForwardProject::Execute()
             float * d_CoordAxes = this->d_CoordAxes->GetPointer(gpuCoordAxes_Stream_Offset);
             float * d_CASVolume = this->d_CASVolume->GetPointer();
             float * d_KB_Table  = this->d_KB_Table->GetPointer();
+
             // Run the forward projection kernel     
 			gpuForwardProjectKernel <<< dimGrid, dimBlock, 0, streams[i] >> > (
                 d_CASVolume,
@@ -264,22 +265,35 @@ void gpuForwardProject::Execute()
             Log2("cudaMemcpyAsync", i);
 
 			// Lastly, copy the resulting projection images back to the host pinned memory (CPU)
-			cudaMemcpyAsync(
-                &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
-                this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
-                gpuCASImgs_streamBytes,
-                cudaMemcpyDeviceToHost,
-                streams[i]);
+			// cudaMemcpyAsync(
+            //     &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+            //     this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
+            //     gpuCASImgs_streamBytes,
+            //     cudaMemcpyDeviceToHost,
+            //     streams[i]);
             
             cudaDeviceSynchronize();
 
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
             gpuFFT::CASImgsToImgs(
-                streams[i], this->gridSize, this->blockSize, CASImgSize,
-                ImgSize, this->d_CASImgs->GetPointer(gpuCASImgs_Offset), this->d_Imgs->GetPointer(gpuImgs_Offset), numAxesPerStream);
+                streams[i],
+                this->gridSize,
+                this->blockSize,
+                CASImgSize,
+                ImgSize,
+                this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
+                this->d_Imgs->GetPointer(gpuImgs_Offset),
+                numAxesPerStream);
 
                    
+                cudaMemcpyAsync(
+                    &CASImgs_CPU_Pinned[CASImgs_CPU_Offset[0] * CASImgs_CPU_Offset[1] * CASImgs_CPU_Offset[2]],
+                    this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
+                    gpuCASImgs_streamBytes,
+                    cudaMemcpyDeviceToHost,
+                    streams[i]);
+                    
             cudaDeviceSynchronize();
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
@@ -302,11 +316,13 @@ void gpuForwardProject::Execute()
                 
             cudaDeviceSynchronize();
 
-			// Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
-			cudaMemcpyAsync(
-				&Imgs_CPU_Pinned[Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2]],
-                d_Imgs->GetPointer(gpuImgs_Offset), gpuImgs_streamBytes, cudaMemcpyDeviceToHost, streams[i]);
-
+            // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
+            cudaMemcpyAsync(
+				Imgs_CPU_Pinned + Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2],
+                d_Imgs->GetPointer(gpuImgs_Offset),
+                gpuImgs_streamBytes,
+                cudaMemcpyDeviceToHost,
+                streams[i]);
 
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + numAxesPerStream;    
@@ -315,11 +331,7 @@ void gpuForwardProject::Execute()
             // Update the number of axes which have been assigned to this GPU during the current batch
             numAxesGPU_Batch = numAxesGPU_Batch + numAxesPerStream;
 
-            // TEST
-            // CASImgs_CPU_Pinned[0] = 14;
-            // END TEST
-        
-            return; //debug
+            // return; //debug
 
         }
 

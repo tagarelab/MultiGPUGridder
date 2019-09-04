@@ -17,97 +17,97 @@ gpuFFT::~gpuFFT()
 }
 
 
-// __global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
-// {
-// 	// 3D Volume, 2D Slice, 1D Line
-// 	int sLine = N;
-// 	int sSlice = N * N;
-// 	int sVolume = N * N * N;
+__global__ void cufftShift_3D_slice_kernel(cufftComplex* input, cufftComplex* output, int N, int nSlices)
+{
+	// 3D Volume, 2D Slice, 1D Line
+	int sLine = N;
+	int sSlice = N * N;
+	int sVolume = N * N * N;
 
-// 	// Transformations Equations
-// 	int sEq1 = (sVolume + sSlice + sLine) / 2;
-// 	int sEq2 = (sVolume + sSlice - sLine) / 2;
-// 	int sEq3 = (sVolume - sSlice + sLine) / 2;
-// 	int sEq4 = (sVolume - sSlice - sLine) / 2;
+	// Transformations Equations
+	int sEq1 = (sVolume + sSlice + sLine) / 2;
+	int sEq2 = (sVolume + sSlice - sLine) / 2;
+	int sEq3 = (sVolume - sSlice + sLine) / 2;
+	int sEq4 = (sVolume - sSlice - sLine) / 2;
 
-// 	// Thread Index 2D
-// 	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-// 	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
+	// Thread Index 2D
+	int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
+	int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
 
-// 	// Each thread will do all the slices for some X, Y position in the 3D matrix
-// 	for (int zIndex = 0; zIndex < nSlices; zIndex++)
-// 	{
-// 		// Thread Index Converted into 1D Index
-// 		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+	// Each thread will do all the slices for some X, Y position in the 3D matrix
+	for (int zIndex = 0; zIndex < nSlices; zIndex++)
+	{
+		// Thread Index Converted into 1D Index
+		int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
 
-// 		if (zIndex < N / 2)
-// 		{
-// 			if (xIndex < N / 2)
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// First Quad
-// 					output[index].x = input[index + sEq1].x;
-// 					output[index].y = input[index + sEq1].y;
-// 				}
-// 				else
-// 				{
-// 					// Third Quad
-// 					output[index].x = input[index + sEq3].x;
-// 					output[index].y = input[index + sEq3].y;
-// 				}
-// 			}
-// 			else
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// Second Quad
-// 					output[index].x = input[index + sEq2].x;
-// 					output[index].y = input[index + sEq2].y;
-// 				}
-// 				else
-// 				{
-// 					// Fourth Quad
-// 					output[index].x = input[index + sEq4].x;
-// 					output[index].y = input[index + sEq4].y;
-// 				}
-// 			}
-// 		}
-// 		else
-// 		{
-// 			if (xIndex < N / 2)
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// First Quad
-// 					output[index].x = input[index - sEq4].x;
-// 					output[index].y = input[index - sEq4].y;
-// 				}
-// 				else
-// 				{
-// 					// Third Quad
-// 					output[index].x = input[index - sEq2].x;
-// 					output[index].y = input[index - sEq2].y;
-// 				}
-// 			}
-// 			else
-// 			{
-// 				if (yIndex < N / 2)
-// 				{
-// 					// Second Quad
-// 					output[index].x = input[index - sEq3].x;
-// 					output[index].y = input[index - sEq3].y;
-// 				}
-// 				else
-// 				{
-// 					// Fourth Quad
-// 					output[index].x = input[index - sEq1].x;
-// 					output[index].y = input[index - sEq1].y;
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+		if (zIndex < N / 2)
+		{
+			if (xIndex < N / 2)
+			{
+				if (yIndex < N / 2)
+				{
+					// First Quad
+					output[index].x = input[index + sEq1].x;
+					output[index].y = input[index + sEq1].y;
+				}
+				else
+				{
+					// Third Quad
+					output[index].x = input[index + sEq3].x;
+					output[index].y = input[index + sEq3].y;
+				}
+			}
+			else
+			{
+				if (yIndex < N / 2)
+				{
+					// Second Quad
+					output[index].x = input[index + sEq2].x;
+					output[index].y = input[index + sEq2].y;
+				}
+				else
+				{
+					// Fourth Quad
+					output[index].x = input[index + sEq4].x;
+					output[index].y = input[index + sEq4].y;
+				}
+			}
+		}
+		else
+		{
+			if (xIndex < N / 2)
+			{
+				if (yIndex < N / 2)
+				{
+					// First Quad
+					output[index].x = input[index - sEq4].x;
+					output[index].y = input[index - sEq4].y;
+				}
+				else
+				{
+					// Third Quad
+					output[index].x = input[index - sEq2].x;
+					output[index].y = input[index - sEq2].y;
+				}
+			}
+			else
+			{
+				if (yIndex < N / 2)
+				{
+					// Second Quad
+					output[index].x = input[index - sEq3].x;
+					output[index].y = input[index - sEq3].y;
+				}
+				else
+				{
+					// Fourth Quad
+					output[index].x = input[index - sEq1].x;
+					output[index].y = input[index - sEq1].y;
+				}
+			}
+		}
+	}
+}
 
 
 template <typename T>
@@ -583,12 +583,88 @@ void gpuFFT::CASImgsToImgs(
     int ImgSize, float* d_CASImgs, float* d_imgs, int numImgs)
 {
 
+    cudaDeviceSynchronize();
+
+    // test
+    // numImgs = 400;    
+
+    cudaSetDevice(0);   
+
+    // Convert a CAS images array to images
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
     std::cout << "CASImgsToImgs()" << '\n';
     std::cout << "gridSize: " << gridSize << '\n';
     std::cout << "blockSize: " << blockSize << '\n';
     std::cout << "CASImgSize: " << CASImgSize << '\n';
     std::cout << "ImgSize: " << ImgSize << '\n';
     std::cout << "numImgs: " << numImgs << '\n';
+    std::cout << "sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs: " << sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs << '\n';
+
+
+
+    // Allocate a temporary cufftComplex array 
+    cufftComplex *d_CASImgsComplex2;
+    cudaMalloc(&d_CASImgsComplex2, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+
+    cufftComplex *d_CASImgsComplex2Output;
+    cudaMalloc(&d_CASImgsComplex2Output, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+
+
+    CASImgsToComplexImgs<<< dimGrid, dimBlock >>>(d_CASImgs, d_CASImgsComplex2, CASImgSize, numImgs);
+
+    cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize*CASImgSize*numImgs); 
+
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_CASImgsComplex2, d_CASImgsComplex2Output, CASImgSize, numImgs);
+ 
+
+    cudaDeviceSynchronize();
+
+
+
+    // Execute the forward FFT on each 2D array
+    for (int i = 0; i<numImgs; i++)
+    {
+        // std::cout << "Inverse FFT " << i << '\n';
+        // std::cout << "i*CASImgSize*CASImgSize: " << i*CASImgSize*CASImgSize << '\n';
+
+        // std::cout << "Left: " << CASImgSize * CASImgSize * numImgs  - i*CASImgSize*CASImgSize << '\n';
+
+        // Plan the inverse FFT
+        cufftHandle inverseFFTPlan;           
+        cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
+
+        cufftExecC2C(inverseFFTPlan,
+            &*(d_CASImgsComplex2Output + i*CASImgSize*CASImgSize), 
+            &*(d_CASImgsComplex2 + i*CASImgSize*CASImgSize),
+            CUFFT_INVERSE);
+            
+        // std::cout << "result: " << result << '\n';
+        cudaDeviceSynchronize();
+
+        cufftDestroy(inverseFFTPlan);
+    }
+
+   
+
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock >>> (d_CASImgsComplex2, d_CASImgsComplex2Output, CASImgSize, numImgs);
+
+    ComplexToReal<<< dimGrid, dimBlock >>>(d_CASImgsComplex2Output, d_CASImgs, CASImgSize, numImgs);    
+
+    CropImgs<<< dimGrid, dimBlock >>>(d_CASImgs, d_imgs, CASImgSize, ImgSize, numImgs);
+    NormalizeImgs<<< dimGrid, dimBlock >>>(d_imgs, ImgSize, numImgs, CASImgSize * CASImgSize);
+    
+    return;
+
+
+
+
+
+
+
+
+
 
     // Check to make sure the GPU has enough available memory left
     size_t mem_tot_0 = 0;
@@ -596,46 +672,57 @@ void gpuFFT::CASImgsToImgs(
     cudaMemGetInfo(&mem_free_0, &mem_tot_0);
     std::cout << "Free GPU memory: " << mem_free_0 << " out of " << mem_tot_0 << '\n';
 
-    // Convert a CAS images array to images
-    dim3 dimGrid(gridSize, gridSize, 1);
-    dim3 dimBlock(blockSize, blockSize, 1);
 
     // cudaMemset(d_CASImgsComplex, 0, sizeof(cufftComplex)*CASImgSize*CASImgSize*numImgs) ;
     // cudaMemset(d_imgs, 0, sizeof(float)*ImgSize*ImgSize*numImgs) ;
 
     // Allocate a temporary cufftComplex array 
-    cufftComplex *d_CASImgsComplex;
+    cufftComplex *d_CASImgsComplex, *d_CASImgsComplexOutput;
     cudaMalloc(&d_CASImgsComplex, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+    cudaMalloc(&d_CASImgsComplexOutput, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
+
+    cudaMemset(d_CASImgsComplexOutput, 0, sizeof(cufftComplex)*CASImgSize*CASImgSize*numImgs) ;
+    cudaDeviceSynchronize();
+
 
     // Convert the CASImgs to complex cufft type
     CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs);
 
+    cudaDeviceSynchronize();
+
     // Run FFTShift on d_CASImgsComplex
     cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_CASImgsComplex, CASImgSize, numImgs);
 
-    // Create a plan for taking the inverse of the CAS imgs
-    cufftHandle inverseFFTPlan;   
-    int nRows = CASImgSize;
-    int nCols = CASImgSize;
-    int batch = numImgs;            // --- Number of batched executions
-    int rank = 2;                   // --- 2D FFTs
-    int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
-    int idist = nRows*nCols;        // --- Distance between batches
-    int odist = nRows*nCols;        // --- Distance between batches
+    cudaDeviceSynchronize();
 
-    int inembed[] = {nRows, nCols}; // --- Input size with pitch
-    int onembed[] = {nRows, nCols}; // --- Output size with pitch
+    // // Create a plan for taking the inverse of the CAS imgs
+    // cufftHandle inverseFFTPlan;   
+    // int nRows = CASImgSize;
+    // int nCols = CASImgSize;
+    // int batch = numImgs;            // --- Number of batched executions
+    // int rank = 2;                   // --- 2D FFTs
+    // int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+    // int idist = nRows*nCols;        // --- Distance between batches
+    // int odist = nRows*nCols;        // --- Distance between batches
 
-    int istride = 1;                // --- Distance between two successive input/output elements
-    int ostride = 1;                // --- Distance between two successive input/output elements
+    // int inembed[] = {nRows, nCols}; // --- Input size with pitch
+    // int onembed[] = {nRows, nCols}; // --- Output size with pitch
+
+    // int istride = 1;                // --- Distance between two successive input/output elements
+    // int ostride = 1;                // --- Distance between two successive input/output elements
     
-    cudaDeviceSynchronize();
-    cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
-    cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
+    // // cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
+    // // cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+    // // cudaDeviceSynchronize();
 
-    // Inverse FFT
-    cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex, (cufftComplex *) d_CASImgsComplex, CUFFT_INVERSE);
+    // // Inverse FFT
+    // // cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex, (cufftComplex *) d_CASImgsComplex, CUFFT_INVERSE);
+
+
+
+
+
 
     // TEST
     // cufftComplex * h_CASImgsComplex = new cufftComplex[CASImgSize*CASImgSize*numImgs];
@@ -654,32 +741,43 @@ void gpuFFT::CASImgsToImgs(
 
     // STEP 3
     // Execute the forward FFT on each 2D array
-    // for (int i = 0; i<10; i++) // numImgs
-    // {
-    //     std::cout << "Inverse FFT " << i << '\n';
-    //     // Plan the inverse FFT
-    //     cufftHandle inverseFFTPlan;           
-    //     cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
-    //     // cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+    for (int i = 0; i<numImgs; i++)
+    {
+        std::cout << "Inverse FFT " << i << '\n';
 
-    //     cufftResult_t result = cufftExecC2C(inverseFFTPlan,
-    //         (cufftComplex *) &d_CASImgsComplex[i*CASImgSize*CASImgSize],
-    //         (cufftComplex *) &d_CASImgsComplex[i*CASImgSize*CASImgSize],
-    //         CUFFT_INVERSE);
+        // Check to make sure the GPU has enough available memory left
+        size_t mem_tot_0 = 0;
+        size_t mem_free_0 = 0;
+        cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+        std::cout << "Free GPU memory: " << mem_free_0 << " out of " << mem_tot_0 << '\n';
+
+
+
+        // Plan the inverse FFT
+        cufftHandle inverseFFTPlan;           
+        cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
+        cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+
+        cufftResult_t result = cufftExecC2C(inverseFFTPlan,
+            (cufftComplex *) &d_CASImgsComplex[i*CASImgSize*CASImgSize], // &d_CASImgsComplex[i*CASImgSize*CASImgSize]
+            (cufftComplex *) &d_CASImgsComplexOutput[i*CASImgSize*CASImgSize],
+            CUFFT_INVERSE);
         
-    //     std::cout << "result: " << result << '\n';
-    //     cudaDeviceSynchronize();
+        std::cout << "result: " << result << '\n';
+        cudaDeviceSynchronize();
 
-    //     cufftDestroy(inverseFFTPlan);
-    // }
+        cufftDestroy(inverseFFTPlan);
+    }
 
     // FFTShift again on d_CASImgsComplex
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex, CASImgSize, numImgs);
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplexOutput, CASImgSize, numImgs);
 
+    // test
+    // cudaMemset(d_CASImgsComplex, 0, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
     // cudaMemset(d_CASImgs, 0, sizeof(float)*CASImgSize*CASImgSize*numImgs) ; // TEST TEST
 
     // Convert from the complex images to the real (resue the d_CASImgs GPU array)
-    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgsComplex, d_CASImgs, CASImgSize, numImgs);            
+    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgsComplexOutput, d_CASImgs, CASImgSize, numImgs);            
 
     cudaDeviceSynchronize();
 

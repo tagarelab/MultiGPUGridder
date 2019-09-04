@@ -97,7 +97,6 @@ void gpuGridder::SetVolume(float *Volume, int *ArraySize)
 // Initilize the forward projection object
 void gpuGridder::InitilizeForwardProjection()
 {
-
     this->ForwardProject_obj = new gpuForwardProject();
 
     // Pass the float pointers to the forward projection object
@@ -134,6 +133,10 @@ void gpuGridder::ForwardProject()
     this->newVolumeFlag = true;
     this->FP_initilized = false;
 
+    // NOTE: gridSize times blockSize needs to equal CASimgSize
+    this->gridSize = 32;
+    this->blockSize = ceil(this->CASimgs->GetSize(0) / this->gridSize);
+
     // Has the forward projection been initilized?
     if (this->FP_initilized == false)
     {
@@ -142,12 +145,6 @@ void gpuGridder::ForwardProject()
 
         // Initilize the forward projection object
         InitilizeForwardProjection();
-
-        // NOTE: gridSize times blockSize needs to equal CASimgSize
-        this->gridSize = 32;
-        this->blockSize = ceil(this->CASimgs->GetSize(0) / this->gridSize);
-
-        cudaDeviceSynchronize(); // needed?
 
         // Reset the flag
         this->FP_initilized = true;
@@ -158,7 +155,7 @@ void gpuGridder::ForwardProject()
     if (this->newVolumeFlag == true)
     {
         cudaDeviceSynchronize(); // needed?
-        
+
         // Run the volume to CAS volume function
         VolumeToCASVolume();
 
