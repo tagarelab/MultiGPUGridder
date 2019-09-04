@@ -24,7 +24,7 @@ disp("Resetting devices...")
 
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 20;
+n1_axes = 200;
 n2_axes = 20;
 
 load mri;

@@ -623,28 +623,58 @@ void gpuFFT::CASImgsToImgs(
 
 
 
-    // Execute the forward FFT on each 2D array
-    for (int i = 0; i<numImgs; i++)
-    {
-        // std::cout << "Inverse FFT " << i << '\n';
-        // std::cout << "i*CASImgSize*CASImgSize: " << i*CASImgSize*CASImgSize << '\n';
+    // // Execute the forward FFT on each 2D array
+    // for (int i = 0; i<numImgs; i++)
+    // {
+    //     // std::cout << "Inverse FFT " << i << '\n';
+    //     // std::cout << "i*CASImgSize*CASImgSize: " << i*CASImgSize*CASImgSize << '\n';
 
-        // std::cout << "Left: " << CASImgSize * CASImgSize * numImgs  - i*CASImgSize*CASImgSize << '\n';
+    //     // std::cout << "Left: " << CASImgSize * CASImgSize * numImgs  - i*CASImgSize*CASImgSize << '\n';
 
-        // Plan the inverse FFT
-        cufftHandle inverseFFTPlan;           
-        cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
+    //     // Plan the inverse FFT
+    //     cufftHandle inverseFFTPlan;           
+    //     cufftPlan2d(&inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
 
-        cufftExecC2C(inverseFFTPlan,
-            &*(d_CASImgsComplex2Output + i*CASImgSize*CASImgSize), 
-            &*(d_CASImgsComplex2 + i*CASImgSize*CASImgSize),
-            CUFFT_INVERSE);
+    //     cufftExecC2C(inverseFFTPlan,
+    //         &*(d_CASImgsComplex2Output + i*CASImgSize*CASImgSize), 
+    //         &*(d_CASImgsComplex2 + i*CASImgSize*CASImgSize),
+    //         CUFFT_INVERSE);
             
-        // std::cout << "result: " << result << '\n';
-        cudaDeviceSynchronize();
+    //     // std::cout << "result: " << result << '\n';
+    //     cudaDeviceSynchronize();
 
-        cufftDestroy(inverseFFTPlan);
-    }
+    //     cufftDestroy(inverseFFTPlan);
+    // }
+
+
+        // Create a plan for taking the inverse of the CAS imgs
+        cufftHandle inverseFFTPlan;   
+        int nRows = CASImgSize;
+        int nCols = CASImgSize;
+        int batch = numImgs;            // --- Number of batched executions
+        int rank = 2;                   // --- 2D FFTs
+        int n[2] = {nRows, nCols};      // --- Size of the Fourier transform
+        int idist = nRows*nCols;        // --- Distance between batches
+        int odist = nRows*nCols;        // --- Distance between batches
+    
+        int inembed[] = {nRows, nCols}; // --- Input size with pitch
+        int onembed[] = {nRows, nCols}; // --- Output size with pitch
+    
+        int istride = 1;                // --- Distance between two successive input/output elements
+        int ostride = 1;                // --- Distance between two successive input/output elements
+        
+        cudaDeviceSynchronize();
+        cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
+        // cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
+        // cudaDeviceSynchronize();
+    
+        // Inverse FFT
+        cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex2Output, (cufftComplex *) d_CASImgsComplex2, CUFFT_INVERSE);
+    
+   
+        
+
+
 
    
 
