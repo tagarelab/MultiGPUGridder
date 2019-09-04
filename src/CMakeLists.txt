@@ -29,17 +29,21 @@ endif()
 
 add_library(gridderLib SHARED
 
+		gpuForwardProject.h
+		gpuForwardProjectKernel.cu
+
+		gpuFFT.h
+		gpuFFT.cu
+		
 		AbstractGridder.h
 		AbstractGridder.cpp
-	
+
 		gpuGridder.h
 		gpuGridder.cpp
 		
-		gpuFFT.h
-		gpuFFT.cu
 
-		gpuForwardProject.h
-		gpuForwardProjectKernel.cu
+
+
 
   )
 

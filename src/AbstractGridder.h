@@ -138,7 +138,7 @@ public:
     void SetNumAxes(int numCoordAxes) { this->coordAxes->size[0] = numCoordAxes; }
 
     // Get the number of coordinate axes
-    int GetNumAxes() { return this->coordAxes->size[0]; }
+    int GetNumAxes() { return this->coordAxes->GetSize(0) / 9; } // 9 elements per coordinate axe
 
     // Get the number of maximum axes allocated
     int GetMaxAxesAllocated() { return this->MaxAxesAllocated; }

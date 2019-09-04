@@ -54,7 +54,7 @@ void gpuGridder::InitilizeGPUArrays()
 
     // Allocate the CAS volume
     this->d_CASVolume = new MemoryStructGPU(this->CASVolume->dims, this->CASVolume->size, this->GPU_Device);
-    this->d_CASVolume->CopyToGPU(this->CASVolume->ptr, this->CASVolume->bytes());
+    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
     // Allocate the CAS images
     this->d_CASImgs = new MemoryStructGPU(this->CASimgs->dims, this->CASimgs->size, this->GPU_Device);
@@ -89,7 +89,17 @@ void gpuGridder::SetVolume(float *Volume, int *ArraySize)
 // Initilize the forward projection object
 void gpuGridder::InitilizeForwardProjection()
 {
+
     this->ForwardProject_obj = new gpuForwardProject();
+
+    // Pass the float pointers to the forward projection object
+    float *coordAxesPtr = this->coordAxes->GetPointer();
+    float *CASImagesPtr = this->CASimgs->GetPointer();
+    float *ImgsPtr = this->imgs->GetPointer();
+
+    this->ForwardProject_obj->SetPinnedCoordinateAxes(coordAxesPtr);
+    this->ForwardProject_obj->SetPinnedCASImages(CASImagesPtr);
+    this->ForwardProject_obj->SetPinnedImages(ImgsPtr);
 
     // Pass the pointer to the MemoryStructGPU to the forward projection object
     this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
@@ -106,13 +116,29 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
     this->ForwardProject_obj->SetGPUDevice(this->GPU_Device);
     this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
-    
+    this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
 }
 
 void gpuGridder::ForwardProject()
 {
     Log("ForwardProject()");
 
+
+
+    // // Run the volume to CAS volume function
+    // VolumeToCASVolume();
+
+    // // test
+    // // Allocate the CAS volume
+    // this->d_CASVolume = new MemoryStructGPU(this->CASVolume->dims, this->CASVolume->size, this->GPU_Device);
+    // this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+    // cudaDeviceSynchronize(); // needed?
+    // cudaMemcpy(this->CASVolume->GetPointer(), this->d_CASVolume->GetPointer(), this->d_CASVolume->bytes(), cudaMemcpyDeviceToHost);                
+    // return;
+
+
+
+    
     std::cout << "this->Volume->ptr: " << this->Volume->ptr << '\n';
     std::cout << "this->CASVolume->ptr: " << this->CASVolume->ptr << '\n';
     std::cout << "this->imgs->ptr: " << this->imgs->ptr << '\n';
@@ -126,17 +152,24 @@ void gpuGridder::ForwardProject()
 
     if (newVolumeFlag == 1)
     {
+        // NOTE: gridSize times blockSize needs to equal CASimgSize
+        this->gridSize = 32;
+        this->blockSize = ceil(this->CASimgs->GetSize(0) / this->gridSize);
+        this->nStreams = 1;
+
+        // Run the volume to CAS volume function
+        VolumeToCASVolume();
+
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
 
         // Initilize the forward projection object
         InitilizeForwardProjection();
 
-        // Run the volume to CAS volume function
-        VolumeToCASVolume();
 
-        return;
     }
+
+
 
     // Check the error flags to see if we had any issues during the initilization
     if (this->ErrorFlag == 1 ||
@@ -153,13 +186,9 @@ void gpuGridder::ForwardProject()
     // Synchronize before running the kernel
     cudaDeviceSynchronize(); // needed?
 
-    // NOTE: gridSize times blockSize needs to equal CASimgSize
-    this->gridSize = 32;
-    this->blockSize = ceil(this->CASimgs->size[0] / gridSize);
-
     // Run the forward projection CUDA kernel
     Log("gpuForwardProjectLaunch()");
-    // gpuForwardProjectLaunch(this);
+    this->ForwardProject_obj->Execute();
 
     cudaDeviceSynchronize();
     Log("gpuForwardProjectLaunch() Done");

@@ -78,6 +78,19 @@ struct MemoryStruct
         return len;
     }
 
+    // Function to return the given array dimension
+    int GetSize(int dim)
+    {
+        if (dim > this->dims)
+        {
+            std::cerr << "Error in size(): requested dim " << dim << " but the array has dimsions of size " << this->dims << '\n';
+            return 0;
+        }
+
+        return size[dim];
+    }
+
+
     // Copy a given array
     void CopyArray(float *Array)
     {
@@ -111,4 +124,10 @@ struct MemoryStruct
     {
         return this->ptr;
     }
+
+    // Get the pointer using some offset from the beginning of the array
+    float *GetPointer(int offset)
+    {
+        return &this->ptr[offset];
+    } 
 };

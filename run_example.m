@@ -12,6 +12,7 @@ addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
+
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
@@ -78,8 +79,20 @@ max(Volume(:))
 
 gridder.ForwardProject()
 
+max(gridder.CASImages(:))
+CASImages = gridder.Get('CASImages');
+max(CASImages(:))
 
-return
+
+% imagesc(real(fftshift2(fft2(fftshift2(CASImages(:,:,1))))))
+
+imagesc(gridder.CASImages(:,:,2))
+colormap gray
+max(gridder.CASVolume(:))
+% 
+% easyMontage(gridder.CASImages(:,:,end-100:end),1)
+
+% return
 
 
 disp("ForwardProject...")
