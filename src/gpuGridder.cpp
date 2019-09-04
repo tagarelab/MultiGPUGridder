@@ -5,7 +5,6 @@
         std::cout << x << '\n'; \
     }
 
-
 // gpuGridder::gpuGridder()
 // {
 //     // Constructor
@@ -40,39 +39,7 @@ void gpuGridder::VolumeToCASVolume()
 
     // Convert the volume to CAS volume
     // this->CASVolume = new float[this->CASVolumeSize * this->CASVolumeSize * this->CASVolumeSize];
-    gpuFFT::VolumeToCAS(this->Volume->ptr,  this->Volume->size[0], this->CASVolume->ptr, this->interpFactor, this->extraPadding);
-
-}
-
-float *gpuGridder::AllocateGPUArray(int GPU_Device, int ArraySize)
-{
-    // Set the current GPU
-    cudaSetDevice(GPU_Device);
-
-    // Check to make sure the GPU has enough available memory left
-    size_t mem_tot_0 = 0;
-    size_t mem_free_0 = 0;
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-
-    float *d_Ptr;
-
-    // Is there enough available memory on the device to allocate this array?
-    if (mem_free_0 < sizeof(float) * (ArraySize))
-    {
-        std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
-
-        d_Ptr = NULL; // Set the pointer to NULL
-
-        this->ErrorFlag = 1; // Set the error flag to 1 to remember that this failed
-    }
-    else
-    {
-
-        // There is enough memory left on the current GPU
-        cudaMalloc(&d_Ptr, sizeof(float) * (ArraySize));
-    }
-
-    return d_Ptr;
+    gpuFFT::VolumeToCAS(this->Volume->ptr, this->Volume->size[0], this->CASVolume->ptr, this->interpFactor, this->extraPadding);
 }
 
 void gpuGridder::SetGPU(int GPU_Device)
@@ -104,64 +71,39 @@ void gpuGridder::InitilizeGPUArrays()
     // Initilize the GPU arrays and allocate the needed memory on the GPU
     Log("InitilizeGPUArrays()");
 
-    Log("GPU_Device");
-    Log(this->GPU_Device);
-
-    Log("this->CASVolume->size[0]");
-    Log(this->CASVolume->size[0]);
-
-    Log("this->CASimgs->size[0]");
-    Log(this->CASimgs->size[0]);
-
-    Log("this->CASimgs->size[1]");
-    Log(this->CASimgs->size[1]);
-
-    Log("this->CASimgs->size[2]");
-    Log(this->CASimgs->size[2]);
-
-    Log("this->coordAxes->size[0]");
-    Log(this->coordAxes->size[0]);
-
-    Log("this->ker_bessel_Vector->size[0]");
-    Log(this->ker_bessel_Vector->size[0]);
-
-    Log("this->CASimgs->length()");
-    Log(this->CASimgs->length());
-
-    cudaSetDevice(this->GPU_Device);
-
     // Allocate the CAS volume
-    this->d_CASVolume->ptr = AllocateGPUArray(this->GPU_Device, this->CASVolume->length());
-    // cudaMalloc(&this->d_CASVolume->ptr, this->CASVolume->bytes());
+    this->d_CASVolume = new MemoryStructGPU(this->CASVolume->dims, this->CASVolume->size, this->GPU_Device);
+    this->d_CASVolume->CopyToGPU(this->CASVolume->ptr, this->CASVolume->bytes());
 
     // Allocate the CAS images
-    this->d_CASImgs->ptr = AllocateGPUArray(this->GPU_Device, this->CASimgs->length());
-    this->d_CASImgs->size = this->CASimgs->size;
+    this->d_CASImgs = new MemoryStructGPU(this->CASimgs->dims, this->CASimgs->size, this->GPU_Device);
+    this->d_CASImgs->CopyToGPU(this->CASimgs->ptr, this->CASimgs->bytes());
 
     // Allocate the images
-    this->d_Imgs->ptr = AllocateGPUArray(this->GPU_Device, this->imgs->length());
-
-    // Allocate the complex CAS images
-    // cudaMalloc(&this->d_CASImgsComplex, sizeof(cufftComplex) * this->CASimgs->size[0] * this->CASimgs->size[1] * this->CASimgs->size[2]);
+    this->d_Imgs = new MemoryStructGPU(this->imgs->dims, this->imgs->size, this->GPU_Device);
+    this->d_Imgs->CopyToGPU(this->imgs->ptr, this->imgs->bytes());
 
     // Allocate the coordinate axes array
-    this->d_CoordAxes->ptr = AllocateGPUArray(this->GPU_Device, this->coordAxes->length()); 
+    this->d_CoordAxes = new MemoryStructGPU(this->coordAxes->dims, this->coordAxes->size, this->GPU_Device);
+    this->d_CoordAxes->CopyToGPU(this->coordAxes->ptr, this->coordAxes->bytes());
 
     // Allocate the Kaiser bessel lookup table
-    this->d_KB_Table->ptr = AllocateGPUArray(this->GPU_Device, this->ker_bessel_Vector->length());
+    this->d_KB_Table = new MemoryStructGPU(this->ker_bessel_Vector->dims, this->ker_bessel_Vector->size, this->GPU_Device);
+    this->d_KB_Table->CopyToGPU(this->ker_bessel_Vector->ptr, this->ker_bessel_Vector->bytes());
 }
 
-void gpuGridder::SetVolume(float *Volume)
+void gpuGridder::SetVolume(float *Volume, int *ArraySize)
 {
     Log("SetVolume()");
 
     // First save the given pointer
-    this->Volume->ptr = Volume;
+    this->Volume = new MemoryStruct(3, ArraySize);
+    this->Volume->CopyPointer(Volume);
 
     // Next, pin the volume to host (i.e. CPU) memory in order to enable the async CUDA stream copying
     // This will let us copy the volume to all GPUs at the same time
-    // this->VolumeBytes = sizeof(float) * this->VolumeSize[0] * this->VolumeSize[1] * this->VolumeSize[2];
-    cudaHostRegister(this->Volume, this->Volume->bytes(), 0);
+    this->Volume->PinArray();
+
 }
 
 void gpuGridder::CopyVolumeToGPU()
@@ -238,6 +180,15 @@ void gpuGridder::ForwardProject()
 {
     Log("ForwardProject()");
 
+    std::cout << "this->Volume->ptr: " << this->Volume->ptr << '\n';
+    std::cout << "this->CASVolume->ptr: " << this->CASVolume->ptr << '\n';
+    std::cout << "this->imgs->ptr: " << this->imgs->ptr << '\n';
+    std::cout << "this->CASimgs->ptr: " << this->CASimgs->ptr << '\n';
+    std::cout << "this->coordAxes->ptr: " << this->coordAxes->ptr << '\n';
+    std::cout << "this->ker_bessel_Vector->ptr: " << this->ker_bessel_Vector->ptr << '\n';
+
+    return;
+
     // Do we need to convert the volume, copy to the GPUs, etc?
     // Assume for now that we have a new volume for each call to ForwardProject()
     bool newVolumeFlag = 1;
@@ -292,14 +243,10 @@ void gpuGridder::ForwardProject()
     Log("gpuForwardProjectLaunch()");
     gpuForwardProjectLaunch(this);
 
+    cudaDeviceSynchronize();
     Log("gpuForwardProjectLaunch() Done");
 
     return;
 
     // Note: This modifies the Matlab array in-place
-}
-
-float *gpuGridder::GetVolume()
-{
-    return this->Volume->ptr;
 }

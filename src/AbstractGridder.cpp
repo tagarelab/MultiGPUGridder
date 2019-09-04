@@ -5,13 +5,15 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     // Constructor for the abstract gridder class
 
     // Initlize these variable here for now
-    this->ker_bessel_Vector->size[0] = 501;
+    this->kerSize = 501;
     this->kerHWidth = 2;
     this->extraPadding = 3;
     this->ErrorFlag = false;
     this->interpFactor = 2;
     this->MaxAxesAllocated = 10000;
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
+
+    return;
 
     // Kaiser bessel window function array of predefined values
     // Provide default vector values (useful if Matlab is not available)
@@ -23,7 +25,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
         SetVolumeSize(VolumeSize);
         SetCASVolumeSize(VolumeSize * interpFactor + extraPadding * 2);
         SetCASImagesSize(VolumeSize * interpFactor, numCoordAxes);
-        
+
         int imgSize[3];
         imgSize[0] = VolumeSize;
         imgSize[1] = VolumeSize;
@@ -78,29 +80,24 @@ void AbstractGridder::SetInterpFactor(float interpFactor)
     }
 }
 
-void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int kerSize)
+void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySize)
 {
     // Set the keiser bessel vector
+    this->ker_bessel_Vector = new MemoryStruct(1, ArraySize);
+    this->ker_bessel_Vector->ptr = ker_bessel_Vector;
 
-    std::cout << "SetKerBesselVector()" << '\n';
-    std::cout << "kerSize: " << kerSize << '\n';
+    // for (int i = 0; i < kerSize; i++)
+    // {
+    //     this->ker_bessel_Vector->ptr[i] = ker_bessel_Vector[i];
+    // }
 
-    this->ker_bessel_Vector->size[0] = kerSize;
-
-    this->ker_bessel_Vector->ptr = new float[kerSize];
-
-    for (int i = 0; i < kerSize; i++)
-    {
-        this->ker_bessel_Vector->ptr[i] = ker_bessel_Vector[i];
-    }
-
-    std::cout << "this->ker_bessel_Vector->size[0]: " << this->ker_bessel_Vector->size[0] << '\n';
-    std::cout << "this->ker_bessel_Vector->length(): " << this->ker_bessel_Vector->length() << '\n';
+    // std::cout << "this->ker_bessel_Vector->size[0]: " << this->ker_bessel_Vector->size[0] << '\n';
+    // std::cout << "this->ker_bessel_Vector->length(): " << this->ker_bessel_Vector->length() << '\n';
 }
 
 void AbstractGridder::SetImgSize(int *imgSize)
 {
-    // Set the projection image size    
+    // Set the projection image size
     this->imgs->size[0] = imgSize[0];
     this->imgs->size[1] = imgSize[1];
     this->imgs->size[2] = imgSize[2];
@@ -114,7 +111,7 @@ float *AbstractGridder::GetImages()
 
 void AbstractGridder::SetVolumeSize(int VolumeSize)
 {
-    std::cout << "VolumeSize: " << VolumeSize << '\n';    
+    std::cout << "VolumeSize: " << VolumeSize << '\n';
     this->Volume->size[0] = VolumeSize;
     this->Volume->size[1] = VolumeSize;
     this->Volume->size[2] = VolumeSize;
@@ -122,7 +119,7 @@ void AbstractGridder::SetVolumeSize(int VolumeSize)
 
 void AbstractGridder::SetCASVolumeSize(int CASVolumeSize)
 {
-    std::cout << "CASVolumeSize: " << CASVolumeSize << '\n';    
+    std::cout << "CASVolumeSize: " << CASVolumeSize << '\n';
     this->CASVolume->size[0] = CASVolumeSize;
     this->CASVolume->size[1] = CASVolumeSize;
     this->CASVolume->size[2] = CASVolumeSize;
@@ -130,7 +127,7 @@ void AbstractGridder::SetCASVolumeSize(int CASVolumeSize)
 
 void AbstractGridder::SetCASImagesSize(int SetCASImgSize, int numCoordAxes)
 {
-    std::cout << "SetCASImagesSize: " << SetCASImgSize << " " << SetCASImgSize << " " << numCoordAxes << '\n';        
+    std::cout << "SetCASImagesSize: " << SetCASImgSize << " " << SetCASImgSize << " " << numCoordAxes << '\n';
     this->CASimgs->size[0] = SetCASImgSize;
     this->CASimgs->size[1] = SetCASImgSize;
     this->CASimgs->size[2] = numCoordAxes;
@@ -146,8 +143,10 @@ void AbstractGridder::SetVolume(float *Volume)
     this->Volume->ptr = Volume;
 }
 
-void AbstractGridder::SetCASVolume(float *CASVolume)
+void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
 {
+    // Set the CAS volume
+    this->CASVolume = new MemoryStruct(3, ArraySize);
     this->CASVolume->ptr = CASVolume;
 }
 
@@ -177,18 +176,25 @@ void AbstractGridder::SetCASImageSize(int *imgSize)
     this->CASimgs->size[2] = imgSize[2];
 };
 
-void AbstractGridder::SetImages(float *imgs)
+void AbstractGridder::SetImages(float *imgs, int *ArraySize)
 {
+    // Set the images array
+    this->imgs = new MemoryStruct(3, ArraySize);
     this->imgs->ptr = imgs;
 }
 
-void AbstractGridder::SetCASImages(float *CASimgs)
+void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
 {
+    // Set the CAS images array
+    this->CASimgs = new MemoryStruct(3, ArraySize);
     this->CASimgs->ptr = CASimgs;
 }
 
-void AbstractGridder::SetCoordAxes(float *coordAxes)
+void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
 {
     // Set the coordinate axes pointer
+    this->coordAxes = new MemoryStruct(1, ArraySize);
     this->coordAxes->ptr = coordAxes;
 }
+
+

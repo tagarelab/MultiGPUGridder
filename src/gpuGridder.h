@@ -4,6 +4,8 @@
 #include "AbstractGridder.h"
 #include "gpuFFT.h"
 #include "gpuForwardProject.h"
+#include "MemoryStruct.h"
+#include "MemoryStructGPU.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -22,11 +24,9 @@ class gpuGridder : public AbstractGridder
 {
 
 public:
+
     // Constructor
     gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor){};
-
-    // Declare the struct to hold the allocated memory information here
-    struct MemoryStructGPU;
 
     // ~gpuGridder() : ~AbstractGridder() { };
 
@@ -45,10 +45,7 @@ public:
     // void ResetVolume();
 
     // Set the volume
-    void SetVolume(float *Volume);
-
-    // Return the volume
-    float *GetVolume();
+    void SetVolume(float *Volume, int *ArraySize);
 
     // Set which GPUs to use
     void SetGPU(int GPU_Device);
@@ -89,20 +86,8 @@ public:
     // Get the device kaiser bessel lookup table pointer
     float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
 
-    // Extend the memory struct from the abstract gridder class to include GPU related information
-    struct MemoryStructGPU : public MemoryStruct
-    {
-        // Which GPU is the memory allocated on?
-        int GPU;
 
-        // Inherit constructors from MemoryStruct
-        using MemoryStruct::MemoryStruct; // inherit constructors from B
-        // MemoryStructGPU (int dims) : MemoryStruct(int dims){};
-        
-        
-    };
-
-protected: 
+protected:
 
     // // Get a new images array and then convert them to CAS
     // void SetImages(float *imgs);
@@ -117,19 +102,19 @@ protected:
     int nStreams;
 
     // Pointer to the CASVolume array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASVolume = new MemoryStructGPU(3);
+    MemoryStructGPU *d_CASVolume; // = new MemoryStructGPU(3);
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASImgs = new MemoryStructGPU(3);
+    MemoryStructGPU *d_CASImgs; // = new MemoryStructGPU(3);
 
     // Pointer to the images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_Imgs = new MemoryStructGPU(3);
+    MemoryStructGPU *d_Imgs; // = new MemoryStructGPU(3);
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_CoordAxes = new MemoryStructGPU(3);
+    MemoryStructGPU *d_CoordAxes; // = new MemoryStructGPU(3);
 
     // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_KB_Table = new MemoryStructGPU(3);
+    MemoryStructGPU *d_KB_Table; // = new MemoryStructGPU(3);
 
     // Pointer to the complex CAS images on the device (i.e. the GPU)
     // cufftComplex *d_CASImgsComplex;
@@ -161,7 +146,7 @@ private:
     void KB_Table_To_GPU();
 
     // Allocate GPU arrays
-    float *AllocateGPUArray(int GPU_Device, int ArraySize);
+    // float *AllocateGPUArray(int GPU_Device, int ArraySize);
 
     // // Free all of the allocated memory
     // void FreeMemory();

@@ -23,48 +23,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Get the class instance pointer from the second input
     gpuGridder *gpuGridderObj = convertMat2Ptr<gpuGridder>(prhs[1]);
 
-    // Set the volume size
-    if (!strcmp("SetVolumeSize", cmd))
-    {
-        int *VolumeSize = (int *)mxGetData(prhs[2]);
+    // // Set the volume size
+    // if (!strcmp("SetVolumeSize", cmd))
+    // {
+    //     int *VolumeSize = (int *)mxGetData(prhs[2]);
 
-        std::cout << "SetVolumeSize: " << VolumeSize[0] << '\n';
+    //     std::cout << "SetVolumeSize: " << VolumeSize[0] << '\n';
 
-        gpuGridderObj->SetVolumeSize(VolumeSize[0]);
+    //     gpuGridderObj->SetVolumeSize(VolumeSize[0]);
 
-        // DEBUG
-        int* volSize = gpuGridderObj->GetVolumeSize();
-        std::cout << "volSize: " << volSize[0] << " " << volSize[1] << " " << volSize[2] << '\n';
-      
+    //     // DEBUG
+    //     int* volSize = gpuGridderObj->GetVolumeSize();
+    //     std::cout << "volSize: " << volSize[0] << " " << volSize[1] << " " << volSize[2] << '\n';
 
-    }
+    // }
 
     // Set the pointer to the volume
     if (!strcmp("SetVolume", cmd))
     {
-        gpuGridderObj->SetVolume((float *)mxGetData(prhs[2]));
+        // Pointer to the volume array and the dimensions of the array
+        gpuGridderObj->SetVolume((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
     }
 
     // Set the pointer to the coordinate axes
     if (!strcmp("SetCoordAxes", cmd))
     {
-        gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]));
-
-        float * coordAxesTest = (float *)mxGetData(prhs[2]);
-
-        for (int i= 0; i<10; i++)
-        {
-            std::cout << "coordAxesTest[i] " << coordAxesTest[i] << '\n';
-        }
+        // Pointer to the volume array and the dimensions of the array
+        gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
 
         // Set the number of coordinate axes
-        gpuGridderObj->SetNumAxes((int)mxGetScalar(prhs[3]));
+        // gpuGridderObj->SetNumAxes((int)mxGetScalar(prhs[3]));
     }
 
     // Set the pointer to the CAS volume
     if (!strcmp("SetCASVolume", cmd))
     {
-        gpuGridderObj->SetCASVolume((float *)mxGetData(prhs[2]));
+        // Pointer to the volume array and the dimensions of the array
+        gpuGridderObj->SetCASVolume((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
+
     }
 
     // Set the output projection images size
@@ -76,7 +72,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Set the pointer to the output images
     if (!strcmp("SetImages", cmd))
     {
-        gpuGridderObj->SetImages((float *)mxGetData(prhs[2]));
+        // Pointer to the images array and the dimensions of the array
+        gpuGridderObj->SetImages((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
     }
 
     // Set the pointer to the CAS images
@@ -86,7 +83,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // int CASImgbytes = (int)mxGetScalar(prhs[3]) * sizeof(float);
         // cudaHostRegister((float *)mxGetData(prhs[2]), CASImgbytes, 0);
 
-        gpuGridderObj->SetCASImages((float *)mxGetData(prhs[2]));
+        // Pointer to the CAS images array and the dimensions of the array
+        gpuGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
+
     }
 
     // Set the GPUS to use
@@ -98,20 +97,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // Log("GPU_Array:");
         // Log(GPU_Array[0]);
 
-
         // Log("Number_GPUs:");
         // Log(Number_GPUs);
-    
+
         gpuGridderObj->SetGPU(0);
     }
-
 
     // Set the Kaiser Bessel lookup table
     if (!strcmp("SetKBTable", cmd))
     {
         // KB Lookup table; Length of the table
-        gpuGridderObj->SetKerBesselVector((float *)mxGetData(prhs[2]), (int)mxGetScalar(prhs[3]));
+        gpuGridderObj->SetKerBesselVector((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
     }
-
-    
 }

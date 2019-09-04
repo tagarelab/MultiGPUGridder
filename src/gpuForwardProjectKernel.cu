@@ -4,10 +4,13 @@
 __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* img,int imgSize, float *axes, int nAxes,float maskRadius,
     float* ker, int kerSize, float kerHWidth)
 {
+    // volSize = 134; //test
+    // imgSize = 128; //test
+
     int i=blockIdx.x*blockDim.x+threadIdx.x;
     int j=blockIdx.y*blockDim.y+threadIdx.y;
-    int volCenter= volSize/2;
-    int imgCenter=imgSize/2;
+    int volCenter = volSize/2;
+    int imgCenter = imgSize/2;
     float f_vol_i,f_vol_j,f_vol_k;
     int img_i;
     float *img_ptr;
@@ -30,8 +33,8 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
         /* Copy over the kernel */
         for (kerIndex=0;kerIndex<kerSize;kerIndex++) 
         {
-            // locKer[kerIndex]=*(ker+kerIndex);
-            locKer[kerIndex]=1;//test
+            locKer[kerIndex]=*(ker+kerIndex);
+            // locKer[kerIndex]=1;//test
         }
     }
     __syncthreads();      
@@ -90,12 +93,13 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
                         wk=*(locKer+kerIndex);
                         w=wi*wj*wk;
 
-                        // *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
-                        //     ( *(vol+k1*volSize*volSize+j1*volSize+i1));
-
-                        w = 1; // TEST
+                        // test
                         *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
-                                w*( *(vol+k1*volSize*volSize+j1*volSize+i1));
+                                 ( *(vol+k1*volSize*volSize+j1*volSize+i1));
+
+
+                        // *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
+                        //         w*( *(vol+k1*volSize*volSize+j1*volSize+i1));
 
                         // }
                     } //End k1

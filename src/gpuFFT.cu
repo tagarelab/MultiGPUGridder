@@ -479,6 +479,8 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
     // Step 4: fftshift
     // Step 5: Convert to CAS volume using CUDA kernel
     
+    std::cout << "gpuFFT::VolumeToCAS()" << '\n';
+
     // STEP 1
     // Example: input size = 128; interpFactor = 2; paddedVolSize = 256
     int paddedVolSize = inputVolSize * interpFactor;
@@ -568,6 +570,8 @@ void gpuFFT::VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, in
     cudaFree(d_CAS_Vol);   
     std::free(inputVol_Padded);
     std::free(h_CAS_Vol);
+
+    std::cout << "gpuFFT::VolumeToCAS() Done" << '\n';
 
     // Return the resulting CAS volume
     return;

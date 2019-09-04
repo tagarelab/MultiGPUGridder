@@ -4,7 +4,7 @@ clear gridder
 clear all
 
 % bdclose all; % clear all libraries out of memory ( supposedly )
-% clear all;   % clear all workspace variables, mex, etc. ( supposedly )
+% clear all;   % clear all workspace variables, mex, etc. ( supposedly )'
 rehash;      % cause all .m files to be reparsed when invoked again
 
 
@@ -74,6 +74,7 @@ gridder.Set()
 
 Volume = gridder.Get('Volume');
 
+
 disp("ForwardProject...")
 tic
 gridder.ForwardProject()
@@ -98,9 +99,14 @@ toc
 
 
 CASVolume = gridder.Get('CASVolume');
-Images = gridder.Get('Images');
+max(CASVolume(:))
 
-CASImages = gridder.Get('CASImages');
+% return
+
+
+% Images = gridder.Get('Images');
+% 
+% CASImages = gridder.Get('CASImages');
 
 
 
@@ -129,6 +135,8 @@ gpuGridderCASImgs = gather(gpuGridder.gridder.gpuCASImgs);
 gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
 
 
+% easyMontage(gridder.CASImages, 1)
+% return
 % easyMontage(gridder.CASVolume - gpuGridderCASVolume, 1)
 % colorbar
 
@@ -138,7 +146,7 @@ gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
 toc
  %%
  
- for slice = 5
+ for slice = 5:10
     
 %     
 %     slice = 1
@@ -154,7 +162,10 @@ toc
     colormap jet
     title("Slice " + num2str(slice))
     colorbar
+    pause(0.1)
  end
+ 
+ return
  
  %%
 for slice = 1
