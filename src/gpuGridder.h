@@ -130,20 +130,9 @@ private:
     // Which GPU to use for processing?
     int GPU_Device;
 
-    // Create the CUDA streams
-    void CreateCUDAStreams();
-
-    // Delete the CUDA streams
-    void DestroyCUDAStreams();
-
     // Initilize the GPU arrays
     void InitilizeGPUArrays();
 
-    // Copy the volume to the GPU
-    void CopyVolumeToGPU();
-
-    // Copy the Kaiser Bessel lookup table to the GPU
-    void KB_Table_To_GPU();
 
     // Allocate GPU arrays
     // float *AllocateGPUArray(int GPU_Device, int ArraySize);

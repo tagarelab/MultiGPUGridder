@@ -9,10 +9,19 @@ struct MemoryStructGPU : public MemoryStruct
     MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
-        this->GPU_Device = GPU_Device;
+        this->GPU_Device = GPU_Device;  
 
-        // Allocate the memory on the GPU device
-        this->AllocateGPUArray();
+        // Free the float array allocated in MemoryStruct. TO DO: make this not necessary
+        std::free(this->ptr)      ;
+
+        // Allocate the array on the GPU
+        AllocateGPUArray();
+    }
+
+    // Deconstructor to free the GPU memory
+    ~MemoryStructGPU()
+    {
+        DeallocateGPUArray();
     }
 
     // Which GPU is the memory allocated on?
@@ -33,9 +42,10 @@ struct MemoryStructGPU : public MemoryStruct
         cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost);
     }
 
+    // Allocate the memory to a given GPU device
     void AllocateGPUArray()
-    {
-        // Allocate the memory to a given GPU device
+    {   
+        std::cout << "GPU AllocateArray()" << '\n';
 
         // Set the current GPU
         cudaSetDevice(this->GPU_Device);
@@ -63,7 +73,9 @@ struct MemoryStructGPU : public MemoryStruct
         }
     }
 
+    // Free the GPU memory
     void DeallocateGPUArray()
     {
+        cudaFree(this->ptr);
     }
 };

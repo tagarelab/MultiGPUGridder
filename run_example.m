@@ -74,6 +74,13 @@ gridder.Set()
 
 Volume = gridder.Get('Volume');
 
+max(Volume(:))
+
+gridder.ForwardProject()
+
+
+return
+
 
 disp("ForwardProject...")
 tic

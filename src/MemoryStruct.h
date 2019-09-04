@@ -11,9 +11,9 @@
 // Struct to contain the needed information for each allocated array (e.g. CASImgs, images, coordinate axes, etc.)
 struct MemoryStruct
 {
+    // Constructor for the structure
     MemoryStruct(int dims, int *ArraySize)
     {
-        // Constructor for the structure
         this->dims = dims;
         this->size = new int[dims];
 
@@ -22,6 +22,21 @@ struct MemoryStruct
         {
             this->size[i] = ArraySize[i];
         }
+
+        // Allocate the memory for the float array
+        AllocateArray();
+    }
+
+    // Deconstructor to free the memory
+    ~MemoryStruct()
+    {
+        DeallocateArray();
+    }
+
+    // Allocate the memory for the float array
+    void AllocateArray()
+    {
+        std::cout << "AllocateArray()" << '\n';
 
         this->ptr = new float[this->length()];
     }
@@ -53,13 +68,11 @@ struct MemoryStruct
     // Function to return the array length
     int length()
     {
-        std::cout << "size[0]: " << size[0] << '\n';
         // Return the length of the array
         int len = 1;
         for (int i = 0; i < this->dims; i++)
         {
             len = len * size[i];
-            std::cout << "len: " << len << '\n';
         }
 
         return len;
@@ -73,7 +86,7 @@ struct MemoryStruct
 
     // Copy a given pointer
     void CopyPointer(float *&ptr)
-    {   
+    {
         // Free the currently allocated memory
         std::free(this->ptr);
 
@@ -85,5 +98,11 @@ struct MemoryStruct
     void PinArray()
     {
         cudaHostRegister(this->ptr, this->bytes(), 0);
+    }
+
+    // Free the memory
+    void DeallocateArray()
+    {
+        std::free(this->ptr);
     }
 };
