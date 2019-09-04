@@ -4,12 +4,14 @@
 #include <vector>
 
 #include "gpuGridder.h"
+#include "MemoryStruct.h"
+#include "MemoryStructGPU.h"
 
 // includes CUDA Runtime
 #include <cuda_runtime.h>
 #include <cuda.h>
 
-#define Log2(x, y)                           \
+#define Log2(x, y)                          \
     {                                       \
         std::cout << x << " " << y << '\n'; \
     }
@@ -23,10 +25,73 @@
 #ifndef __GPUFORWARDPROJECT_H__
 #define __GPUFORWARDPROJECT_H__
 
-// Forward declaration of the gpu gridder class
-class gpuGridder;
+class gpuForwardProject
+{
+private:
+    // Pointer to the CASVolume array on the device (i.e. the GPU)
+    MemoryStructGPU *d_CASVolume;
+
+    // Pointer to the CAS images array on the device (i.e. the GPU)
+    MemoryStructGPU *d_CASImgs;
+
+    // Pointer to the images array on the device (i.e. the GPU)
+    MemoryStructGPU *d_Imgs;
+
+    // Pointer to the coordinate axes vector on the device (i.e. the GPU)
+    MemoryStructGPU *d_CoordAxes;
+
+    // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
+    MemoryStructGPU *d_KB_Table;
+
+    int gridSize;
+    int blockSize;
+    int nAxes;
+    int MaxAxesAllocated;
+    int nStreams;
+    int GPU_Device;
+    float maskRadius;
+
+
+public:
+    gpuForwardProject(/* args */);
+    ~gpuForwardProject();
+
+    void SetCASVolume(MemoryStructGPU *&CASVolume) { this->d_CASVolume = CASVolume; }
+
+    void SetCASImages(MemoryStructGPU *&CASImgs){ this->d_CASImgs = CASImgs; }
+
+    void SetImages(MemoryStructGPU *&Imgs){ this->d_Imgs = Imgs; }
+
+    void SetCoordinateAxes(MemoryStructGPU *&CoordAxes){ this->d_CoordAxes = CoordAxes; }
+
+    void SetKBTable(MemoryStructGPU *&KB_Table){ this->d_KB_Table = KB_Table; }
+
+    void SetGridSize(int gridSize) {this->gridSize = gridSize; }
+
+    void SetBlockSize(int blockSize) {this->blockSize = blockSize; }
+
+    void SetNumberOfAxes(int nAxes) {this->nAxes = nAxes; }
+
+    void SetMaxAxesAllocated(int MaxAxesAllocated) {this->MaxAxesAllocated = MaxAxesAllocated; }
+
+    void SetNumberOfStreams(int nStreams) {this->nStreams = nStreams; }
+
+    void SetGPUDevice(int GPU_Device) {this->GPU_Device = GPU_Device; }
+
+    void SetMaskRadius(int maskRadius) {this->maskRadius = maskRadius; }
+
+
+};
+
+// gpuForwardProject::gpuForwardProject(/* args */)
+// {
+// }
+
+// gpuForwardProject::~gpuForwardProject()
+// {
+// }
 
 // Function for creating the CUDA streams and launchinh the forward projection kernel
-void gpuForwardProjectLaunch(gpuGridder *gridder);
+// void gpuForwardProjectLaunch(gpuGridder *gridder);
 
 #endif //__GPUFORWARDPROJECT_H__

@@ -149,6 +149,8 @@ void gpuForwardProjectLaunch(gpuGridder * gridder)
     float * d_CoordAxes = gridder->GetCoordAxesPtr_Device();
     float * d_KB_Table  = gridder->GetKBTablePtr_Device();
     float * d_Imgs      = gridder->GetImgsPtr_Device();
+
+    
     // cufftComplex * d_CASImgsComplex = gridder->GetComplexCASImgsPtr_Device();
 
     // Pointers to pinned CPU memory

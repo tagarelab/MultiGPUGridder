@@ -86,6 +86,29 @@ void gpuGridder::SetVolume(float *Volume, int *ArraySize)
     this->Volume->PinArray();
 }
 
+// Initilize the forward projection object
+void gpuGridder::InitilizeForwardProjection()
+{
+    this->ForwardProject_obj = new gpuForwardProject();
+
+    // Pass the pointer to the MemoryStructGPU to the forward projection object
+    this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
+    this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
+    this->ForwardProject_obj->SetImages(this->d_Imgs);
+    this->ForwardProject_obj->SetCoordinateAxes(this->d_CoordAxes);
+    this->ForwardProject_obj->SetKBTable(this->d_KB_Table);
+
+    // Set the various parameters for the forward projection object
+    this->ForwardProject_obj->SetGridSize(this->gridSize);
+    this->ForwardProject_obj->SetBlockSize(this->blockSize);
+    this->ForwardProject_obj->SetNumberOfAxes(this->GetNumAxes());
+    this->ForwardProject_obj->SetMaxAxesAllocated(this->MaxAxesAllocated);
+    this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
+    this->ForwardProject_obj->SetGPUDevice(this->GPU_Device);
+    this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
+    
+}
+
 void gpuGridder::ForwardProject()
 {
     Log("ForwardProject()");
@@ -103,30 +126,32 @@ void gpuGridder::ForwardProject()
 
     if (newVolumeFlag == 1)
     {
-
-        // (2): Run the volume to CAS volume function
-        VolumeToCASVolume();
-
-        cudaDeviceSynchronize(); // needed?
-
-        // (3): Initilize the needed arrays on the GPU
+        // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
 
-        cudaDeviceSynchronize(); // needed?
+        // Initilize the forward projection object
+        InitilizeForwardProjection();
+
+        // Run the volume to CAS volume function
+        VolumeToCASVolume();
 
         return;
     }
 
-    // Check the error flag to see if we had any issues during the initilization
-    if (this->ErrorFlag != 0)
+    // Check the error flags to see if we had any issues during the initilization
+    if (this->ErrorFlag == 1 ||
+        this->d_CASVolume->ErrorFlag == 1 ||
+        this->d_CASImgs->ErrorFlag == 1 ||
+        this->d_Imgs->ErrorFlag == 1 ||
+        this->d_CoordAxes->ErrorFlag == 1 ||
+        this->d_KB_Table->ErrorFlag == 1)
     {
         std::cerr << "Error during intilization." << '\n';
         return; // Don't run the kernel and return
     }
 
-    // Synchronize all of the CUDA streams before running the kernel
-    // TO DO: cudaEventSyncronize() may be faster than cudaDeviceSynchronize()
-    cudaDeviceSynchronize();
+    // Synchronize before running the kernel
+    cudaDeviceSynchronize(); // needed?
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
@@ -134,7 +159,7 @@ void gpuGridder::ForwardProject()
 
     // Run the forward projection CUDA kernel
     Log("gpuForwardProjectLaunch()");
-    gpuForwardProjectLaunch(this);
+    // gpuForwardProjectLaunch(this);
 
     cudaDeviceSynchronize();
     Log("gpuForwardProjectLaunch() Done");

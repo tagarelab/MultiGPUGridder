@@ -5,14 +5,20 @@
 // Extend the memory struct from the abstract gridder class to include GPU related information
 struct MemoryStructGPU : public MemoryStruct
 {
+    // Which GPU is the memory allocated on?
+    int GPU_Device;
+
+    // Error flag to rememeber if the allocation was succesful or not
+    int ErrorFlag;
+
     // Extend the constructor from MemoryStruct
     MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
-        this->GPU_Device = GPU_Device;  
+        this->GPU_Device = GPU_Device;
 
         // Free the float array allocated in MemoryStruct. TO DO: make this not necessary
-        std::free(this->ptr)      ;
+        std::free(this->ptr);
 
         // Allocate the array on the GPU
         AllocateGPUArray();
@@ -24,27 +30,33 @@ struct MemoryStructGPU : public MemoryStruct
         DeallocateGPUArray();
     }
 
-    // Which GPU is the memory allocated on?
-    int GPU_Device;
-
-    // Error flag to rememeber if the allocation was succesful or not
-    int ErrorFlag;
-
+    // Copy a float array from the CPU to the allocated array on the GPU
     void CopyToGPU(float *Array, int Bytes)
     {
+        if (Bytes != this->bytes())
+        {
+            std::cerr << "Error in CopyToGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
+        }
+
         // Given a float pointer (on host CPU) and number of bytes, copy the memory to this GPU array
         cudaMemcpy(this->ptr, Array, Bytes, cudaMemcpyHostToDevice);
     }
 
+    // Copy the array from the GPU to a float array on the CPU
     void CopyFromGPU(float *Array, int Bytes)
     {
+        if (Bytes != this->bytes())
+        {
+            std::cerr << "Error in CopyFromGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
+        }
+
         // Given a float pointer (on host CPU) and number of bytes, copy the memory to this GPU array
         cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost);
     }
 
     // Allocate the memory to a given GPU device
     void AllocateGPUArray()
-    {   
+    {
         std::cout << "GPU AllocateArray()" << '\n';
 
         // Set the current GPU

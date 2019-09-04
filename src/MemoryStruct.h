@@ -11,6 +11,15 @@
 // Struct to contain the needed information for each allocated array (e.g. CASImgs, images, coordinate axes, etc.)
 struct MemoryStruct
 {
+    // Deminsions of the array
+    int dims;
+
+    // Size of the array
+    int *size;
+
+    // Pointer to the memory allocated
+    float *ptr;
+
     // Constructor for the structure
     MemoryStruct(int dims, int *ArraySize)
     {
@@ -40,15 +49,6 @@ struct MemoryStruct
 
         this->ptr = new float[this->length()];
     }
-
-    // Deminsions of the array
-    int dims;
-
-    // Size of the array
-    int *size;
-
-    // Pointer to the memory allocated
-    float *ptr;
 
     // Function to return the number of bytes the array is
     int bytes()
@@ -104,5 +104,11 @@ struct MemoryStruct
     void DeallocateArray()
     {
         std::free(this->ptr);
+    }
+
+    // Get the pointer
+    float *GetPointer()
+    {
+        return this->ptr;
     }
 };

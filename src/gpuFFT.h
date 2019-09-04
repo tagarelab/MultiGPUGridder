@@ -16,6 +16,11 @@ class gpuFFT
 {
 private:
     
+    // float * InputVolume;
+
+    // float * OutputVolume;    
+
+
 public:
     gpuFFT();
     ~gpuFFT();

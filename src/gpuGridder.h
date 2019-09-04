@@ -102,22 +102,19 @@ protected:
     int nStreams;
 
     // Pointer to the CASVolume array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASVolume; // = new MemoryStructGPU(3);
+    MemoryStructGPU *d_CASVolume; 
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASImgs; // = new MemoryStructGPU(3);
+    MemoryStructGPU *d_CASImgs; 
 
     // Pointer to the images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_Imgs; // = new MemoryStructGPU(3);
+    MemoryStructGPU *d_Imgs; 
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_CoordAxes; // = new MemoryStructGPU(3);
+    MemoryStructGPU *d_CoordAxes; 
 
     // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_KB_Table; // = new MemoryStructGPU(3);
-
-    // Pointer to the complex CAS images on the device (i.e. the GPU)
-    // cufftComplex *d_CASImgsComplex;
+    MemoryStructGPU *d_KB_Table; 
 
     // Kernel launching parameters
     int gridSize;
@@ -132,6 +129,12 @@ private:
 
     // Initilize the GPU arrays
     void InitilizeGPUArrays();
+
+    // Initilize the forward projection object
+    void InitilizeForwardProjection();
+
+    // Forward projection object
+    gpuForwardProject * ForwardProject_obj;
 
 
     // Allocate GPU arrays
