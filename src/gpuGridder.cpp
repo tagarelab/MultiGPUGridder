@@ -61,24 +61,48 @@ void gpuGridder::InitilizeGPUArrays()
     Log("InitilizeGPUArrays()");
 
     // Allocate the CAS volume
-    this->d_CASVolume = new MemoryStructGPU(this->CASVolume->dims, this->CASVolume->size, this->GPU_Device);
+    this->d_CASVolume = new MemoryStructGPU(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
     this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
     // Allocate the CAS images
-    this->d_CASImgs = new MemoryStructGPU(this->CASimgs->dims, this->CASimgs->size, this->GPU_Device);
-    this->d_CASImgs->CopyToGPU(this->CASimgs->ptr, this->CASimgs->bytes());
+    Log("CASImgs");
+    if (this->CASimgs != nullptr)
+    {
+        // The pinned CASImgs was previously created so use its deminsions (i.e. creating CASImgs is optional)
+        this->d_CASImgs = new MemoryStructGPU(this->CASimgs->GetDim(), this->CASimgs->GetSize(), this->GPU_Device);
+        this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
+    }
+    else
+    {
+        // First, create a dims array of the correct size of d_CASImgs
+        int *size = new int[3];
+        size[0] = this->imgs->GetSize(0) * this->interpFactor;
+        size[1] = this->imgs->GetSize(1) * this->interpFactor;
+        size[2] = this->coordAxes->GetSize(0) * this->interpFactor;
 
+        Log("size");
+        Log(size[0]);
+        Log(size[1]);
+        Log(size[2]);
+
+        this->d_CASImgs = new MemoryStructGPU(3, size, this->GPU_Device);
+
+        delete[] size;
+    }
+
+    Log("d_Imgs");
     // Allocate the images
-    this->d_Imgs = new MemoryStructGPU(this->imgs->dims, this->imgs->size, this->GPU_Device);
-    this->d_Imgs->CopyToGPU(this->imgs->ptr, this->imgs->bytes());
+    this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), this->imgs->GetSize(), this->GPU_Device);
+    this->d_Imgs->CopyToGPU(this->imgs->GetPointer(), this->imgs->bytes());
 
+    Log("d_CoordAxes");
     // Allocate the coordinate axes array
-    this->d_CoordAxes = new MemoryStructGPU(this->coordAxes->dims, this->coordAxes->size, this->GPU_Device);
-    this->d_CoordAxes->CopyToGPU(this->coordAxes->ptr, this->coordAxes->bytes());
+    this->d_CoordAxes = new MemoryStructGPU(this->coordAxes->GetDim(), this->coordAxes->GetSize(), this->GPU_Device);
+    this->d_CoordAxes->CopyToGPU(this->coordAxes->GetPointer(), this->coordAxes->bytes());
 
     // Allocate the Kaiser bessel lookup table
-    this->d_KB_Table = new MemoryStructGPU(this->ker_bessel_Vector->dims, this->ker_bessel_Vector->size, this->GPU_Device);
-    this->d_KB_Table->CopyToGPU(this->ker_bessel_Vector->ptr, this->ker_bessel_Vector->bytes());
+    this->d_KB_Table = new MemoryStructGPU(this->ker_bessel_Vector->GetDim(), this->ker_bessel_Vector->GetSize(), this->GPU_Device);
+    this->d_KB_Table->CopyToGPU(this->ker_bessel_Vector->GetPointer(), this->ker_bessel_Vector->bytes());
 }
 
 void gpuGridder::SetVolume(float *Volume, int *ArraySize)
@@ -97,20 +121,30 @@ void gpuGridder::SetVolume(float *Volume, int *ArraySize)
 // Initilize the forward projection object
 void gpuGridder::InitilizeForwardProjection()
 {
+    Log("InitilizeForwardProjection()");
+
     this->ForwardProject_obj = new gpuForwardProject();
 
     // Pass the float pointers to the forward projection object
     float *coordAxesPtr = this->coordAxes->GetPointer();
-    float *CASImagesPtr = this->CASimgs->GetPointer();
     float *ImgsPtr = this->imgs->GetPointer();
-
     this->ForwardProject_obj->SetPinnedCoordinateAxes(coordAxesPtr);
-    this->ForwardProject_obj->SetPinnedCASImages(CASImagesPtr);
     this->ForwardProject_obj->SetPinnedImages(ImgsPtr);
+
+    // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
+    if (this->CASimgs != nullptr)
+    {
+        float *CASImagesPtr = this->CASimgs->GetPointer();
+        this->ForwardProject_obj->SetPinnedCASImages(CASImagesPtr);
+    } else 
+    {
+        // Set the pinned CASImgs pointer to be the null pointer
+        float * tempPtr = nullptr;
+        this->ForwardProject_obj->SetPinnedCASImages(tempPtr);
+    }
 
     // Pass the pointer to the MemoryStructGPU to the forward projection object
     this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
-    this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
     this->ForwardProject_obj->SetImages(this->d_Imgs);
     this->ForwardProject_obj->SetCoordinateAxes(this->d_CoordAxes);
     this->ForwardProject_obj->SetKBTable(this->d_KB_Table);
@@ -123,7 +157,8 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
     this->ForwardProject_obj->SetGPUDevice(this->GPU_Device);
     this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
-    this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
+    this->ForwardProject_obj->SetKerHWidth(this->kerHWidth);
+    this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
 }
 
 void gpuGridder::ForwardProject()
@@ -132,10 +167,11 @@ void gpuGridder::ForwardProject()
 
     this->newVolumeFlag = true;
     this->FP_initilized = false;
+    this->nStreams = 4;
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
-    this->blockSize = ceil(this->CASimgs->GetSize(0) / this->gridSize);
+    this->blockSize = ceil((this->imgs->GetSize(0) * this->interpFactor) / this->gridSize);
 
     // Has the forward projection been initilized?
     if (this->FP_initilized == false)

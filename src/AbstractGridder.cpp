@@ -12,6 +12,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->interpFactor = 2;
     this->MaxAxesAllocated = 10000;
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
+    this->CASimgs = nullptr;
 
     return;
 

@@ -74,6 +74,9 @@ private:
     // Mask radius for the forward projection
     float maskRadius;
 
+    // Width of the kaiser bessel lookup table
+    float kerHWidth;
+
 public:
     void SetPinnedCoordinateAxes(float *&coordAxes_CPU_Pinned) { this->coordAxes_CPU_Pinned = coordAxes_CPU_Pinned; }
 
@@ -104,6 +107,8 @@ public:
     void SetGPUDevice(int GPU_Device) { this->GPU_Device = GPU_Device; }
 
     void SetMaskRadius(int maskRadius) { this->maskRadius = maskRadius; }
+
+    void SetKerHWidth(float kerHWidth) { this->kerHWidth = kerHWidth; }
 
     void Execute();
 };

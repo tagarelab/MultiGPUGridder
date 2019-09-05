@@ -79,10 +79,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Set the pointer to the CAS images
     if (!strcmp("SetCASImages", cmd))
     {
-        // Pin the memory to the CPU
-        // int CASImgbytes = (int)mxGetScalar(prhs[3]) * sizeof(float);
-        // cudaHostRegister((float *)mxGetData(prhs[2]), CASImgbytes, 0);
-
         // Pointer to the CAS images array and the dimensions of the array
         gpuGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
 

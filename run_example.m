@@ -22,7 +22,7 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
-VolumeSize = 128;
+VolumeSize = 64;
 interpFactor = 2;
 n1_axes = 200;
 n2_axes = 20;
@@ -44,6 +44,7 @@ nCoordAxes = length(coordAxes(:))/9;
 KB_Vector = load("KB_Vector.mat");
 KBTable = KB_Vector.KB_Vector;
 
+tic
 gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(nCoordAxes), single(2));
 gridder.coordAxes = single(coordAxes(:));
 gridder.NumAxes = int32(nCoordAxes);
@@ -55,48 +56,10 @@ gridder.CASImages = zeros([VolumeSize*interpFactor, VolumeSize*interpFactor, gri
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 gridder.KBTable = single(KBTable);
+toc
 
 gridder.Set()
-
-
-
-% Volume = gridder.Get('Volume');
-
-% slice = 60
-% subplot(1,3,1)
-% imagesc(gridder.Volume(:,:,slice));
-% subplot(1,3,2)
-% imagesc(MRI_volume(:,:,slice));
-% subplot(1,3,3)
-% imagesc(gridder.Volume(:,:,slice) - MRI_volume(:,:,slice));
-% colorbar
-%  
-
-
-% Volume = gridder.Get('Volume');
-% 
-% max(Volume(:))
-% 
-% gridder.ForwardProject()
-% 
-% max(gridder.CASImages(:))
-% CASImages = gridder.Get('CASImages');
-% max(CASImages(:))
-
-
-% imagesc(real(fftshift2(fft2(fftshift2(CASImages(:,:,1))))))
-
-% imagesc(gridder.CASImages(:,:,2))
-% colormap gray
-% max(gridder.CASVolume(:))
-% 
-% easyMontage(gridder.CASImages(:,:,end-100:end),1)
-
-% return
-
-
 disp("ForwardProject...")
-tic
 gridder.ForwardProject()
 toc
 
@@ -134,6 +97,8 @@ Images = gridder.Get('Images');
 
 easyMontage(gridder.Images(:,:,:), 1)
 % colormap jet
+return
+
 
 % easyMontage(gridder.CASVolume(:,:,1:10), 1)
 % easyMontage(CASVolume, 1)
@@ -144,19 +109,18 @@ easyMontage(gridder.Images(:,:,:), 1)
 % easyMontage(gridder.CASImages(:,:,125:135), 2)
 % colormap jet
 
+% 
+% if ( max(gridder.Images(:)) > 0)
+%     for i = 1:size(gridder.Images,3)
+%         x = gridder.Images(:,:,i);
+% 
+%         if max(x(:)) < max(gridder.Images(:))*0.1
+%             disp(i-1)
+%             break
+%         end
+%     end
+% end
 
-if ( max(gridder.Images(:)) > 0)
-    for i = 1:size(gridder.Images,3)
-        x = gridder.Images(:,:,i);
-
-        if max(x(:)) < max(gridder.Images(:))*0.1
-            disp(i-1)
-            break
-        end
-    end
-end
-
-return
 
 % Images = gridder.Get('Images');% 
 % easyMontage(Images(:,:,:), 1)

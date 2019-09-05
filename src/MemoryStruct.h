@@ -31,7 +31,7 @@ struct MemoryStruct
         {
             this->size[i] = ArraySize[i];
         }
-
+        
         // Allocate the memory for the float array
         AllocateArray();
     }
@@ -90,6 +90,17 @@ struct MemoryStruct
         return size[dim];
     }
 
+    // Function to return the given array dimension as int array (i.e. no input given)
+    int* GetSize()
+    {
+        return this->size;
+    }
+
+    // Function to return the dimesion of the array
+    int GetDim()
+    {
+        return this->dims;
+    }
 
     // Copy a given array
     void CopyArray(float *Array)
