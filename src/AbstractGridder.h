@@ -35,7 +35,7 @@ protected:
 
     // Maximum number of coordinate axes and output projection images to allocate to memory
     // This aims to limit the amount of memory allocated for these variables
-    int MaxAxesAllocated;
+    int MaxGPUAxesToAllocate;
 
     // Size of the Kaiser bessel vector
     int kerSize;
@@ -131,6 +131,9 @@ public:
     // Set the coordinate axes pointer
     void SetCoordAxes(float *coordAxes, int* ArraySize);
 
+    // Set the maximum number of coordinate axes to allocate
+    void SetMaxGPUAxesToAllocate(int MaxGPUAxesToAllocate) { this->MaxGPUAxesToAllocate = MaxGPUAxesToAllocate; }
+    
     // Get the coordinate axes pointer
     float *GetCoordAxesPtr_CPU() { return this->coordAxes->ptr; }
 
@@ -141,7 +144,7 @@ public:
     int GetNumAxes() { return this->coordAxes->GetSize(0) / 9; } // 9 elements per coordinate axe
 
     // Get the number of maximum axes allocated
-    int GetMaxAxesAllocated() { return this->MaxAxesAllocated; }
+    int GetMaxGPUAxesToAllocate() { return this->MaxGPUAxesToAllocate; }
 
     // Set the maskRadius parameter
     void SetMaskRadius(float maskRadius);

@@ -10,7 +10,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->extraPadding = 3;
     this->ErrorFlag = false;
     this->interpFactor = 2;
-    this->MaxAxesAllocated = 10000;
+    this->MaxGPUAxesToAllocate = 10000;
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
     this->CASimgs = nullptr;
 
@@ -148,7 +148,8 @@ void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
 {
     // Set the CAS volume
     this->CASVolume = new MemoryStruct(3, ArraySize);
-    this->CASVolume->ptr = CASVolume;
+    this->CASVolume->CopyPointer(CASVolume);
+    this->CASVolume->PinArray();
 }
 
 void AbstractGridder::SetMaskRadius(float maskRadius)
@@ -181,7 +182,8 @@ void AbstractGridder::SetImages(float *imgs, int *ArraySize)
 {
     // Set the images array
     this->imgs = new MemoryStruct(3, ArraySize);
-    this->imgs->ptr = imgs;
+    this->imgs->CopyPointer(imgs);
+    this->imgs->PinArray();
 }
 
 void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)

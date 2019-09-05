@@ -42,14 +42,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("SetVolume", cmd))
     {
         // Pointer to the volume array and the dimensions of the array
-        gpuGridderObj->SetVolume((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
+        gpuGridderObj->SetVolume((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
     // Set the pointer to the coordinate axes
     if (!strcmp("SetCoordAxes", cmd))
     {
         // Pointer to the volume array and the dimensions of the array
-        gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
+        gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
 
         // Set the number of coordinate axes
         // gpuGridderObj->SetNumAxes((int)mxGetScalar(prhs[3]));
@@ -59,8 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("SetCASVolume", cmd))
     {
         // Pointer to the volume array and the dimensions of the array
-        gpuGridderObj->SetCASVolume((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
-
+        gpuGridderObj->SetCASVolume((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
     // Set the output projection images size
@@ -69,19 +68,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         gpuGridderObj->SetImageSize((int *)mxGetData(prhs[2]));
     }
 
+    // Set the maximum coordinate axes to allocate on the GPU
+    if (!strcmp("SetMaxGPUAxesToAllocate", cmd))
+    {
+        gpuGridderObj->SetMaxGPUAxesToAllocate((int)mxGetScalar(prhs[2]));
+    }
+
     // Set the pointer to the output images
     if (!strcmp("SetImages", cmd))
     {
         // Pointer to the images array and the dimensions of the array
-        gpuGridderObj->SetImages((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
+        gpuGridderObj->SetImages((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
     // Set the pointer to the CAS images
     if (!strcmp("SetCASImages", cmd))
     {
         // Pointer to the CAS images array and the dimensions of the array
-        gpuGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
-
+        gpuGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
     // Set the GPUS to use
@@ -103,6 +107,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("SetKBTable", cmd))
     {
         // KB Lookup table; Length of the table
-        gpuGridderObj->SetKerBesselVector((float *)mxGetData(prhs[2]), (int*)mxGetData(prhs[3]));
+        gpuGridderObj->SetKerBesselVector((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 }

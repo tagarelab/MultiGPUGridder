@@ -444,6 +444,44 @@ __global__ void CropImgs(float* input, float* output, int inputImgSize, int outp
     }
 }
 
+__global__ void ComplexToNormalizedImgs(cufftComplex* ComplexImg, float* output,  int inputImgSize, int outputImgSize, int nSlices, int NormalizeFactor)
+{
+    // CUDA kernel for cropped a complex cufftComplex array and extracting the real component 
+
+    // Index of the output (smaller) image
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+
+    // Are we outside the bounds of the smaller output image?
+    if (i >= outputImgSize || i < 0 || j >= outputImgSize || j < 0){
+        return;
+    }
+
+    // How much zero padding to remove from each side?
+    int padding = (inputImgSize - outputImgSize) / 2;
+    
+    if (padding <= 0)
+    {
+        return;
+    }
+
+    for (int k = 0; k < nSlices; k++){
+
+        // Get the linear index of the output (smaller) image
+        int ndx_1 = i + j * outputImgSize + k * outputImgSize * outputImgSize;   
+
+        // Get the linear index of the input (larger) image
+        // NOTE: No padding in the Z direction because we are cropping each 2D images individually
+        int ndx_2 = 
+        (i + padding) + 
+        (j + padding) * inputImgSize +
+        k * inputImgSize *  inputImgSize;  
+
+        output[ndx_1] = ComplexImg[ndx_2].x / NormalizeFactor;
+
+    }
+}
+
 __global__ void NormalizeImgs(float* input, int ImgSize, int numImgs, int NormalizeFactor)
 {
     // Normalize images by dividing each voxel by some normalization factor
@@ -591,13 +629,13 @@ void gpuFFT::CASImgsToImgs(
 
     cufftComplex *d_CASImgsComplex2Output;
     cudaMalloc(&d_CASImgsComplex2Output, sizeof(cufftComplex) * CASImgSize * CASImgSize * numImgs);
-
+   
     // Convert the CASImgs to complex cufft type
-    CASImgsToComplexImgs<<< dimGrid, dimBlock >>>(d_CASImgs, d_CASImgsComplex2, CASImgSize, numImgs);
+    CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream>>>(d_CASImgs, d_CASImgsComplex2, CASImgSize, numImgs);
 
     // Run FFTShift
-    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_CASImgsComplex2, d_CASImgsComplex2Output, CASImgSize, numImgs);
- 
+    cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex2, d_CASImgsComplex2Output, CASImgSize, numImgs);
+
     // Create a plan for taking the inverse of the CAS imgs
     cufftHandle inverseFFTPlan;   
     int nRows = CASImgSize;
@@ -621,18 +659,13 @@ void gpuFFT::CASImgsToImgs(
     // Inverse FFT
     cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex2Output, (cufftComplex *) d_CASImgsComplex2Output, CUFFT_INVERSE);
     
-   // Run FFTShift
+    // Run FFTShift
     cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_CASImgsComplex2Output, d_CASImgsComplex2, CASImgSize, numImgs);
  
-    // Convert from the complex images to the real (resue the d_CASImgs GPU array)
-    ComplexToReal<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgsComplex2, d_CASImgs, CASImgSize, numImgs);    
-
-    // Run kernel to crop the projection images (to remove the zero padding)   
-    CropImgs<<< dimGrid, dimBlock, 0, stream >>>(d_CASImgs, d_imgs, CASImgSize, ImgSize, numImgs);
-
-    // Run kernel to normalize the projection images (by dividing by the CASImgsize times CASImgSize)  
-    // This scaling is introduced during the FFT 
-    NormalizeImgs<<< dimGrid, dimBlock, 0, stream >>>(d_imgs, ImgSize, numImgs, CASImgSize * CASImgSize);
+    // Run kernel to crop the projection images (to remove the zero padding), extract the real value,
+    // and normalize the scaling introduced during the FFT
+    ComplexToNormalizedImgs<<< dimGrid, dimBlock, 0, stream >>>
+    (d_CASImgsComplex2, d_imgs, CASImgSize, ImgSize, numImgs, CASImgSize * CASImgSize);
     
     return;
 }

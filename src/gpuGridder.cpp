@@ -78,7 +78,7 @@ void gpuGridder::InitilizeGPUArrays()
         int *size = new int[3];
         size[0] = this->imgs->GetSize(0) * this->interpFactor;
         size[1] = this->imgs->GetSize(1) * this->interpFactor;
-        size[2] = this->coordAxes->GetSize(0) * this->interpFactor;
+        size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxGPUAxesToAllocate) * this->interpFactor;
 
         Log("size");
         Log(size[0]);
@@ -92,8 +92,19 @@ void gpuGridder::InitilizeGPUArrays()
 
     Log("d_Imgs");
     // Allocate the images
-    this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), this->imgs->GetSize(), this->GPU_Device);
-    this->d_Imgs->CopyToGPU(this->imgs->GetPointer(), this->imgs->bytes());
+    // this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), this->imgs->GetSize(), this->GPU_Device);
+    // this->d_Imgs->CopyToGPU(this->imgs->GetPointer(), this->imgs->bytes());
+
+    // Limit the number of axes to allocate to be MaxGPUAxesToAllocate
+    int *imgs_size = new int[3];
+    imgs_size[0] = this->imgs->GetSize(0);
+    imgs_size[1] = this->imgs->GetSize(1);
+    imgs_size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxGPUAxesToAllocate); // 9 elements per coordinate axes
+
+    // Allocate the images
+    this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), imgs_size, this->GPU_Device);
+    delete[] imgs_size;
+
 
     Log("d_CoordAxes");
     // Allocate the coordinate axes array
@@ -153,7 +164,7 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetGridSize(this->gridSize);
     this->ForwardProject_obj->SetBlockSize(this->blockSize);
     this->ForwardProject_obj->SetNumberOfAxes(this->GetNumAxes());
-    this->ForwardProject_obj->SetMaxAxesAllocated(this->MaxAxesAllocated);
+    this->ForwardProject_obj->SetMaxAxesAllocated(this->MaxGPUAxesToAllocate);
     this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
     this->ForwardProject_obj->SetGPUDevice(this->GPU_Device);
     this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
@@ -167,7 +178,7 @@ void gpuGridder::ForwardProject()
 
     this->newVolumeFlag = true;
     this->FP_initilized = false;
-    this->nStreams = 4;
+    this->nStreams = 1;
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
