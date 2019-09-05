@@ -18,7 +18,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         ImageSize;
         Images;
         GPUs = int32([0, 1, 2, 3]);
-        MaxGPUAxesToAllocate = 4000;
+        MaxGPUAxesToAllocate = 40;
         
     end
     methods

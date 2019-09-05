@@ -13,6 +13,7 @@ addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
 
+
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
@@ -87,16 +88,25 @@ toc
 % return
 
 
-Images = gridder.Get('Images');
+% Images = gridder.Get('Images');
 
-% easyMontage(Images(:,:,125:135), 1)
+easyMontage(gridder.Images(:,:,:), 1)
 % colormap jet
 
 
 % CASImages = gridder.Get('CASImages');
 
-easyMontage(gridder.Images(:,:,:), 1)
+% easyMontage(gridder.CASImages(:,:,:), 1)
 % colormap jet
+
+
+
+% [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+% imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+% easyMontage(imgs, 1)
+
+% colormap jet
+
 return
 
 
@@ -143,7 +153,7 @@ gpuGridder.setVolume(MRI_volume);
 gpuGridderImg  = gpuGridder.forwardProject(coordAxes);
 gpuGridderCASImgs = gather(gpuGridder.gridder.gpuCASImgs);
 gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
-
+toc
 
 % easyMontage(gridder.CASImages, 1)
 % return
@@ -153,7 +163,7 @@ gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
 % easyMontage(gridder.CASImages(:,:,1:10) - gpuGridderCASImgs(:,:,1:10), 2)
 % colorbar
 
-toc
+
  %%
  
  for slice = 5:10

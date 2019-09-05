@@ -126,7 +126,12 @@ void gpuForwardProject::Execute()
     Log2("ImgSize", ImgSize);
     Log2("CASVolSize", CASVolSize);
     Log2("CASImgSize", CASImgSize);
+    size_t mem_tot_0 = 0;
+    size_t mem_free_0 = 0;
 
+    // Allocate temporary cufftComplex arrays
+    cufftComplex *d_CASImgsComplex;
+    cudaMalloc(&d_CASImgsComplex, sizeof(cufftComplex) * CASImgSize * CASImgSize * std::min(this->nAxes, this->MaxAxesAllocated));
 
     // Set the current GPU device to run the kernel
     cudaSetDevice(this->GPU_Device);    
@@ -216,6 +221,10 @@ void gpuForwardProject::Execute()
                 coord_Axes_CPU_streamBytes,
                 cudaMemcpyHostToDevice, streams[i]);                
                 
+            cudaDeviceSynchronize(); // needed?  
+            cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+            std::cout << "Free memory after coord axes memcpy" << mem_free_0 << " out of " << mem_tot_0 << '\n';
+
             Log2("gpuForwardProjectKernel", i);
 
             // Run the forward projection kernel     
@@ -230,7 +239,12 @@ void gpuForwardProject::Execute()
                 this->d_KB_Table->GetPointer(),
                 this->d_KB_Table->GetSize(0),
                 this->kerHWidth);
-           
+
+            cudaDeviceSynchronize(); // needed?  
+            cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+            std::cout << "Free memory after FP kernel" << mem_free_0 << " out of " << mem_tot_0 << '\n';
+
+                
             Log2("cudaMemcpyAsync", i);
 
             // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
@@ -267,17 +281,21 @@ void gpuForwardProject::Execute()
                 cudaDeviceSynchronize(); // needed?    
                 
             }
-
+            cudaDeviceSynchronize(); // needed?  
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
             gpuFFT::CASImgsToImgs(
                 streams[i],
-                this->gridSize,
-                this->blockSize,
                 CASImgSize,
                 ImgSize,
                 this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
-                this->d_Imgs->GetPointer(gpuImgs_Offset),
-                numAxesPerStream);       
+                this->d_Imgs->GetPointer(gpuImgs_Offset),                
+                &d_CASImgsComplex[gpuCASImgs_Offset],
+                numAxesPerStream);   
+            
+            cudaDeviceSynchronize(); // needed?  
+            cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+            std::cout << "Free memory after CASImgsToImgs() " << mem_free_0 << " out of " << mem_tot_0 << '\n';
+        
 
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
@@ -295,13 +313,18 @@ void gpuForwardProject::Execute()
             Log2("cudaMemcpyAsync", i);
                 
             // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
+            
             cudaMemcpyAsync(
 				Imgs_CPU_Pinned + Imgs_CPU_Offset[0] * Imgs_CPU_Offset[1] * Imgs_CPU_Offset[2],
-                d_Imgs->GetPointer(gpuImgs_Offset),
+                this->d_Imgs->GetPointer(gpuImgs_Offset),
                 gpuImgs_streamBytes,
                 cudaMemcpyDeviceToHost,
                 streams[i]);
 
+            cudaDeviceSynchronize(); // needed?  
+            cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+            std::cout << "Free memory after memcpy imgs() " << mem_free_0 << " out of " << mem_tot_0 << '\n';
+            
 
 			// Update the overall number of coordinate axes which have already been assigned to a CUDA stream
             processed_nAxes = processed_nAxes + numAxesPerStream;   
@@ -313,6 +336,11 @@ void gpuForwardProject::Execute()
 
         }
         
+        cudaDeviceSynchronize(); // needed?  
+        cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+        std::cout << "Free memory after for loop" << mem_free_0 << " out of " << mem_tot_0 << '\n';
+        
+
 		// Increment the batch number
 		batch++;
 
