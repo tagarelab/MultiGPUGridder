@@ -90,12 +90,6 @@ __global__ void gpuForwardProjectKernel(const float* vol, int volSize, float* im
                         wk=*(locKer+kerIndex);
                         w=wi*wj*wk;
 
-                        // w = 1;
-                        // test
-                        // *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
-                                //  ( (1+k1*volSize*volSize+j1*volSize+i1));
-
-
                         *(img_ptr+j*imgSize+i)=*(img_ptr+j*imgSize+i)+
                                 w*( *(vol+k1*volSize*volSize+j1*volSize+i1));
 

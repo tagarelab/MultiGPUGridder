@@ -18,14 +18,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     // Get the class instance pointer from the second input
-    gpuGridder *gpuGridderObj = convertMat2Ptr<gpuGridder>(prhs[1]);
+    gpuGridder *MultiGPUGridderObj = convertMat2Ptr<gpuGridder>(prhs[1]);
 
     // Return the summed volume from all of the GPUs (for getting the back projection kernel result)
     if (!strcmp("Volume", cmd))
     {
 
         // Get the matrix size of the GPU volume
-        int* volSize = gpuGridderObj->GetVolumeSize();
+        int* volSize = MultiGPUGridderObj->GetVolumeSize();
 
         mwSize dims[3];
         dims[0] = volSize[0];
@@ -43,7 +43,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
         // Call the method
-        float *GPUVol = gpuGridderObj->GetVolume();
+        float *GPUVol = MultiGPUGridderObj->GetVolume();
 
         // Copy the data to the Matlab array
         std::memcpy((float *)mxGetData(Matlab_Pointer), GPUVol, sizeof(float) * dims[0] * dims[1] * dims[2]);
@@ -58,7 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
 
         // Get the matrix size of the GPU volume
-        int* CASVolSize = gpuGridderObj->GetCASVolumeSize();
+        int* CASVolSize = MultiGPUGridderObj->GetCASVolumeSize();
 
         mwSize dims[3];
         dims[0] = CASVolSize[0];
@@ -76,7 +76,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
         // Call the method
-        float *CASVolume = gpuGridderObj->GetCASVolume();
+        float *CASVolume = MultiGPUGridderObj->GetCASVolume();
 
         // Copy the data to the Matlab array
         std::memcpy((float *)mxGetData(Matlab_Pointer), CASVolume, sizeof(float) * dims[0] * dims[1] * dims[2]);
@@ -91,8 +91,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
 
         // Get the matrix size of the GPU volume
-        int* CASImagesSize = gpuGridderObj->GetCASImagesSize();
-        // int nAxes = gpuGridderObj->GetNumAxes();
+        int* CASImagesSize = MultiGPUGridderObj->GetCASImagesSize();
+        // int nAxes = MultiGPUGridderObj->GetNumAxes();
 
         mwSize dims[3];
         dims[0] = CASImagesSize[0];
@@ -111,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
         // Call the method
-        float *CASImages = gpuGridderObj->GetCASImgsPtr_CPU();
+        float *CASImages = MultiGPUGridderObj->GetCASImgsPtr_CPU();
 
         // Copy the data to the Matlab array
         std::memcpy((float *)mxGetData(Matlab_Pointer), CASImages, sizeof(float) * dims[0] * dims[1] * dims[2]);
@@ -126,7 +126,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
 
         // Get the matrix size of the GPU volume
-        int* ImagesSize = gpuGridderObj->GetImgSize();
+        int* ImagesSize = MultiGPUGridderObj->GetImgSize();
 
         mwSize dims[3];
         dims[0] = ImagesSize[0];
@@ -144,7 +144,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxArray *Matlab_Pointer = mxCreateNumericArray(3, dims, mxSINGLE_CLASS, mxREAL);
 
         // Call the method
-        float *Images = gpuGridderObj->GetImgsPtr_CPU();
+        float *Images = MultiGPUGridderObj->GetImgsPtr_CPU();
 
         // Copy the data to the Matlab array
         std::memcpy((float *)mxGetData(Matlab_Pointer), Images, sizeof(float) * dims[0] * dims[1] * dims[2]);

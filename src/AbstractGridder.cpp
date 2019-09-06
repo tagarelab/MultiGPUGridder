@@ -128,7 +128,9 @@ void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
 }
 
 void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
-{
+{   
+    std::cout << "AbstractGridder::SetCoordAxes()" << '\n';
+    
     // Set the coordinate axes pointer
     this->coordAxes = new MemoryStruct(1, ArraySize);
     this->coordAxes->CopyPointer(coordAxes);

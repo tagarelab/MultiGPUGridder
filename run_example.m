@@ -25,12 +25,12 @@ disp("Resetting devices...")
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 2000;
+n1_axes = 20;
 n2_axes = 20;
 
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes) ' axes'])
-
+pause(0.5)
 
 load mri;
 img = squeeze(D);

@@ -31,8 +31,6 @@ public:
         this->newVolumeFlag = true;
         this->nStreams = 1;
 
-        // Estimate the maximum number of coordinate axes to allocate
-
         // Set the GPU device
         SetGPU(GPU_Device);
 
@@ -41,9 +39,8 @@ public:
             std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
         }
 
-
+        // Estimate the maximum number of coordinate axes to allocate
         this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(VolumeSize, interpFactor);
-
     };
 
     // ~gpuGridder() : ~AbstractGridder() { };
@@ -55,12 +52,6 @@ public:
 
     // // Run the back projection and return the volume
     // float *BackProject();
-
-    // Set the volume
-    // void SetVolume(float *Volume, int *VolumeSize);
-
-    // // Reset the volume to all zeros
-    // void ResetVolume();
 
     // Set which GPUs to use
     void SetGPU(int GPU_Device);
@@ -92,9 +83,6 @@ public:
     // Get the device CAS images pointer
     float *GetCASImgsPtr_Device() { return this->d_CASImgs->ptr; }
 
-    // Get the device complex CAS images pointer
-    //cufftComplex *GetComplexCASImgsPtr_Device() { return this->d_CASImgsComplex; }
-
     // Get the device images pointer
     float *GetImgsPtr_Device() { return this->d_Imgs->ptr; }
 
@@ -105,14 +93,8 @@ public:
     float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
 
 protected:
-    // // Get a new images array and then convert them to CAS
-    // void SetImages(float *imgs);
-
     // Convert the volume to a CAS volume
     void VolumeToCASVolume();
-
-    // // Convert the CAS volume back to volume
-    // void CASToVolume();
 
     // How many streams to use on this device?
     int nStreams;
@@ -160,9 +142,6 @@ private:
 
     // Estimate the maximum number of coordinate axes to allocate on the GPUs
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);
-
-    // Allocate GPU arrays
-    // float *AllocateGPUArray(int GPU_Device, int ArraySize);
 
     // // Free all of the allocated memory
     // void FreeMemory();

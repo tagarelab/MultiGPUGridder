@@ -1,5 +1,5 @@
 #include "mexFunctionWrapper.h"
-#include "gpuGridder.h"
+#include "MultiGPUGridder.h"
 
 #define Log(x)                  \
     {                           \
@@ -15,10 +15,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     // Get the class instance pointer from the first input
-    gpuGridder *gpuGridderObj = convertMat2Ptr<gpuGridder>(prhs[0]);
+    MultiGPUGridder *MultiGPUGridderObj = convertMat2Ptr<MultiGPUGridder>(prhs[0]);
 
     // Run the forward projection function
-    gpuGridderObj->ForwardProject();
+    MultiGPUGridderObj->ForwardProject();
 
     Log("Done with forward projection");
 

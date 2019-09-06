@@ -41,7 +41,8 @@ add_library(gridderLib SHARED
 		gpuGridder.h
 		gpuGridder.cpp
 		
-
+		MultiGPUGridder.h
+		MultiGPUGridder.cpp
 
 
 
