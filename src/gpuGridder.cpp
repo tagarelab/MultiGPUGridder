@@ -15,6 +15,35 @@
 //     // Deconstructor
 // }
 
+int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
+{
+    // Estimate the maximum number of coordinate axes to allocate on the GPU
+    cudaSetDevice(this->GPU_Device);
+    size_t mem_tot_0 = 0;
+    size_t mem_free_0 = 0;
+    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+
+    int CASImg_Length = (VolumeSize * interpFactor + this->extraPadding * 2) * (VolumeSize * interpFactor + this->extraPadding);
+    int Img_Length = (VolumeSize * interpFactor) * (VolumeSize * interpFactor);
+
+    int Bytes_per_Img = Img_Length * sizeof(float);
+    int Bytes_per_CASImg = CASImg_Length * sizeof(float);
+    int Bytes_per_ComplexCASImg = CASImg_Length * sizeof(cufftComplex);
+    int Bytes_for_CASVolume = pow((VolumeSize * interpFactor + this->extraPadding * 2), 3) * sizeof(float);
+
+    int EstimatedMaxAxes = (mem_free_0 - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg);
+
+    // Leave room on the GPU to run the FFTs so only use 70% of the maximum possible
+    EstimatedMaxAxes = EstimatedMaxAxes * 0.10;
+
+    Log("EstimatedMaxAxes:");
+    Log(EstimatedMaxAxes);
+
+    return EstimatedMaxAxes;
+
+
+}
+
 void gpuGridder::VolumeToCASVolume()
 {
     Log("VolumeToCASVolume()");
@@ -59,10 +88,20 @@ void gpuGridder::InitilizeGPUArrays()
 {
     // Initilize the GPU arrays and allocate the needed memory on the GPU
     Log("InitilizeGPUArrays()");
+    Log("this->MaxAxesToAllocate");
+    Log(this->MaxAxesToAllocate);
 
     // Allocate the CAS volume
     this->d_CASVolume = new MemoryStructGPU(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
     this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+
+    Log("this->CASVolume->GetSize(0)");
+    Log(this->CASVolume->GetSize(0));
+    Log("this->CASVolume->GetSize(1)");
+    Log(this->CASVolume->GetSize(1));
+    Log("this->CASVolume->GetSize(2)");
+    Log(this->CASVolume->GetSize(2));
+
 
     // Allocate the CAS images
     Log("CASImgs");
@@ -78,7 +117,7 @@ void gpuGridder::InitilizeGPUArrays()
         int *size = new int[3];
         size[0] = this->imgs->GetSize(0) * this->interpFactor;
         size[1] = this->imgs->GetSize(1) * this->interpFactor;
-        size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxGPUAxesToAllocate) * this->interpFactor;
+        size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxAxesToAllocate);
 
         Log("size");
         Log(size[0]);
@@ -91,42 +130,32 @@ void gpuGridder::InitilizeGPUArrays()
     }
 
     Log("d_Imgs");
-    // Allocate the images
-    // this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), this->imgs->GetSize(), this->GPU_Device);
-    // this->d_Imgs->CopyToGPU(this->imgs->GetPointer(), this->imgs->bytes());
-
-    // Limit the number of axes to allocate to be MaxGPUAxesToAllocate
+    // Limit the number of axes to allocate to be MaxAxesToAllocate
     int *imgs_size = new int[3];
     imgs_size[0] = this->imgs->GetSize(0);
     imgs_size[1] = this->imgs->GetSize(1);
-    imgs_size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxGPUAxesToAllocate); // 9 elements per coordinate axes
+    imgs_size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxAxesToAllocate); // 9 elements per coordinate axes
+
+
+    Log("imgs_size[0]");
+    Log(imgs_size[0]);
+    Log("imgs_size[1]");
+    Log(imgs_size[1]);
+    Log("imgs_size[2]");
+    Log(imgs_size[2]);
+
 
     // Allocate the images
     this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), imgs_size, this->GPU_Device);
     delete[] imgs_size;
 
-
     Log("d_CoordAxes");
     // Allocate the coordinate axes array
     this->d_CoordAxes = new MemoryStructGPU(this->coordAxes->GetDim(), this->coordAxes->GetSize(), this->GPU_Device);
-    // this->d_CoordAxes->CopyToGPU(this->coordAxes->GetPointer(), this->coordAxes->bytes());
 
     // Allocate the Kaiser bessel lookup table
     this->d_KB_Table = new MemoryStructGPU(this->ker_bessel_Vector->GetDim(), this->ker_bessel_Vector->GetSize(), this->GPU_Device);
     this->d_KB_Table->CopyToGPU(this->ker_bessel_Vector->GetPointer(), this->ker_bessel_Vector->bytes());
-}
-
-void gpuGridder::SetVolume(float *Volume, int *ArraySize)
-{
-    Log("SetVolume()");
-
-    // First save the given pointer
-    this->Volume = new MemoryStruct(3, ArraySize);
-    this->Volume->CopyPointer(Volume);
-
-    // Next, pin the volume to host (i.e. CPU) memory in order to enable the async CUDA stream copying
-    // This will let us copy the volume to all GPUs at the same time
-    this->Volume->PinArray();
 }
 
 // Initilize the forward projection object
@@ -147,10 +176,11 @@ void gpuGridder::InitilizeForwardProjection()
     {
         float *CASImagesPtr = this->CASimgs->GetPointer();
         this->ForwardProject_obj->SetPinnedCASImages(CASImagesPtr);
-    } else 
+    }
+    else
     {
         // Set the pinned CASImgs pointer to be the null pointer
-        float * tempPtr = nullptr;
+        float *tempPtr = nullptr;
         this->ForwardProject_obj->SetPinnedCASImages(tempPtr);
     }
 
@@ -164,7 +194,7 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetGridSize(this->gridSize);
     this->ForwardProject_obj->SetBlockSize(this->blockSize);
     this->ForwardProject_obj->SetNumberOfAxes(this->GetNumAxes());
-    this->ForwardProject_obj->SetMaxAxesAllocated(this->MaxGPUAxesToAllocate);
+    this->ForwardProject_obj->SetMaxAxesAllocated(this->MaxAxesToAllocate);
     this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
     this->ForwardProject_obj->SetGPUDevice(this->GPU_Device);
     this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
@@ -206,7 +236,7 @@ void gpuGridder::ForwardProject()
         VolumeToCASVolume();
 
         // Reset the flag
-        this->newVolumeFlag = false;
+        // this->newVolumeFlag = false;
     }
 
     // Check the error flags to see if we had any issues during the initilization
@@ -232,6 +262,4 @@ void gpuGridder::ForwardProject()
     Log("gpuForwardProjectLaunch() Done");
 
     return;
-
-    // Note: This modifies the Matlab array in-place
 }

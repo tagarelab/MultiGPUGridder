@@ -45,16 +45,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         gpuGridderObj->SetCASVolume((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
-    // Set the output projection images size
-    if (!strcmp("SetImageSize", cmd))
-    {
-        gpuGridderObj->SetImageSize((int *)mxGetData(prhs[2]));
-    }
-
     // Set the maximum coordinate axes to allocate on the GPU
-    if (!strcmp("SetMaxGPUAxesToAllocate", cmd))
+    if (!strcmp("SetMaxAxesToAllocate", cmd))
     {
-        gpuGridderObj->SetMaxGPUAxesToAllocate((int)mxGetScalar(prhs[2]));
+        gpuGridderObj->SetMaxAxesToAllocate((int)mxGetScalar(prhs[2]));
     }
     
     // Set the number of CUDA streams to use with each GPU

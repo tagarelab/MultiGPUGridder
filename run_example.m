@@ -29,7 +29,7 @@ n1_axes = 20;
 n2_axes = 20;
 
 
-disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB'])
+disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes) ' axes'])
 
 
 load mri;

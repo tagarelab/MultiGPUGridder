@@ -17,6 +17,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int *VolumeSize = (int *)mxGetData(prhs[0]);
     int *numCoordAxes = (int *)mxGetData(prhs[1]);
     float *interpFactor = (float *)mxGetData(prhs[2]);
+    // int GPU_Device = 0;
 
     // Return a handle to a new C++ instance
     Log("Creating gpuGridder class");

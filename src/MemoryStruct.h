@@ -141,4 +141,10 @@ struct MemoryStruct
     {
         return &this->ptr[offset];
     } 
+
+    void Reset()
+    {
+        // Reset the array back to all zeros
+        std::memset(this->ptr, 0, this->bytes());
+    }
 };

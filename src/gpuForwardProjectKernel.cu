@@ -169,7 +169,7 @@ void gpuForwardProject::Execute()
         
 		for (int i = 0; i < this->nStreams; i++) // Loop through the streams 
 		{   
-            numAxesGPU_Batch = 0; // test
+            // numAxesGPU_Batch = 0; // test
 
             Log2(" ", " ");
             Log2("Stream: ", i);

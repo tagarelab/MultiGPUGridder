@@ -30,6 +30,20 @@ public:
         this->FP_initilized = false;
         this->newVolumeFlag = true;
         this->nStreams = 1;
+
+        // Estimate the maximum number of coordinate axes to allocate
+
+        // Set the GPU device
+        // SetGPU(GPU_Device);
+
+        if (this->ErrorFlag == 1)
+        {
+            std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
+        }
+
+
+        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(VolumeSize, interpFactor);
+
     };
 
     // ~gpuGridder() : ~AbstractGridder() { };
@@ -47,9 +61,6 @@ public:
 
     // // Reset the volume to all zeros
     // void ResetVolume();
-
-    // Set the volume
-    void SetVolume(float *Volume, int *ArraySize);
 
     // Set which GPUs to use
     void SetGPU(int GPU_Device);
@@ -146,6 +157,9 @@ private:
 
     // Forward projection new volume flag
     bool newVolumeFlag;
+
+    // Estimate the maximum number of coordinate axes to allocate on the GPUs
+    int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);
 
     // Allocate GPU arrays
     // float *AllocateGPUArray(int GPU_Device, int ArraySize);
