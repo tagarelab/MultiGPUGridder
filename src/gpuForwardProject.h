@@ -38,6 +38,9 @@ private:
     // Pointer to the images array on the device (i.e. the GPU)
     MemoryStructGPU *d_Imgs;
 
+    // Pointer to the complex CAS images array on the device (i.e. the GPU)
+    // cufftComplex *d_CASImgsComplex;
+
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
     MemoryStructGPU *d_CoordAxes;
 
@@ -93,6 +96,8 @@ public:
     void SetCASImages(MemoryStructGPU *&CASImgs) { this->d_CASImgs = CASImgs; }
 
     void SetImages(MemoryStructGPU *&Imgs) { this->d_Imgs = Imgs; }
+
+    // void SetCASComplexImages(cufftComplex *&CASImgsComplex) { this->d_CASImgsComplex = CASImgsComplex; }
 
     void SetCoordinateAxes(MemoryStructGPU *&CoordAxes) { this->d_CoordAxes = CoordAxes; }
 
