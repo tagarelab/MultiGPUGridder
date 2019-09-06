@@ -202,7 +202,7 @@ void gpuForwardProject::Execute()
 
         	// Copy the section of gpuCoordAxes which this stream will process on the current GPU
             cudaMemcpyAsync(
-                &this->d_CoordAxes[gpuCoordAxes_Stream_Offset], 
+                this->d_CoordAxes->GetPointer(gpuCoordAxes_Stream_Offset), //&this->d_CoordAxes[gpuCoordAxes_Stream_Offset], 
                 &coordAxes_CPU_Pinned[CoordAxes_CPU_Offset],
                 coord_Axes_CPU_streamBytes,
                 cudaMemcpyHostToDevice, streams[i]);                

@@ -109,7 +109,7 @@ void gpuGridder::InitilizeGPUArrays()
     Log("d_CoordAxes");
     // Allocate the coordinate axes array
     this->d_CoordAxes = new MemoryStructGPU(this->coordAxes->GetDim(), this->coordAxes->GetSize(), this->GPU_Device);
-    this->d_CoordAxes->CopyToGPU(this->coordAxes->GetPointer(), this->coordAxes->bytes());
+    // this->d_CoordAxes->CopyToGPU(this->coordAxes->GetPointer(), this->coordAxes->bytes());
 
     // Allocate the Kaiser bessel lookup table
     this->d_KB_Table = new MemoryStructGPU(this->ker_bessel_Vector->GetDim(), this->ker_bessel_Vector->GetSize(), this->GPU_Device);

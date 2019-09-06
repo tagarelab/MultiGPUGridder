@@ -28,6 +28,10 @@ interpFactor = 2;
 n1_axes = 20;
 n2_axes = 20;
 
+
+disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB'])
+
+
 load mri;
 img = squeeze(D);
 img = imresize3(img,[VolumeSize, VolumeSize, VolumeSize]);
