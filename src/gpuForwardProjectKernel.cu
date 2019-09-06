@@ -158,18 +158,18 @@ void gpuForwardProject::Execute()
 	if (this->nAxes <= this->MaxAxesAllocated)
 	{
 		// The number of coordinate axes is less than or equal to the total number of axes to process
-		numAxesPerStream = ceil((double)this->nAxes / (double)this->nStreams);
+		numAxesPerStream = floor((double)this->nAxes / (double)this->nStreams);
 	}
 	else
 	{
 		// Several batches will be needed so evenly split the MaxAxesAllocated by the number of streams
-		numAxesPerStream = ceil((double)this->MaxAxesAllocated / (double)this->nStreams);
+		numAxesPerStream = floor((double)this->MaxAxesAllocated / (double)this->nStreams);
     }	
 
     int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
 
 	// While we have coordinate axes to process, loop through the GPUs and the streams
-	int MaxBatches = 1000; // Maximum iterations in case we get stuck in the while loop for some reason
+	int MaxBatches = 10000; // Maximum iterations in case we get stuck in the while loop for some reason
 	int batch = 0;
 
 	while (processed_nAxes < this->nAxes && batch < MaxBatches)
@@ -187,8 +187,7 @@ void gpuForwardProject::Execute()
             Log2("Stream: ", i);
             Log2("processed_nAxes", processed_nAxes);
             Log2("numAxesPerStream", numAxesPerStream);
-            Log2("numAxesGPU_Batch", numAxesGPU_Batch);
-                        
+            Log2("numAxesGPU_Batch", numAxesGPU_Batch);                        
             
             // If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
 			if (processed_nAxes + numAxesPerStream >= this->nAxes)
@@ -204,7 +203,7 @@ void gpuForwardProject::Execute()
             }
 
 			// Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
-			int CoordAxes_CPU_Offset = processed_nAxes * 9;  // Each axes has 9 elements (X, Y, Z)
+			int CoordAxes_CPU_Offset       = processed_nAxes  * 9;  // Each axes has 9 elements (X, Y, Z)
 			int coord_Axes_CPU_streamBytes = numAxesPerStream * 9 * sizeof(float);
 
 			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
@@ -285,8 +284,7 @@ void gpuForwardProject::Execute()
             processed_nAxes = processed_nAxes + numAxesPerStream;   
 
             // Update the number of axes which have been assigned to this GPU during the current batch
-            numAxesGPU_Batch = numAxesGPU_Batch + numAxesPerStream;
-            
+            numAxesGPU_Batch = numAxesGPU_Batch + numAxesPerStream;    
         }
         
 		// Increment the batch number

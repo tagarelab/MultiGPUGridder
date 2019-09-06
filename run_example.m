@@ -25,7 +25,7 @@ disp("Resetting devices...")
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 20;
+n1_axes = 2000;
 n2_axes = 20;
 
 
@@ -64,6 +64,7 @@ gridder.KBTable = single(KBTable);
 toc
 
 gridder.Set()
+
 disp("ForwardProject...")
 gridder.ForwardProject()
 toc

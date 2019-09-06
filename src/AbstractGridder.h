@@ -77,8 +77,8 @@ public:
     // Run the back projection and return the volume
     float *BackProject();
 
-    // // Set the volume
-    // void SetVolume(float *Volume, int *VolumeSize);
+    // Set the volume
+    void SetVolume(float *Volume, int *VolumeSize);
 
     // Reset the volume to all zeros
     void ResetVolume();

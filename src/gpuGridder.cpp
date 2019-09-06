@@ -17,24 +17,41 @@
 
 int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
 {
+    Log("EstimateMaxAxesToAllocate()...");
+
     // Estimate the maximum number of coordinate axes to allocate on the GPU
     cudaSetDevice(this->GPU_Device);
-    size_t mem_tot_0 = 0;
-    size_t mem_free_0 = 0;
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+    size_t mem_tot = 0;
+    size_t mem_free = 0;
+    cudaMemGetInfo(&mem_free, &mem_tot);
 
-    int CASImg_Length = (VolumeSize * interpFactor + this->extraPadding * 2) * (VolumeSize * interpFactor + this->extraPadding);
+    int CASImg_Length = (VolumeSize * interpFactor + this->extraPadding * 2) * (VolumeSize * interpFactor + this->extraPadding * 2);
     int Img_Length = (VolumeSize * interpFactor) * (VolumeSize * interpFactor);
 
     int Bytes_per_Img = Img_Length * sizeof(float);
     int Bytes_per_CASImg = CASImg_Length * sizeof(float);
     int Bytes_per_ComplexCASImg = CASImg_Length * sizeof(cufftComplex);
     int Bytes_for_CASVolume = pow((VolumeSize * interpFactor + this->extraPadding * 2), 3) * sizeof(float);
+    int Bytes_for_CoordAxes = 9 * sizeof(float); // 9 elements per axes
 
-    int EstimatedMaxAxes = (mem_free_0 - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg);
+    int EstimatedMaxAxes = (mem_free - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
 
-    // Leave room on the GPU to run the FFTs so only use 70% of the maximum possible
-    EstimatedMaxAxes = EstimatedMaxAxes * 0.10;
+
+    Log("mem_free:");
+    Log(mem_free);
+    Log("Bytes_for_CASVolume:");
+    Log(Bytes_for_CASVolume);
+    Log("Bytes_per_Img:");
+    Log(Bytes_per_Img);
+    Log("Bytes_per_CASImg:");
+    Log(Bytes_per_CASImg);
+    Log("Bytes_per_ComplexCASImg:");
+    Log(Bytes_per_ComplexCASImg);
+    Log("EstimatedMaxAxes:");
+    Log(EstimatedMaxAxes);
+
+    // Leave room on the GPU to run the FFTs so only use 2% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.01);
 
     Log("EstimatedMaxAxes:");
     Log(EstimatedMaxAxes);
@@ -43,18 +60,6 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
 
 
 }
-
-void gpuGridder::SetVolume(float *Volume, int *ArraySize)
-{
-    // First save the given pointer
-    this->Volume = new MemoryStruct(3, ArraySize);
-    this->Volume->CopyPointer(Volume);
-
-    // Next, pin the volume to host (i.e. CPU) memory in order to enable the async CUDA stream copying
-    // This will let us copy the volume to all GPUs at the same time
-    this->Volume->PinArray();
-}
-
 
 void gpuGridder::VolumeToCASVolume()
 {

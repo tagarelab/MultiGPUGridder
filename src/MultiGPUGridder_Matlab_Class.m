@@ -19,7 +19,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         Images;
         GPUs = int32([0, 1, 2, 3]);
 %         MaxAxesToAllocate = 1000;
-        nStreams = 10;
+        nStreams = 5;
         
     end
     methods
