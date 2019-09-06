@@ -16,8 +16,8 @@
 #include <cuda.h>
 
 // NVTX labeling tools (for the nvidia profiling)
-// #include <nvToolsExt.h>
-// #include <cuda_profiler_api.h>
+#include <nvToolsExt.h>
+#include <cuda_profiler_api.h>
 // #include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
 
 class gpuGridder : public AbstractGridder
@@ -62,6 +62,9 @@ public:
 
     // Get the number of CUDA streams
     int GetNumStreams() { return this->nStreams; }
+
+    // Set the number of CUDA streams
+    int SetNumStreams(int nStreams) { this->nStreams = nStreams; }
 
     // Get the pointer to the CUDA streams
     cudaStream_t *GetStreamsPtr() { return this->streams; }

@@ -53,7 +53,7 @@ gridder.VolumeSize = int32(VolumeSize);
 gridder.Volume = single(MRI_volume); %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
 gridder.CASVolumeSize = repmat(gridder.VolumeSize * gridder.interpFactor + gridder.extraPadding * 2, 1, 3);
 gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
-gridder.CASImages = zeros([VolumeSize*interpFactor, VolumeSize*interpFactor, gridder.NumAxes], 'single');
+% gridder.CASImages = zeros([VolumeSize*interpFactor, VolumeSize*interpFactor, gridder.NumAxes], 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 gridder.KBTable = single(KBTable);
@@ -182,13 +182,7 @@ toc
     colormap jet
     title("Slice " + num2str(slice))
     colorbar
-    pause(0.1)
- end
- 
- 
- 
- %%
-for slice = 1:10
+
     
     subplot(2,3,4)
     imagesc(gridder.Images(:,:,slice));

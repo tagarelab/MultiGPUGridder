@@ -689,14 +689,6 @@ void gpuFFT::CASImgsToImgs(
     cufftComplex* d_CASImgsComplex,
     int numImgs)
 {
-    // Set the current GPU device to run the kernel
-    cudaSetDevice(0); 
-
-    size_t mem_tot_0 = 0;
-    size_t mem_free_0 = 0;
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory " << mem_free_0 << " out of " << mem_tot_0 << '\n';
-
 
     int gridSize = 32;
     int blockSize = ceil(CASImgSize / gridSize);
@@ -710,10 +702,6 @@ void gpuFFT::CASImgsToImgs(
 
     // Run FFTShift
     cufftShift_2D_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex, CASImgSize, numImgs);
-
-    // Check to make sure the GPU has enough available memory left
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory " << mem_free_0 << " out of " << mem_tot_0 << '\n';
     
     // Create a plan for taking the inverse of the CAS imgs
     cufftHandle inverseFFTPlan;   
@@ -731,56 +719,23 @@ void gpuFFT::CASImgsToImgs(
     int istride = 1;                // --- Distance between two successive input/output elements
     int ostride = 1;                // --- Distance between two successive input/output elements
     
-    cudaSetDevice(0); 
-
     // NOTE: NULL here disables the advanced data layout of the cufftPlanMany
     cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
     cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
 
-    cudaSetDevice(0); 
-    cudaDeviceSynchronize(); // needed?  
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory before inverse FFT " << mem_free_0 << " out of " << mem_tot_0 << '\n';
-
     // Inverse FFT
     cufftExecC2C(inverseFFTPlan, (cufftComplex *) d_CASImgsComplex, (cufftComplex *) d_CASImgsComplex, CUFFT_INVERSE);
-    
-    cudaDeviceSynchronize(); // needed?  
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory after inverse FFT " << mem_free_0 << " out of " << mem_tot_0 << '\n';
 
     // Run FFTShift
-    // cufftShift_3D_slice_kernel <<< dimGrid, dimBlock, 0, stream >>> (d_CASImgsComplexOutput, d_CASImgsComplex, CASImgSize, numImgs);
     cufftShift_2D_kernel <<< dimGrid, dimBlock, 0, stream>>> (d_CASImgsComplex, CASImgSize, numImgs);
-
-    cudaDeviceSynchronize(); // needed?  
-
-    cudaSetDevice(0); 
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory after fftshift " << mem_free_0 << " out of " << mem_tot_0 << '\n';
 
     // Run kernel to crop the projection images (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
     ComplexToNormalizedImgs<<< dimGrid, dimBlock, 0, stream >>>
     (d_CASImgsComplex, d_imgs, CASImgSize, ImgSize, numImgs, CASImgSize * CASImgSize);
     
-    cudaDeviceSynchronize(); // needed?  
-
-    cudaSetDevice(0); 
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory before cudaFree " << mem_free_0 << " out of " << mem_tot_0 << '\n';
-
-    cudaDeviceSynchronize(); // needed?  
-
     // Destroy the FFT plan
-    // cufftDestroy(inverseFFTPlan);
-    // cudaFree(d_CASImgsComplex2);
-    // cudaFree(d_CASImgsComplex2Output);
-
-    // cudaSetDevice(0); 
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
-    std::cout << "Free memory after cudaFree " << mem_free_0 << " out of " << mem_tot_0 << '\n';
-
+    cufftDestroy(inverseFFTPlan);
 
     return;
 }

@@ -23,21 +23,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Get the class instance pointer from the second input
     gpuGridder *gpuGridderObj = convertMat2Ptr<gpuGridder>(prhs[1]);
 
-    // // Set the volume size
-    // if (!strcmp("SetVolumeSize", cmd))
-    // {
-    //     int *VolumeSize = (int *)mxGetData(prhs[2]);
-
-    //     std::cout << "SetVolumeSize: " << VolumeSize[0] << '\n';
-
-    //     gpuGridderObj->SetVolumeSize(VolumeSize[0]);
-
-    //     // DEBUG
-    //     int* volSize = gpuGridderObj->GetVolumeSize();
-    //     std::cout << "volSize: " << volSize[0] << " " << volSize[1] << " " << volSize[2] << '\n';
-
-    // }
-
     // Set the pointer to the volume
     if (!strcmp("SetVolume", cmd))
     {
@@ -51,8 +36,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // Pointer to the volume array and the dimensions of the array
         gpuGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
 
-        // Set the number of coordinate axes
-        // gpuGridderObj->SetNumAxes((int)mxGetScalar(prhs[3]));
     }
 
     // Set the pointer to the CAS volume
@@ -72,6 +55,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (!strcmp("SetMaxGPUAxesToAllocate", cmd))
     {
         gpuGridderObj->SetMaxGPUAxesToAllocate((int)mxGetScalar(prhs[2]));
+    }
+    
+    // Set the number of CUDA streams to use with each GPU
+    if (!strcmp("SetNumberStreams", cmd))
+    {
+        gpuGridderObj->SetNumStreams((int)mxGetScalar(prhs[2]));
     }
 
     // Set the pointer to the output images

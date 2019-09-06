@@ -197,7 +197,8 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
 {
     // Set the coordinate axes pointer
     this->coordAxes = new MemoryStruct(1, ArraySize);
-    this->coordAxes->ptr = coordAxes;
+    this->coordAxes->CopyPointer(coordAxes);
+    this->coordAxes->PinArray();
 }
 
 

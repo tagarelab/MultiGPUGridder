@@ -178,7 +178,6 @@ void gpuGridder::ForwardProject()
 
     this->newVolumeFlag = true;
     this->FP_initilized = false;
-    this->nStreams = 4;
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
