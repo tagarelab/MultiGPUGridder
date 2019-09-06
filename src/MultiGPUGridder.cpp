@@ -16,64 +16,6 @@
 #pragma warning Unknown dynamic link import / export semantics.
 #endif
 
-void MultiGPUGridder::SetVolume(float *Volume, int *VolumeSize)
-{
-    // Set the volume on each gpuGridder object
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        gpuGridder_vec[i]->SetVolume(Volume, VolumeSize);
-    }
-}
-
-void MultiGPUGridder::SetCASVolume(float *Volume, int *VolumeSize)
-{
-    // Set the CASvolume on each gpuGridder object
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        gpuGridder_vec[i]->SetCASVolume(Volume, VolumeSize);
-    }
-}
-
-void MultiGPUGridder::SetCoordAxes(float *Volume, int *VolumeSize)
-{
-    std::cout << "MultiGPUGridder::SetCoordAxes()" << '\n';
-
-    // Set the coordinate axes array on each gpuGridder object
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        std::cout << "Setting coordaxes for GPU device " << i << '\n';
-
-        gpuGridder_vec[i]->SetCoordAxes(Volume, VolumeSize);
-    }
-}
-
-void MultiGPUGridder::SetImages(float *Volume, int *VolumeSize)
-{
-    // Set the output projection images array on each gpuGridder object
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        gpuGridder_vec[i]->SetImages(Volume, VolumeSize);
-    }
-}
-
-void MultiGPUGridder::SetCASImages(float *Volume, int *VolumeSize)
-{
-    // Set the output projection CAS images array on each gpuGridder object
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        gpuGridder_vec[i]->SetCASImages(Volume, VolumeSize);
-    }
-}
-
-void MultiGPUGridder::SetKerBesselVector(float *Volume, int *VolumeSize)
-{
-    // Set the Kaiser Bessel lookup table array on each gpuGridder object
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        gpuGridder_vec[i]->SetKerBesselVector(Volume, VolumeSize);
-    }
-}
-
 void MultiGPUGridder::SetNumStreams(int nStreams)
 {
     // Set the number of CUDA streams to use with each GPU

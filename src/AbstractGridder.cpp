@@ -1,5 +1,14 @@
 #include "AbstractGridder.h"
 
+
+// Initialize static members
+MemoryStruct * AbstractGridder::Volume;
+MemoryStruct * AbstractGridder::CASVolume;
+MemoryStruct * AbstractGridder::imgs;
+MemoryStruct * AbstractGridder::CASimgs;
+MemoryStruct * AbstractGridder::coordAxes;
+MemoryStruct * AbstractGridder::ker_bessel_Vector;
+
 AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
 {
     // Constructor for the abstract gridder class

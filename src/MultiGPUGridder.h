@@ -40,24 +40,6 @@ public:
 		this->GPU_Devices = GPU_Devices;
 	}
 
-	// Set the volume
-	void SetVolume(float *Volume, int *VolumeSize);
-
-	// Set the CAS volume
-	void SetCASVolume(float *Volume, int *VolumeSize);
-
-	// Set the coordinate axes
-	void SetCoordAxes(float *Volume, int *VolumeSize);
-
-	// Set the output projection images array
-	void SetImages(float *Volume, int *VolumeSize);
-
-	// Set the output projction CASimages array
-	void SetCASImages(float *Volume, int *VolumeSize);
-
-	// Set the Kaiser Bessel lookup table array
-	void SetKerBesselVector(float *Volume, int *VolumeSize);
-
 	// Set the number of CUDA streams to use with each GPU
 	void SetNumStreams(int nStreams);
 

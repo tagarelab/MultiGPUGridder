@@ -4,28 +4,30 @@
 #include <iostream>
 #include "MemoryStruct.h"
 
+
 class AbstractGridder
 {
 protected:
 
+    // Create one instance of the following arrays to shared between objects of type AbstractGridder (and child objects)
     // Volume to use for forward/back projection
-    MemoryStruct *Volume;
+    static MemoryStruct *Volume;
 
     // CASVolume to use for forward/back projection
-    MemoryStruct *CASVolume;
+    static MemoryStruct *CASVolume;
 
     // Projection images
-    MemoryStruct *imgs;
+    static MemoryStruct *imgs;
 
     // CAS Projection images (on the CPU)
-    MemoryStruct *CASimgs;
+    static MemoryStruct *CASimgs;
 
     // Coordinate axes for forward / back projection
-    MemoryStruct *coordAxes;
+    static MemoryStruct *coordAxes;
 
     // Kaiser bessel window function array of predefined values
     // Provide default vector values (useful if Matlab is not available)
-    MemoryStruct * ker_bessel_Vector;
+    static MemoryStruct * ker_bessel_Vector;
 
     // Interpolation factor for zero padding the volume
     float interpFactor;
@@ -146,4 +148,6 @@ public:
     // Get the pointer to the images array on the CPU
     float *GetImgsPtr_CPU() { return this->imgs->ptr; }
 };
+
+
 
