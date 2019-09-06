@@ -42,7 +42,7 @@ public:
         }
 
 
-        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(VolumeSize, interpFactor);
+        // this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(VolumeSize, interpFactor);
 
     };
 
@@ -103,6 +103,9 @@ public:
 
     // Get the device kaiser bessel lookup table pointer
     float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
+
+    // Set the volume
+    void SetVolume(float *Volume, int *VolumeSize);
 
 protected:
     // // Get a new images array and then convert them to CAS

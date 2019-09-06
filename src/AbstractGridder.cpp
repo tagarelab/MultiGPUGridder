@@ -4,15 +4,6 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
 {
     // Constructor for the abstract gridder class
 
-    // Initlize these variable here for now
-    this->kerSize = 501;
-    this->kerHWidth = 2;
-    this->extraPadding = 3;
-    this->ErrorFlag = false;
-    this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
-    this->CASimgs = nullptr;
-    this->MaxAxesToAllocate = 1000;
-
     // Set the interpolation factor parameter
     if (interpFactor > 0) // Check that the interpolation factor is greater than zero
     {
@@ -22,6 +13,15 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     {
         std::cerr << "Interpolation factor must be a non-zero float value." << '\n';
     }
+
+    // Initlize these variable here for now
+    this->kerSize = 501;
+    this->kerHWidth = 2;
+    this->extraPadding = 3;
+    this->ErrorFlag = false;
+    this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
+    this->CASimgs = nullptr;
+    this->MaxAxesToAllocate = 1000;
 
     return;
 
@@ -73,17 +73,6 @@ float *AbstractGridder::GetImages()
     return this->imgs->ptr;
 }
 
-void AbstractGridder::SetVolume(float *Volume, int *ArraySize)
-{
-    // First save the given pointer
-    this->Volume = new MemoryStruct(3, ArraySize);
-    this->Volume->CopyPointer(Volume);
-
-    // Next, pin the volume to host (i.e. CPU) memory in order to enable the async CUDA stream copying
-    // This will let us copy the volume to all GPUs at the same time
-    this->Volume->PinArray();
-}
-
 void AbstractGridder::ResetVolume()
 {
     // Reset the volume (of type MemoryStruct)
@@ -94,11 +83,6 @@ void AbstractGridder::ResetVolume()
 int *AbstractGridder::GetVolumeSize()
 {
     return this->Volume->size;
-}
-
-void AbstractGridder::SetVolume(float *Volume)
-{
-    this->Volume->ptr = Volume;
 }
 
 void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)

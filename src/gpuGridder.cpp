@@ -44,6 +44,18 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
 
 }
 
+void gpuGridder::SetVolume(float *Volume, int *ArraySize)
+{
+    // First save the given pointer
+    this->Volume = new MemoryStruct(3, ArraySize);
+    this->Volume->CopyPointer(Volume);
+
+    // Next, pin the volume to host (i.e. CPU) memory in order to enable the async CUDA stream copying
+    // This will let us copy the volume to all GPUs at the same time
+    this->Volume->PinArray();
+}
+
+
 void gpuGridder::VolumeToCASVolume()
 {
     Log("VolumeToCASVolume()");

@@ -77,8 +77,8 @@ public:
     // Run the back projection and return the volume
     float *BackProject();
 
-    // Set the volume
-    void SetVolume(float *Volume, int *VolumeSize);
+    // // Set the volume
+    // void SetVolume(float *Volume, int *VolumeSize);
 
     // Reset the volume to all zeros
     void ResetVolume();
@@ -103,9 +103,6 @@ public:
 
     // Set the kaiser bessel vector
     void SetKerBesselVector(float *ker_bessel_Vector, int* ArraySize);
-
-    // Set the volume pointer
-    void SetVolume(float *Volume);
 
     // Set the CAS volume pointer
     void SetCASVolume(float *CASVolume, int *ArraySize);

@@ -115,6 +115,18 @@ void gpuForwardProject::Execute()
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int CASVolSize = this->d_CASVolume->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);    
+
+    Log2("gridSize", this->gridSize);
+    Log2("blockSize", this->blockSize);
+    Log2("nAxes", this->nAxes);
+    Log2("MaxAxesAllocated", this->MaxAxesAllocated);
+    Log2("nStreams", this->nStreams);
+    Log2("GPU_Device", this->GPU_Device);
+    Log2("maskRadius", this->maskRadius);
+    Log2("ImgSize", ImgSize);
+    Log2("CASVolSize", CASVolSize);
+    Log2("CASImgSize", CASImgSize);
+    
     
     // Allocate temporary cufftComplex arrays
     cufftComplex *d_CASImgsComplex;
