@@ -59,12 +59,7 @@ void MultiGPUGridder::ForwardProject()
             NumAxesPerGPU.push_back(this->GetNumAxes() - NumAxesAssigned);
 
             NumAxesAssigned = NumAxesAssigned + this->GetNumAxes() - NumAxesAssigned;
-
-            // All axes have been assigned so exit the for loop
-            // break;
         }
-
-       
 
         std::cout << "NumAxesPerGPU[i]: " << NumAxesPerGPU[i] << '\n';
     }
@@ -82,13 +77,15 @@ void MultiGPUGridder::ForwardProject()
     {
         for (int i = 1; i < this->Num_GPUs; i++)
         {
-            coordAxesOffset[i] = coordAxesOffset[i - 1] + NumAxesPerGPU[i-1];
+            coordAxesOffset[i] = coordAxesOffset[i - 1] + NumAxesPerGPU[i - 1];
 
             std::cout << "coordAxesOffset[i]: " << coordAxesOffset[i] << '\n';
         }
     }
 
-    // return; // test
+    // Convert the volume to CAS volume using the first GPU
+    // The CASVolume is shared amoung all the objects since CASVolume is a static member in the AbstractGridder class
+    gpuGridder_vec[0]->VolumeToCASVolume();
 
     for (int i = 0; i < Num_GPUs; i++)
     {

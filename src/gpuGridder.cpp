@@ -72,9 +72,6 @@ void gpuGridder::VolumeToCASVolume()
         this->CASVolume->GetPointer(),
         this->interpFactor,
         this->extraPadding);
-
-    // Copy the resulting CAS volume to the corresponding GPU array
-    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 }
 
 void gpuGridder::SetGPU(int GPU_Device)
@@ -252,7 +249,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         InitilizeForwardProjection();
 
         // Set the coordinate axes offset ( in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
-        this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset); 
+        this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset);
 
         // Set the number of axes to process
         this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
@@ -265,8 +262,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     // Assume for now that we have a new volume for each call to ForwardProject()
     if (this->newVolumeFlag == true)
     {
-        // cudaDeviceSynchronize(); // needed?
-
         // Run the volume to CAS volume function
         VolumeToCASVolume();
 
@@ -286,8 +281,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         return; // Don't run the kernel and return
     }
 
-    // Synchronize before running the kernel
-    // cudaDeviceSynchronize(); // needed?
+    // Copy the CAS volume to the corresponding GPU array
+    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
     // Run the forward projection CUDA kernel
     Log("gpuForwardProjectLaunch()");
@@ -297,6 +292,4 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     Log("gpuForwardProjectLaunch() Done");
 
     return;
-
-    
 }

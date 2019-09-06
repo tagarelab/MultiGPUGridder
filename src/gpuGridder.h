@@ -95,10 +95,10 @@ public:
     // Get the device kaiser bessel lookup table pointer
     float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
 
-protected:
     // Convert the volume to a CAS volume
     void VolumeToCASVolume();
 
+protected:
     // How many streams to use on this device?
     int nStreams;
 

@@ -23,9 +23,9 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
-VolumeSize = 64;
+VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 20;
+n1_axes = 1000;
 n2_axes = 20;
 
 
