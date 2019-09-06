@@ -28,9 +28,71 @@ void MultiGPUGridder::SetNumStreams(int nStreams)
 void MultiGPUGridder::ForwardProject()
 {
     // Run the forward projection kernel on each gpuGridder object
+    // Each GPU will process a subset of the coordinate axes
+    // Since the axes array is static all objects share the same variable
+    // So we just need to pass an offset (in number of coordinate axes) from the beginng
+    // To select the subset of axes to process
+
+    // Estimate number of coordinate axes per GPU
+    int EstimatedNumAxesPerGPU = ceil((double)this->GetNumAxes() / (double)this->Num_GPUs);
+
+    std::cout << "EstimatedNumAxesPerGPU: " << EstimatedNumAxesPerGPU << '\n';
+
+    // Create a vector to hold the number of axes to assign for each GPU
+    std::vector<int> NumAxesPerGPU;
+
+    int NumAxesAssigned = 0;
+
+    // TO DO: Consider different GPU specs within the same computer and assign more axes to more capable devices
+    for (int i = 0; i < this->Num_GPUs; i++)
+    {
+        if ((NumAxesAssigned + EstimatedNumAxesPerGPU) < this->GetNumAxes())
+        {
+            // Assign the number of coordinate axes for this GPU
+            NumAxesPerGPU.push_back(EstimatedNumAxesPerGPU);
+
+            NumAxesAssigned = NumAxesAssigned + EstimatedNumAxesPerGPU;
+        }
+        else if (NumAxesAssigned < this->GetNumAxes()) // Are the axes left to assign?
+        {
+            // Otherwise we would assign more axes than we have so take the remainder
+            NumAxesPerGPU.push_back(this->GetNumAxes() - NumAxesAssigned);
+
+            NumAxesAssigned = NumAxesAssigned + this->GetNumAxes() - NumAxesAssigned;
+
+            // All axes have been assigned so exit the for loop
+            // break;
+        }
+
+       
+
+        std::cout << "NumAxesPerGPU[i]: " << NumAxesPerGPU[i] << '\n';
+    }
+
+    // Calculate the offset for each GPU
+    int coordAxesOffset[this->Num_GPUs];
+
+    // First GPU has no offset so assign a value of zero
+    coordAxesOffset[0] = 0;
+
+    std::cout << "coordAxesOffset[0]: " << coordAxesOffset[0] << '\n';
+
+    // Calculate the offset for the rest of the GPUs
+    if (this->Num_GPUs > 1)
+    {
+        for (int i = 1; i < this->Num_GPUs; i++)
+        {
+            coordAxesOffset[i] = coordAxesOffset[i - 1] + NumAxesPerGPU[i-1];
+
+            std::cout << "coordAxesOffset[i]: " << coordAxesOffset[i] << '\n';
+        }
+    }
+
+    // return; // test
+
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->ForwardProject();
+        gpuGridder_vec[i]->ForwardProject(coordAxesOffset[i], NumAxesPerGPU[i]);
     }
 
     // Sync the GPUs

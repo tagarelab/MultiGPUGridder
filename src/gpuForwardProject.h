@@ -77,6 +77,10 @@ private:
     // Width of the kaiser bessel lookup table
     float kerHWidth;
 
+    // Offset for processing a subset of all the coordinate axes
+    // This is in number of axes from the beginning of the pinned CPU coordinate axes array
+    int coordAxesOffset;
+
 public:
     void SetPinnedCoordinateAxes(float *&coordAxes_CPU_Pinned) { this->coordAxes_CPU_Pinned = coordAxes_CPU_Pinned; }
 
@@ -91,6 +95,8 @@ public:
     void SetImages(MemoryStructGPU *&Imgs) { this->d_Imgs = Imgs; }
 
     void SetCoordinateAxes(MemoryStructGPU *&CoordAxes) { this->d_CoordAxes = CoordAxes; }
+
+    void SetCoordinateAxesOffset(int coordAxesOffset) { this->coordAxesOffset = coordAxesOffset; }
 
     void SetKBTable(MemoryStructGPU *&KB_Table) { this->d_KB_Table = KB_Table; }
 

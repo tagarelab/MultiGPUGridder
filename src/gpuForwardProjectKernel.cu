@@ -110,6 +110,7 @@ void gpuForwardProject::Execute()
     int CASVolSize = this->d_CASVolume->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);    
 
+    Log2("coordAxesOffset", coordAxesOffset);
     Log2("gridSize", this->gridSize);
     Log2("blockSize", this->blockSize);
     Log2("nAxes", this->nAxes);
@@ -119,8 +120,7 @@ void gpuForwardProject::Execute()
     Log2("maskRadius", this->maskRadius);
     Log2("ImgSize", ImgSize);
     Log2("CASVolSize", CASVolSize);
-    Log2("CASImgSize", CASImgSize);
-    
+    Log2("CASImgSize", CASImgSize);    
     
     // Allocate temporary cufftComplex arrays
     cufftComplex *d_CASImgsComplex;
@@ -160,7 +160,8 @@ void gpuForwardProject::Execute()
 		numAxesPerStream = floor((double)this->MaxAxesAllocated / (double)this->nStreams);
     }	
 
-    int processed_nAxes = 0; // Cumulative number of axes which have already been assigned to a CUDA stream
+    // Cumulative number of axes which have already been assigned to a CUDA stream
+    int processed_nAxes = 0; 
 
 	// While we have coordinate axes to process, loop through the GPUs and the streams
 	int MaxBatches = 10000; // Maximum iterations in case we get stuck in the while loop for some reason
@@ -196,8 +197,9 @@ void gpuForwardProject::Execute()
 				return;
             }
 
-			// Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
-			int CoordAxes_CPU_Offset       = processed_nAxes  * 9;  // Each axes has 9 elements (X, Y, Z)
+            // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
+            // When using multiple GPUs coordAxesOffset will be the number already assigned to other GPUs    
+			int CoordAxes_CPU_Offset       = (processed_nAxes + coordAxesOffset)  * 9;  // Each axes has 9 elements (X, Y, Z)
 			int coord_Axes_CPU_streamBytes = numAxesPerStream * 9 * sizeof(float);
 
 			// Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset			
@@ -233,7 +235,7 @@ void gpuForwardProject::Execute()
                 unsigned long long *CASImgs_CPU_Offset = new  unsigned long long[3];
                 CASImgs_CPU_Offset[0] = (unsigned long long)( CASImgSize );
                 CASImgs_CPU_Offset[1] = (unsigned long long)( CASImgSize );
-                CASImgs_CPU_Offset[2] = (unsigned long long)( processed_nAxes );
+                CASImgs_CPU_Offset[2] = (unsigned long long)( processed_nAxes + coordAxesOffset );
 
                 // How many bytes are the output images?
                 int gpuCASImgs_streamBytes = CASImgSize * CASImgSize * numAxesPerStream * sizeof(float);
@@ -261,7 +263,7 @@ void gpuForwardProject::Execute()
 			unsigned long long *Imgs_CPU_Offset = new  unsigned long long[3];
 			Imgs_CPU_Offset[0] = (unsigned long long)(ImgSize);
 			Imgs_CPU_Offset[1] = (unsigned long long)(ImgSize);
-			Imgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes);
+			Imgs_CPU_Offset[2] = (unsigned long long)(processed_nAxes + coordAxesOffset);
             
 			// How many bytes are the output images?
 			int gpuImgs_streamBytes = ImgSize * ImgSize * numAxesPerStream * sizeof(float);

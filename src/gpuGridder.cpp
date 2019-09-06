@@ -59,8 +59,6 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     Log(EstimatedMaxAxes);
 
     return EstimatedMaxAxes;
-
-
 }
 
 void gpuGridder::VolumeToCASVolume()
@@ -124,7 +122,6 @@ void gpuGridder::InitilizeGPUArrays()
     Log("this->CASVolume->GetSize(2)");
     Log(this->CASVolume->GetSize(2));
 
-
     // Allocate the CAS images
     Log("CASImgs");
     if (this->CASimgs != nullptr)
@@ -158,14 +155,12 @@ void gpuGridder::InitilizeGPUArrays()
     imgs_size[1] = this->imgs->GetSize(1);
     imgs_size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxAxesToAllocate); // 9 elements per coordinate axes
 
-
     Log("imgs_size[0]");
     Log(imgs_size[0]);
     Log("imgs_size[1]");
     Log(imgs_size[1]);
     Log("imgs_size[2]");
     Log(imgs_size[2]);
-
 
     // Allocate the images
     this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), imgs_size, this->GPU_Device);
@@ -210,6 +205,7 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
     this->ForwardProject_obj->SetImages(this->d_Imgs);
     this->ForwardProject_obj->SetCoordinateAxes(this->d_CoordAxes);
+    this->ForwardProject_obj->SetCoordinateAxesOffset(0); // Default is no offset
     this->ForwardProject_obj->SetKBTable(this->d_KB_Table);
 
     // Set the various parameters for the forward projection object
@@ -228,6 +224,17 @@ void gpuGridder::ForwardProject()
 {
     Log("ForwardProject()");
 
+    // Run the forward projection on all the coordinate axes with no offset
+    ForwardProject(0, this->GetNumAxes());
+
+    return;
+}
+
+void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
+{
+    // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
+    Log("ForwardProject(int AxesOffset, int nAxesToProcess)");
+
     this->newVolumeFlag = true;
     this->FP_initilized = false;
 
@@ -243,6 +250,12 @@ void gpuGridder::ForwardProject()
 
         // Initilize the forward projection object
         InitilizeForwardProjection();
+
+        // Set the coordinate axes offset ( in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
+        this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset); 
+
+        // Set the number of axes to process
+        this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
 
         // Reset the flag
         this->FP_initilized = true;
@@ -284,4 +297,6 @@ void gpuGridder::ForwardProject()
     Log("gpuForwardProjectLaunch() Done");
 
     return;
+
+    
 }

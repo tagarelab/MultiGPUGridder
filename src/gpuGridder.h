@@ -50,6 +50,9 @@ public:
     // Run the forward projection and return the projection images
     void ForwardProject();
 
+    // Run forward projection on some subset of the coordinate axes
+    void ForwardProject(int AxesOffset, int nAxesToProcess);
+
     // // Run the back projection and return the volume
     // float *BackProject();
 
