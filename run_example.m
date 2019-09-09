@@ -25,7 +25,7 @@ disp("Resetting devices...")
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 500;
+n1_axes = 50;
 n2_axes = 20;
 
 

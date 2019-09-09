@@ -29,6 +29,24 @@
 class gpuForwardProject
 {
 private:
+
+    // Create vectors to hold all of the pointer offset values when running the CUDA kernels
+    struct Offsets
+    {
+        std::vector<int> numAxesPerStream;
+        std::vector<int> CoordAxes_CPU_Offset;
+        std::vector<int> coord_Axes_CPU_streamBytes;
+        std::vector<int> gpuImgs_Offset;
+        std::vector<int> gpuCASImgs_streamBytes;
+        std::vector<int> gpuCASImgs_Offset;
+        std::vector<int> gpuCoordAxes_Stream_Offset;
+        std::vector<unsigned long long> CASImgs_CPU_Offset;
+        std::vector<unsigned long long> Imgs_CPU_Offset;
+        std::vector<int> gpuImgs_streamBytes;    
+        std::vector<int> stream_ID;
+        int num_offsets;
+    };
+
     // Pointer to the CASVolume array on the device (i.e. the GPU)
     MemoryStructGPU *d_CASVolume;
 
@@ -86,6 +104,9 @@ private:
     // Offset for processing a subset of all the coordinate axes
     // This is in number of axes from the beginning of the pinned CPU coordinate axes array
     int coordAxesOffset;
+
+    // Plan the pointer offset values for running the CUDA kernels
+    Offsets PlanOffsetValues();
 
 public:
     void SetPinnedCoordinateAxes(float *&coordAxes_CPU_Pinned) { this->coordAxes_CPU_Pinned = coordAxes_CPU_Pinned; }
