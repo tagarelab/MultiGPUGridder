@@ -83,6 +83,10 @@ void MultiGPUGridder::ForwardProject()
         }
     }
 
+
+    // Synchronize all of the GPUs
+    GPU_Sync(); // needed? getting an illegal memory address somewhere
+
     // Convert the volume to CAS volume using the first GPU
     // The CASVolume is shared amoung all the objects since CASVolume is a static member in the AbstractGridder class
     cudaSetDevice(this->GPU_Devices[0]);
@@ -113,7 +117,7 @@ void MultiGPUGridder::FreeMemory()
     // Free all of the allocated GPU memory
     for (int i = 0; i < Num_GPUs; i++)
     {
-        delete gpuGridder_vec[i];
+        delete gpuGridder_vec[i];       
     }
 
     // Free all of the allocated CPU memory

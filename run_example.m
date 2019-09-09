@@ -23,7 +23,7 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
-VolumeSize = 256;
+VolumeSize = 128;
 interpFactor = 2;
 n1_axes = 500;
 n2_axes = 20;
@@ -69,24 +69,26 @@ toc
 disp("ForwardProject...")
 
 %%
-clc
 
-% gridder.Volume(1:randi(VolumeSize),1:randi(VolumeSize),1:randi(VolumeSize)) = 2;
-gridder.Volume = single(MRI_volume) ;
+for i = 1:3
+    clc
 
-cols = size(coordAxes,2);
-P = randperm(cols);
-coordAxes = coordAxes(:,P);
+    % gridder.Volume(1:randi(VolumeSize),1:randi(VolumeSize),1:randi(VolumeSize)) = 2;
+    % gridder.Volume = single(MRI_volume) ;
 
-gridder.coordAxes = single(coordAxes(:));
+    cols = size(coordAxes,2);
+    P = randperm(cols);
+    coordAxes = coordAxes(:,P);
 
-tic
-gridder.ForwardProject()
-gridder.ForwardProject()
-gridder.ForwardProject()
-toc
+    gridder.coordAxes = single(coordAxes(:));
 
-easyMontage(gridder.Images(:,:,1:10), 1)
+    tic
+    gridder.ForwardProject()
+    toc
+
+    easyMontage(gridder.Images(:,:,:), 1)
+    pause(1)
+end
 
 return;
 
