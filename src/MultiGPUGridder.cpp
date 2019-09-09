@@ -108,6 +108,23 @@ void MultiGPUGridder::GPU_Sync()
     }
 }
 
+void MultiGPUGridder::FreeMemory()
+{
+    // Free all of the allocated GPU memory
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        delete gpuGridder_vec[i];
+    }
+
+    // Free all of the allocated CPU memory
+    delete this->Volume;
+    delete this->CASVolume;
+    delete this->imgs;
+    delete this->CASimgs;
+    delete this->coordAxes;
+
+}
+
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)
 // #define USE_EXTERN_C true
 // #if USE_EXTERN_C == true

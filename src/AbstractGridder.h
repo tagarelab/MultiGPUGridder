@@ -64,7 +64,7 @@ protected:
     float *GetImages();
 
     // Free all of the allocated memory
-    //void FreeMemory();
+    void FreeMemory();
 
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;
@@ -74,7 +74,7 @@ public:
     AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor);
 
     // Deconstructor
-    ~AbstractGridder(){};
+    ~AbstractGridder();
 
     // Run the forward projection and return the projection images
     void ForwardProject();

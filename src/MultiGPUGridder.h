@@ -38,7 +38,6 @@ public:
 
 		// Save the GPU device numbers
 		this->GPU_Devices = GPU_Devices;
-
 	}
 
 	// Set the number of CUDA streams to use with each GPU
@@ -59,6 +58,9 @@ private:
 
 	// Synchronize all of the GPUs
 	void GPU_Sync();
+
+	// Free all of the allocated memory
+	void FreeMemory();
 };
 
 #endif

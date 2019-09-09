@@ -31,7 +31,6 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
         for (kerIndex = 0; kerIndex < kerSize; kerIndex++)
         {
             locKer[kerIndex] = *(ker + kerIndex);
-            // locKer[kerIndex]=1;//test
         }
     }
     __syncthreads();
@@ -67,7 +66,6 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
                 ri = min(max(ri, (float)-convW), (float)convW);
                 kerIndex = roundf(ri * kerScale + kerCenter);
                 kerIndex = min(max(kerIndex, 0), kerSize - 1);
-                //  wi=*(ker+kerIndex);
                 wi = *(locKer + kerIndex);
 
                 for (j1 = int_vol_j - convW; j1 <= int_vol_j + convW; j1++)
@@ -77,7 +75,6 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
                     rj = min(max(rj, (float)-convW), (float)convW);
                     kerIndex = roundf(rj * kerScale + kerCenter);
                     kerIndex = min(max(kerIndex, 0), kerSize - 1);
-                    //  wj=*(ker+kerIndex);
                     wj = *(locKer + kerIndex);
 
                     for (k1 = int_vol_k - convW; k1 <= int_vol_k + convW; k1++)
@@ -86,14 +83,13 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
                         rk = min(max(rk, (float)-convW), (float)convW);
                         kerIndex = roundf(rk * kerScale + kerCenter);
                         kerIndex = min(max(kerIndex, 0), kerSize - 1);
-                        //   wk=*(ker+kerIndex);
                         wk = *(locKer + kerIndex);
                         w = wi * wj * wk;
 
                         *(img_ptr + j * imgSize + i) = *(img_ptr + j * imgSize + i) +
                                                        w * (*(vol + k1 * volSize * volSize + j1 * volSize + i1));
 
-                        // }
+                    
                     } //End k1
                 }     //End j1
             }         //End i1

@@ -23,7 +23,7 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
-VolumeSize = 128;
+VolumeSize = 256;
 interpFactor = 2;
 n1_axes = 500;
 n2_axes = 20;
@@ -82,12 +82,18 @@ gridder.coordAxes = single(coordAxes(:));
 
 tic
 gridder.ForwardProject()
+gridder.ForwardProject()
+gridder.ForwardProject()
 toc
 
 easyMontage(gridder.Images(:,:,1:10), 1)
 
 return;
 
+%%
+gridder.delete()
+clear gridder
+clear all
 %%
 
 % [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
@@ -176,10 +182,14 @@ tic
 
 gpuGridder = gpuBatchGridder(VolumeSize,n1_axes*n2_axes+1,interpFactor);
 gpuGridder.setVolume(MRI_volume);
+
+tic
 gpuGridderImg  = gpuGridder.forwardProject(coordAxes);
+toc
+
+
 gpuGridderCASImgs = gather(gpuGridder.gridder.gpuCASImgs);
 gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
-toc
 
 % easyMontage(gridder.CASImages, 1)
 % return

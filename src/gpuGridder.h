@@ -41,9 +41,10 @@ public:
         }
     };
 
-    // ~gpuGridder() : ~AbstractGridder() { };
-
-    // ~gpuGridder(){};
+    // Deallocation
+    ~gpuGridder(){
+        FreeMemory();
+    };
 
     // Run the forward projection and return the projection images
     void ForwardProject();
@@ -153,8 +154,8 @@ private:
     // Estimate the maximum number of coordinate axes to allocate on the GPUs
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);
 
-    // // Free all of the allocated memory
-    // void FreeMemory();
+    // Free all of the allocated memory
+    void FreeMemory();
 };
 
 #endif
