@@ -50,6 +50,9 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     Log("EstimatedMaxAxes:");
     Log(EstimatedMaxAxes);
 
+    // Divide by the number of streams
+    EstimatedMaxAxes = EstimatedMaxAxes / this->nStreams;
+
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
     EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
 
@@ -285,6 +288,9 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
         // Set the number of axes to process
         this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
+
+        // Estimate the maximum number of coordinate axes to allocate per stream
+        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
 
         // Reset the flag
         this->FP_initilized = true;
