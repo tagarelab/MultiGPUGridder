@@ -89,6 +89,7 @@ void MultiGPUGridder::ForwardProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
+        gpuGridder_vec[i]->newVolumeFlag = false;
         gpuGridder_vec[i]->ForwardProject(coordAxesOffset[i], NumAxesPerGPU[i]);
     }
 

@@ -98,6 +98,9 @@ public:
     // Convert the volume to a CAS volume
     void VolumeToCASVolume();
 
+    // Forward projection new volume flag
+    bool newVolumeFlag;
+    
 protected:
     // How many streams to use on this device?
     int nStreams;
@@ -139,9 +142,6 @@ private:
 
     // Forward projection initilization flag
     bool FP_initilized;
-
-    // Forward projection new volume flag
-    bool newVolumeFlag;
 
     // Estimate the maximum number of coordinate axes to allocate on the GPUs
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);

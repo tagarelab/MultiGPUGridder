@@ -53,7 +53,7 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 20% of the maximum possible
     EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.2);
 
-    EstimatedMaxAxes = 100; //test
+    // EstimatedMaxAxes = 100; //test
 
     Log("EstimatedMaxAxes:");
     Log(EstimatedMaxAxes);
@@ -232,7 +232,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     Log("ForwardProject(int AxesOffset, int nAxesToProcess)");
 
-    this->newVolumeFlag = true;
+    // this->newVolumeFlag = true;
     this->FP_initilized = false;
 
     // NOTE: gridSize times blockSize needs to equal CASimgSize

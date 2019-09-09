@@ -124,7 +124,7 @@ void gpuForwardProject::Execute()
     
     // Allocate temporary cufftComplex arrays
     cufftComplex *d_CASImgsComplex;
-    cudaMalloc(&d_CASImgsComplex, sizeof(cufftComplex) * CASImgSize * CASImgSize * std::min(this->nAxes, this->MaxAxesAllocated));
+    // cudaMalloc(&d_CASImgsComplex, sizeof(cufftComplex) * CASImgSize * CASImgSize * std::min(this->nAxes, this->MaxAxesAllocated));
 
     // Set the current GPU device to run the kernel
     cudaSetDevice(this->GPU_Device);    
@@ -249,14 +249,14 @@ void gpuForwardProject::Execute()
             }
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
-            gpuFFT::CASImgsToImgs(
-                streams[i],
-                CASImgSize,
-                ImgSize,
-                this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
-                this->d_Imgs->GetPointer(gpuImgs_Offset),                
-                &d_CASImgsComplex[gpuCASImgs_Offset],
-                numAxesPerStream);   
+            // gpuFFT::CASImgsToImgs(
+            //     streams[i],
+            //     CASImgSize,
+            //     ImgSize,
+            //     this->d_CASImgs->GetPointer(gpuCASImgs_Offset),
+            //     this->d_Imgs->GetPointer(gpuImgs_Offset),                
+            //     &d_CASImgsComplex[gpuCASImgs_Offset],
+            //     numAxesPerStream);   
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
 			// imgSize is the size of the zero padded projection images
@@ -291,11 +291,11 @@ void gpuForwardProject::Execute()
 
 		// Synchronize before running the next batch
 		// TO DO: Consider replacing with cudaStreamWaitEvent or similar to prevent blocking of the CPU
-        cudaDeviceSynchronize(); // needed?           
+        // cudaDeviceSynchronize(); // needed?           
     }
     
     // Free the temporary array
-    cudaFree(d_CASImgsComplex);
+    // cudaFree(d_CASImgsComplex);
 
     return; 
 }

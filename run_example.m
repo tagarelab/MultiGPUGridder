@@ -25,7 +25,7 @@ disp("Resetting devices...")
 
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 1000;
+n1_axes = 100;
 n2_axes = 20;
 
 
@@ -95,7 +95,7 @@ toc
 
 % Images = gridder.Get('Images');
 
-easyMontage(gridder.Images(:,:,:), 1)
+easyMontage(gridder.Images(:,:,1:10), 1)
 % colormap jet
 
 
