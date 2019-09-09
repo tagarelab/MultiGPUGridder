@@ -28,8 +28,10 @@ public:
     gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
     {
         this->FP_initilized = false;
-        this->newVolumeFlag = true;
+        this->newVolumeFlag = false;
+        this->GPUArraysAllocatedFlag = false;
         this->nStreams = 1;
+        this->MaxAxesToAllocate = 0;
 
         // Set the GPU device
         SetGPU(GPU_Device);
@@ -38,10 +40,7 @@ public:
         {
             std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
         }
-
-        // Estimate the maximum number of coordinate axes to allocate
-        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(VolumeSize, interpFactor);
-    };
+        };
 
     // ~gpuGridder() : ~AbstractGridder() { };
 
@@ -98,6 +97,9 @@ public:
     // Convert the volume to a CAS volume
     void VolumeToCASVolume();
 
+    // Initilize the forward projection object
+    void InitilizeForwardProjection();
+
     // Forward projection new volume flag
     bool newVolumeFlag;
 
@@ -139,15 +141,15 @@ private:
 
     // Initilize the CUDA streams
     void InitilizeCUDAStreams();
-    
-    // Initilize the forward projection object
-    void InitilizeForwardProjection();
 
     // Forward projection object
     gpuForwardProject *ForwardProject_obj;
 
     // Forward projection initilization flag
     bool FP_initilized;
+
+    // Array allocation flag
+    bool GPUArraysAllocatedFlag;
 
     // Estimate the maximum number of coordinate axes to allocate on the GPUs
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);

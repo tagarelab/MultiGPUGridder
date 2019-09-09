@@ -19,7 +19,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         Images;
         GPUs = int32([0, 1, 2, 3]);
 %         MaxAxesToAllocate = 1000;
-        nStreams = 10;
+        nStreams = 5;
         
     end
     methods
@@ -33,7 +33,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end  
         %% SetVariables - Set the variables of the C++ class instance 
         function Set(this)
-            [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes), int32(size(this.coordAxes)));
+            [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));
             [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));              
 %             [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));
@@ -61,6 +61,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end 
         %% ForwardProject - Run the forward projection function
         function ForwardProject(this, varargin)
+            this.Set(); % Run the set function in case one of the arrays has changed
             mexForwardProject(this.objectHandle);
         end      
     end

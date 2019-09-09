@@ -33,7 +33,7 @@ void MultiGPUGridder::ForwardProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginng
     // To select the subset of axes to process
 
-    // Estimate number of coordinate axes per GPU
+    // Estimate number of coordinate axes to process on each GPU
     int EstimatedNumAxesPerGPU = ceil((double)this->GetNumAxes() / (double)this->Num_GPUs);
 
     std::cout << "EstimatedNumAxesPerGPU: " << EstimatedNumAxesPerGPU << '\n';
@@ -89,14 +89,35 @@ void MultiGPUGridder::ForwardProject()
     gpuGridder_vec[0]->VolumeToCASVolume();
     cudaDeviceSynchronize(); // Wait for the first GPU to convert the volume to CAS volume
 
+    // Have the gpuGridders been initilized?
+    this->ForwardProject_Initilized_Flag = false; // test
+    if (this->ForwardProject_Initilized_Flag == false)
+    {
+        for (int i = 0; i < Num_GPUs; i++)
+        {
+            std::cout << "Initilizing gpuGridder " << i << '\n';
+            gpuGridder_vec[i]->InitilizeForwardProjection();
+        }
+
+        // Synchronize all of the GPUs
+        GPU_Sync();
+
+        this->ForwardProject_Initilized_Flag = true;
+    }
+
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->newVolumeFlag = false;
         gpuGridder_vec[i]->ForwardProject(coordAxesOffset[i], NumAxesPerGPU[i]);
     }
 
-    // Sync the GPUs
-    for (int i = 0; i < Num_GPUs; i++)
+    // Synchronize all of the GPUs
+    GPU_Sync();
+}
+
+void MultiGPUGridder::GPU_Sync()
+{
+    // Synchronize all of the GPUs
+    for (int i = 0; i < this->Num_GPUs; i++)
     {
         cudaSetDevice(this->GPU_Devices[i]);
         cudaDeviceSynchronize();

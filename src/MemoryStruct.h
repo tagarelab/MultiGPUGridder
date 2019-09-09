@@ -45,8 +45,6 @@ struct MemoryStruct
     // Allocate the memory for the float array
     void AllocateArray()
     {
-        std::cout << "AllocateArray()" << '\n';
-
         this->ptr = new float[this->length()];
     }
 

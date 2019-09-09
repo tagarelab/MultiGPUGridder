@@ -31,6 +31,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
     this->CASimgs = nullptr;
     this->MaxAxesToAllocate = 1000;
+    this->numCoordAxes = numCoordAxes;
 
     return;
 
@@ -139,4 +140,9 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
     this->coordAxes = new MemoryStruct(1, ArraySize);
     this->coordAxes->CopyPointer(coordAxes);
     this->coordAxes->PinArray();
+
+    // Set the number of coordinate axes by dividing by the number of elements per axe (i.e. 9)
+    this->SetNumAxes(ArraySize[0] / 9);
+    
+    std::cout << "Number of axes: " << ArraySize[0] / 9 << '\n';
 }

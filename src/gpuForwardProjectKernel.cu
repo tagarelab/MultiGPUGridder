@@ -106,22 +106,24 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
     // Loop through all of the coordinate axes and calculate the corresponding pointer offset values
     // which are needed for running the CUDA kernels
 
+    Log2("PlanOffsetValues()", 0);
+
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int CASVolSize = this->d_CASVolume->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);
 
-    Log2("coordAxesOffset", coordAxesOffset);
-    Log2("gridSize", this->gridSize);
-    Log2("blockSize", this->blockSize);
-    Log2("nAxes", this->nAxes);
-    Log2("MaxAxesAllocated", this->MaxAxesAllocated);
-    Log2("nStreams", this->nStreams);
-    Log2("GPU_Device", this->GPU_Device);
-    Log2("maskRadius", this->maskRadius);
-    Log2("ImgSize", ImgSize);
-    Log2("CASVolSize", CASVolSize);
-    Log2("CASImgSize", CASImgSize);
+    // Log2("coordAxesOffset", coordAxesOffset);
+    // Log2("gridSize", this->gridSize);
+    // Log2("blockSize", this->blockSize);
+    // Log2("nAxes", this->nAxes);
+    // Log2("MaxAxesAllocated", this->MaxAxesAllocated);
+    // Log2("nStreams", this->nStreams);
+    // Log2("GPU_Device", this->GPU_Device);
+    // Log2("maskRadius", this->maskRadius);
+    // Log2("ImgSize", ImgSize);
+    // Log2("CASVolSize", CASVolSize);
+    // Log2("CASImgSize", CASImgSize);
 
     // Create an instance of the Offsets struct
     Offsets Offsets_obj;
@@ -155,43 +157,43 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
 
     while (processed_nAxes < this->nAxes && batch < MaxBatches)
     {
-        Log2("processed_nAxes", processed_nAxes);
+        // Log2("processed_nAxes", processed_nAxes);
 
         for (int i = 0; i < this->nStreams; i++) // Loop through the streams
         {
-            Log2("i: ", i);
-            Log2("EstimatedNumAxesPerStream: ", EstimatedNumAxesPerStream);
-            Log2("this->nAxes: ", this->nAxes);
+            // Log2("i: ", i);
+            // Log2("EstimatedNumAxesPerStream: ", EstimatedNumAxesPerStream);
+            // Log2("this->nAxes: ", this->nAxes);
 
 
             // If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
             if (processed_nAxes + EstimatedNumAxesPerStream >= this->nAxes)
             {
                 // Process the remaining fraction of EstimatedNumAxesPerStream
-                Log2("EstimatedNumAxesPerStream: ", i);
+                // Log2("EstimatedNumAxesPerStream: ", i);
                 Offsets_obj.numAxesPerStream.push_back(min(EstimatedNumAxesPerStream, nAxes - processed_nAxes));
-                Log2(" after EstimatedNumAxesPerStream: ", i);
+                // Log2(" after EstimatedNumAxesPerStream: ", i);
             } else 
             {
                 // Save the estimated number of axes to the numAxesPerStream
                 Offsets_obj.numAxesPerStream.push_back(EstimatedNumAxesPerStream);
             }
 
-             Log2("this->nAxes: ", this->nAxes);
+            //  Log2("this->nAxes: ", this->nAxes);
 
             // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
             // When using multiple GPUs coordAxesOffset will be the number already assigned to other GPUs
             Offsets_obj.CoordAxes_CPU_Offset.push_back((processed_nAxes + coordAxesOffset) * 9); // Each axes has 9 elements (X, Y, Z)
             Offsets_obj.coord_Axes_CPU_streamBytes.push_back(Offsets_obj.numAxesPerStream.back() * 9 * sizeof(float));
 
-            Log2("CoordAxes_CPU_Offset: ", i);
+            // Log2("CoordAxes_CPU_Offset: ", i);
 
             // Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset
             Offsets_obj.gpuCASImgs_Offset.push_back(numAxesGPU_Batch * CASImgSize * CASImgSize);
             Offsets_obj.gpuImgs_Offset.push_back(numAxesGPU_Batch * ImgSize * ImgSize);
             Offsets_obj.gpuCoordAxes_Stream_Offset.push_back(numAxesGPU_Batch * 9);
 
-            Log2("gpuCoordAxes_Stream_Offset: ", i);
+            // Log2("gpuCoordAxes_Stream_Offset: ", i);
 
             // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
             if (this->CASImgs_CPU_Pinned != NULL)
@@ -218,7 +220,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
 
             Offsets_obj.Imgs_CPU_Offset.push_back(Imgs_Offset[0] * Imgs_Offset[1] * Imgs_Offset[2]);
 
-            Log2("Imgs_CPU_Offset: ", i);
+            // Log2("Imgs_CPU_Offset: ", i);
 
             // How many bytes are the output images?
             Offsets_obj.gpuImgs_streamBytes.push_back(ImgSize * ImgSize * Offsets_obj.numAxesPerStream.back() * sizeof(float));
@@ -229,7 +231,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
             // Update the number of axes which have been assigned to this GPU during the current batch
             numAxesGPU_Batch = numAxesGPU_Batch + Offsets_obj.numAxesPerStream.back();
 
-            Log2("numAxesGPU_Batch: ", i);
+            // Log2("numAxesGPU_Batch: ", i);
 
             // Add one to the number of offset values
             Offsets_obj.num_offsets++;
@@ -237,7 +239,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
             // Remember which stream this is
             Offsets_obj.stream_ID.push_back(i);
 
-            Log2("stream_ID: ", i);
+            // Log2("stream_ID: ", i);
         }
 
         // Increment the batch number

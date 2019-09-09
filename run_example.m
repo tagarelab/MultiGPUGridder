@@ -25,7 +25,7 @@ disp("Resetting devices...")
 
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 500;
+n1_axes = 50;
 n2_axes = 20;
 
 
@@ -62,18 +62,43 @@ gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 gridder.KBTable = single(KBTable);
 
-
+tic
 gridder.Set()
+toc
 
 disp("ForwardProject...")
-for i = 1:2
-    tic
-    gridder.ForwardProject()
-    toc
-end
 
+%%
+clc
+% gridder.Volume(1:120,1:40,:) = 2;
+% gridder.Volume = single(MRI_volume) ;
+% 
+% coordAxes =single([1 0 0 0 1 0 0 0 1]');
+% coordAxes  = repmat(coordAxes, [1 n1_axes*n2_axes]);
+% gridder.coordAxes = coordAxes;
 
+% gridder.coordAxes = rand(size(gridder.coordAxes));
+% gridder.coordAxes = [coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
+% gridder.Images = gridder.Images * 0;
 
+% coordAxes=single([1 0 0 0 1 0 0 0 1]');
+% coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
+% 
+cols = size(coordAxes,2);
+P = randperm(cols);
+coordAxes = coordAxes(:,P);
+
+gridder.coordAxes = single(coordAxes(:));
+
+tic
+gridder.ForwardProject()
+toc
+
+easyMontage(gridder.Images(:,:,1:10), 1)
+
+return;
+
+%%
 
 % [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
 % 
@@ -100,9 +125,10 @@ end
 % Images = gridder.Get('Images');
 
 % easyMontage(gridder.Images(:,:,1:10), 1)
-easyMontage(gridder.Images(:,:,:), 1)
+
 % colormap jet
 
+return;
 
 % CASImages = gridder.Get('CASImages');
 
@@ -117,7 +143,7 @@ easyMontage(gridder.Images(:,:,:), 1)
 
 % colormap jet
 
-return
+% return
 
 
 % easyMontage(gridder.CASVolume(:,:,1:10), 1)
@@ -183,26 +209,33 @@ toc
 
     subplot(2,3,1)
     imagesc(gridder.CASVolume(:,:,slice));
-    title("Slice " + num2str(slice))
-    subplot(2,3,2)
+    title("MultiGPU Slice " + num2str(slice))
+    colorbar
+    
+    subplot(2,3,2)    
     imagesc(CASVol_GT(:,:,slice));
-    title("Slice " + num2str(slice))
+    title("Matlab Slice " + num2str(slice))
+    colorbar
+    
     subplot(2,3,3)
     imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
     colormap jet
     title("Slice " + num2str(slice))
     colorbar
-
     
     subplot(2,3,4)
     imagesc(gridder.Images(:,:,slice));
-    title("Slice " + num2str(slice))
+    title("MultiGPU Slice " + num2str(slice))
+    colorbar
+    
     subplot(2,3,5)
     imagesc(gpuGridderImg(:,:,slice));
-    title("Slice " + num2str(slice))
+    title("Matlab Slice " + num2str(slice))
+    colorbar
+    
     subplot(2,3,6)
     imagesc(gridder.Images(:,:,slice) - gpuGridderImg(:,:,slice));
-    colormap jet
+    colormap gray
     title("Slice " + num2str(slice))
     colorbar
     

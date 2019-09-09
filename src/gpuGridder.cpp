@@ -18,12 +18,26 @@
 int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
 {
     Log("EstimateMaxAxesToAllocate()...");
+    Log("VolumeSize:");
+    Log(VolumeSize);
+    Log("interpFactor:");
+    Log(interpFactor);
+    Log("this->GPU_Device:");
+    Log(this->GPU_Device);
 
     // Estimate the maximum number of coordinate axes to allocate on the GPU
     cudaSetDevice(this->GPU_Device);
     size_t mem_tot = 0;
     size_t mem_free = 0;
     cudaMemGetInfo(&mem_free, &mem_tot);
+
+    // Throw error if mem_free is zero
+    if (mem_free <= 0)
+    {
+        std::cerr << "No free memory on GPU " << this->GPU_Device << '\n';
+        this->ErrorFlag = 1;
+        return -1;        
+    }
 
     // Estimate how many bytes of memory is needed to process each coordinate axe
     int CASImg_Length = (VolumeSize * interpFactor + this->extraPadding * 2) * (VolumeSize * interpFactor + this->extraPadding * 2);
@@ -37,24 +51,28 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // How many coordinate axes would fit in the remaining free GPU memory?
     int EstimatedMaxAxes = (mem_free - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
 
-    Log("mem_free:");
-    Log(mem_free);
-    Log("Bytes_for_CASVolume:");
-    Log(Bytes_for_CASVolume);
+
+    
+    Log("CASImg_Length:");
+    Log(CASImg_Length);
+    Log("Img_Length:");
+    Log(Img_Length);
     Log("Bytes_per_Img:");
     Log(Bytes_per_Img);
     Log("Bytes_per_CASImg:");
     Log(Bytes_per_CASImg);
-    Log("Bytes_per_ComplexCASImg:");
-    Log(Bytes_per_ComplexCASImg);
-    Log("EstimatedMaxAxes:");
-    Log(EstimatedMaxAxes);
+    Log("Bytes_for_CASVolume:");
+    Log(Bytes_for_CASVolume);
+    Log("Bytes_for_CoordAxes:");
+    Log(Bytes_for_CoordAxes);
+    Log("mem_free:");
+    Log(mem_free);
 
-    // Divide by the number of streams
-    EstimatedMaxAxes = EstimatedMaxAxes / this->nStreams;
 
-    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
+    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 60% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.6);
+
+    EstimatedMaxAxes = 200;
 
     Log("EstimatedMaxAxes:");
     Log(EstimatedMaxAxes);
@@ -105,33 +123,27 @@ void gpuGridder::SetGPU(int GPU_Device)
 void gpuGridder::InitilizeGPUArrays()
 {
     // Initilize the GPU arrays and allocate the needed memory on the GPU
+    Log("InitilizeGPUArrays()");
 
     cudaSetDevice(this->GPU_Device);
 
-    Log("InitilizeGPUArrays()");
-    Log("this->MaxAxesToAllocate");
-    Log(this->MaxAxesToAllocate);
-    Log("this->GPU_Device");
-    Log(this->GPU_Device);
+    if (this->MaxAxesToAllocate == 0)
+    {
+        std::cerr << "MaxAxesToAllocate must be a positive integer. Please run EstimateMaxAxesToAllocate() first. " << '\n';
+        this->ErrorFlag = 1;
+        return;
+    }
 
     // Allocate the CAS volume
     this->d_CASVolume = new MemoryStructGPU(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
-    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
-
-    Log("this->CASVolume->GetSize(0)");
-    Log(this->CASVolume->GetSize(0));
-    Log("this->CASVolume->GetSize(1)");
-    Log(this->CASVolume->GetSize(1));
-    Log("this->CASVolume->GetSize(2)");
-    Log(this->CASVolume->GetSize(2));
+    this->d_CASVolume->CopyToGPUAsyc(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
     // Allocate the CAS images
-    Log("CASImgs");
     if (this->CASimgs != nullptr)
     {
         // The pinned CASImgs was previously created so use its deminsions (i.e. creating CASImgs is optional)
         this->d_CASImgs = new MemoryStructGPU(this->CASimgs->GetDim(), this->CASimgs->GetSize(), this->GPU_Device);
-        this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
+        this->d_CASImgs->CopyToGPUAsyc(this->CASimgs->GetPointer(), this->CASimgs->bytes());
     }
     else
     {
@@ -139,12 +151,7 @@ void gpuGridder::InitilizeGPUArrays()
         int *size = new int[3];
         size[0] = this->imgs->GetSize(0) * this->interpFactor;
         size[1] = this->imgs->GetSize(1) * this->interpFactor;
-        size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxAxesToAllocate);
-
-        Log("size");
-        Log(size[0]);
-        Log(size[1]);
-        Log(size[2]);
+        size[2] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
 
         this->d_CASImgs = new MemoryStructGPU(3, size, this->GPU_Device);
 
@@ -155,35 +162,28 @@ void gpuGridder::InitilizeGPUArrays()
     int CASImgLength = this->d_CASImgs->length();
     cudaMalloc(&this->d_CASImgsComplex, sizeof(cufftComplex) * CASImgLength);
 
-    Log("d_Imgs");
     // Limit the number of axes to allocate to be MaxAxesToAllocate
     int *imgs_size = new int[3];
     imgs_size[0] = this->imgs->GetSize(0);
     imgs_size[1] = this->imgs->GetSize(1);
-    imgs_size[2] = std::min(this->coordAxes->GetSize(0) / 9, this->MaxAxesToAllocate); // 9 elements per coordinate axes
-
-    Log("imgs_size[0]");
-    Log(imgs_size[0]);
-    Log("imgs_size[1]");
-    Log(imgs_size[1]);
-    Log("imgs_size[2]");
-    Log(imgs_size[2]);
+    imgs_size[2] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
 
     // Allocate the images
     this->d_Imgs = new MemoryStructGPU(this->imgs->GetDim(), imgs_size, this->GPU_Device);
     delete[] imgs_size;
 
-    Log("d_CoordAxes");
     // Allocate the coordinate axes array
     this->d_CoordAxes = new MemoryStructGPU(this->coordAxes->GetDim(), this->coordAxes->GetSize(), this->GPU_Device);
 
     // Allocate the Kaiser bessel lookup table
     this->d_KB_Table = new MemoryStructGPU(this->ker_bessel_Vector->GetDim(), this->ker_bessel_Vector->GetSize(), this->GPU_Device);
-    this->d_KB_Table->CopyToGPU(this->ker_bessel_Vector->GetPointer(), this->ker_bessel_Vector->bytes());
+    this->d_KB_Table->CopyToGPUAsyc(this->ker_bessel_Vector->GetPointer(), this->ker_bessel_Vector->bytes());
 }
 
 void gpuGridder::InitilizeCUDAStreams()
 {
+    Log("InitilizeCUDAStreams()");
+
     cudaSetDevice(this->GPU_Device); // needed?
 
     // Create the CUDA streams
@@ -201,6 +201,22 @@ void gpuGridder::InitilizeForwardProjection()
     Log("InitilizeForwardProjection()");
     cudaSetDevice(this->GPU_Device);
 
+    // Estimate the maximum number of coordinate axes to allocate per stream
+    this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
+
+    // Have the GPU arrays been allocated?
+    if (this->GPUArraysAllocatedFlag == false)
+    {
+        // Initilize the needed arrays on the GPU
+        InitilizeGPUArrays();
+
+        // Initilize the CUDA streams
+        InitilizeCUDAStreams();
+
+        this->GPUArraysAllocatedFlag = true;
+    }
+
+    // Create a forward projection object
     this->ForwardProject_obj = new gpuForwardProject();
 
     // Pass the float pointers to the forward projection object
@@ -221,6 +237,11 @@ void gpuGridder::InitilizeForwardProjection()
         float *tempPtr = nullptr;
         this->ForwardProject_obj->SetPinnedCASImages(tempPtr);
     }
+
+    // Calculate the block size for running the CUDA kernels
+    // NOTE: gridSize times blockSize needs to equal CASimgSize
+    this->gridSize = 32;
+    this->blockSize = ceil((this->imgs->GetSize(0) * this->interpFactor) / this->gridSize);
 
     // Pass the pointer to the MemoryStructGPU to the forward projection object
     this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
@@ -264,15 +285,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     Log("ForwardProject(int AxesOffset, int nAxesToProcess)");
     cudaSetDevice(this->GPU_Device);
 
-    // this->newVolumeFlag = true;
-    this->FP_initilized = false;
-
-    // NOTE: gridSize times blockSize needs to equal CASimgSize
-    this->gridSize = 32;
-    this->blockSize = ceil((this->imgs->GetSize(0) * this->interpFactor) / this->gridSize);
-
-    // Has the forward projection been initilized?
-    if (this->FP_initilized == false)
+    // Have the GPU arrays been allocated?
+    if (this->GPUArraysAllocatedFlag == false)
     {
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
@@ -280,28 +294,31 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         // Initilize the CUDA streams
         InitilizeCUDAStreams();
 
+        this->GPUArraysAllocatedFlag = true;
+    }
+
+    // Has the forward projection been initilized?
+    if (this->FP_initilized == false)
+    {
         // Initilize the forward projection object
         InitilizeForwardProjection();
 
-        // Set the coordinate axes offset ( in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
-        this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset);
-
-        // Set the number of axes to process
-        this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
-
-        // Estimate the maximum number of coordinate axes to allocate per stream
-        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
-
         // Reset the flag
-        this->FP_initilized = true;
+        // this->FP_initilized = true;
     }
+
+    // Set the coordinate axes offset ( in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
+    this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset);
+
+    // Set the number of axes to process
+    this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
 
     // Do we have a new volume? If so, run the volume to CAS volume function
     // Assume for now that we have a new volume for each call to ForwardProject()
     if (this->newVolumeFlag == true)
     {
         // Run the volume to CAS volume function
-        VolumeToCASVolume();
+        // VolumeToCASVolume();
 
         // Reset the flag
         // this->newVolumeFlag = false;

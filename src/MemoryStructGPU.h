@@ -11,11 +11,20 @@ struct MemoryStructGPU : public MemoryStruct
     // Error flag to rememeber if the allocation was succesful or not
     int ErrorFlag;
 
+    // CUDA stream for asyc copying to / from the GPU
+    cudaStream_t stream;
+
     // Extend the constructor from MemoryStruct
     MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
+
+        // Set the GPU device to the device which contains the CUDA array
+        cudaSetDevice(this->GPU_Device);
+
+        // Create the stream on the selected GPU
+        cudaStreamCreate(&this->stream);
 
         // Free the float array allocated in MemoryStruct. TO DO: make this not necessary
         std::free(this->ptr);
@@ -42,6 +51,18 @@ struct MemoryStructGPU : public MemoryStruct
         cudaMemcpy(this->ptr, Array, Bytes, cudaMemcpyHostToDevice);
     }
 
+    // Copy a float array from the CPU to the allocated array on the GPU asynchronously
+    void CopyToGPUAsyc(float *Array, int Bytes)
+    {
+        if (Bytes != this->bytes())
+        {
+            std::cerr << "Error in CopyToGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
+        }
+
+        // Given a float pointer (on host CPU) and number of bytes, copy the memory to this GPU array
+        cudaMemcpyAsync(this->ptr, Array, Bytes, cudaMemcpyHostToDevice, this->stream);
+    }
+
     // Copy the array from the GPU to a float array on the CPU
     void CopyFromGPU(float *Array, int Bytes)
     {
@@ -57,8 +78,6 @@ struct MemoryStructGPU : public MemoryStruct
     // Allocate the memory to a given GPU device
     void AllocateGPUArray()
     {
-        std::cout << "GPU AllocateArray()" << '\n';
-
         // Set the current GPU
         cudaSetDevice(this->GPU_Device);
 

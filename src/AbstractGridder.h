@@ -45,6 +45,9 @@ protected:
     // Width of the Kaiser bessel function
     float kerHWidth;
 
+    // Number of coordinate axes
+    int numCoordAxes;
+
     // // Convert the volume to a CAS volume
     // virtual void VolumeToCAS();
 
@@ -122,10 +125,10 @@ public:
     float *GetCoordAxesPtr_CPU() { return this->coordAxes->ptr; }
 
     // Set the number of coordinate axes
-    void SetNumAxes(int numCoordAxes) { this->coordAxes->size[0] = numCoordAxes; }
+    void SetNumAxes(int numCoordAxes) { this->numCoordAxes = numCoordAxes; }
 
     // Get the number of coordinate axes
-    int GetNumAxes() { return this->coordAxes->GetSize(0) / 9; } // 9 elements per coordinate axe
+    int GetNumAxes() { return this->numCoordAxes; } 
 
     // Get the number of maximum axes allocated
     int GetMaxAxesToAllocate() { return this->MaxAxesToAllocate; }

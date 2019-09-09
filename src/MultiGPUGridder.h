@@ -38,6 +38,9 @@ public:
 
 		// Save the GPU device numbers
 		this->GPU_Devices = GPU_Devices;
+
+		// Set the default value of the flag
+		this->ForwardProject_Initilized_Flag = false;
 	}
 
 	// Set the number of CUDA streams to use with each GPU
@@ -55,6 +58,12 @@ private:
 
 	// GPU device numbers
 	int *GPU_Devices;
+
+	// Flag to remember if the forward projection has been initilized
+	bool ForwardProject_Initilized_Flag;
+
+	// Synchronize all of the GPUs
+	void GPU_Sync();
 };
 
 #endif
