@@ -696,7 +696,8 @@ void gpuFFT::CASImgsToImgs(
     // Convert a CAS images array to images
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
-   
+    
+
     // Convert the CASImgs to complex cufft type
     CASImgsToComplexImgs<<< dimGrid, dimBlock, 0, stream>>>(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs);
 
@@ -719,7 +720,7 @@ void gpuFFT::CASImgsToImgs(
     int istride = 1;                // --- Distance between two successive input/output elements
     int ostride = 1;                // --- Distance between two successive input/output elements
     
-    // NOTE: NULL here disables the advanced data layout of the cufftPlanMany
+    // // NOTE: NULL here disables the advanced data layout of the cufftPlanMany
     cufftPlanMany(&inverseFFTPlan,  rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);            
     cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
 
@@ -733,9 +734,6 @@ void gpuFFT::CASImgsToImgs(
     // and normalize the scaling introduced during the FFT
     ComplexToNormalizedImgs<<< dimGrid, dimBlock, 0, stream >>>
     (d_CASImgsComplex, d_imgs, CASImgSize, ImgSize, numImgs, CASImgSize * CASImgSize);
-    
-    // Destroy the FFT plan
-    cufftDestroy(inverseFFTPlan);
 
     return;
 }

@@ -39,7 +39,7 @@ private:
     MemoryStructGPU *d_Imgs;
 
     // Pointer to the complex CAS images array on the device (i.e. the GPU)
-    // cufftComplex *d_CASImgsComplex;
+    cufftComplex *d_CASImgsComplex;
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
     MemoryStructGPU *d_CoordAxes;
@@ -55,6 +55,9 @@ private:
 
     // Pointer to the images array which is pinned to the host (i.e. the CPU)
     float *Imgs_CPU_Pinned;
+
+    // Pointer to an array of CUDA streams
+    cudaStream_t * streams;
 
     // Grid size for the CUDA kernel
     int gridSize;
@@ -95,9 +98,11 @@ public:
 
     void SetCASImages(MemoryStructGPU *&CASImgs) { this->d_CASImgs = CASImgs; }
 
+    void SetComplexCASImages(cufftComplex *&CASImgsComplex) { this->d_CASImgsComplex = CASImgsComplex; }
+
     void SetImages(MemoryStructGPU *&Imgs) { this->d_Imgs = Imgs; }
 
-    // void SetCASComplexImages(cufftComplex *&CASImgsComplex) { this->d_CASImgsComplex = CASImgsComplex; }
+    void SetCUDAStreams(cudaStream_t * streams) { this->streams = streams; }
 
     void SetCoordinateAxes(MemoryStructGPU *&CoordAxes) { this->d_CoordAxes = CoordAxes; }
 

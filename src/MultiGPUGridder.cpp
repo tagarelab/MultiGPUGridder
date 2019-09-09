@@ -85,7 +85,9 @@ void MultiGPUGridder::ForwardProject()
 
     // Convert the volume to CAS volume using the first GPU
     // The CASVolume is shared amoung all the objects since CASVolume is a static member in the AbstractGridder class
+    cudaSetDevice(this->GPU_Devices[0]);
     gpuGridder_vec[0]->VolumeToCASVolume();
+    cudaDeviceSynchronize(); // Wait for the first GPU to convert the volume to CAS volume
 
     for (int i = 0; i < Num_GPUs; i++)
     {

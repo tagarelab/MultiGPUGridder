@@ -100,7 +100,7 @@ public:
 
     // Forward projection new volume flag
     bool newVolumeFlag;
-    
+
 protected:
     // How many streams to use on this device?
     int nStreams;
@@ -110,6 +110,9 @@ protected:
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
     MemoryStructGPU *d_CASImgs;
+
+    // Pointer to the complex CAS images array on the device (i.e. the GPU)
+    cufftComplex *d_CASImgsComplex;
 
     // Pointer to the images array on the device (i.e. the GPU)
     MemoryStructGPU *d_Imgs;
@@ -134,6 +137,9 @@ private:
     // Initilize the GPU arrays
     void InitilizeGPUArrays();
 
+    // Initilize the CUDA streams
+    void InitilizeCUDAStreams();
+    
     // Initilize the forward projection object
     void InitilizeForwardProjection();
 

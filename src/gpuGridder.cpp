@@ -65,6 +65,8 @@ void gpuGridder::VolumeToCASVolume()
 {
     Log("VolumeToCASVolume()");
 
+    cudaSetDevice(this->GPU_Device);
+
     // Convert the volume to CAS volume
     gpuFFT::VolumeToCAS(
         this->Volume->GetPointer(),
@@ -102,6 +104,9 @@ void gpuGridder::SetGPU(int GPU_Device)
 void gpuGridder::InitilizeGPUArrays()
 {
     // Initilize the GPU arrays and allocate the needed memory on the GPU
+
+    cudaSetDevice(this->GPU_Device);
+
     Log("InitilizeGPUArrays()");
     Log("this->MaxAxesToAllocate");
     Log(this->MaxAxesToAllocate);
@@ -145,6 +150,10 @@ void gpuGridder::InitilizeGPUArrays()
         delete[] size;
     }
 
+    // Allocate the complex CAS images array
+    int CASImgLength = this->d_CASImgs->length();
+    cudaMalloc(&this->d_CASImgsComplex, sizeof(cufftComplex) * CASImgLength);
+
     Log("d_Imgs");
     // Limit the number of axes to allocate to be MaxAxesToAllocate
     int *imgs_size = new int[3];
@@ -172,10 +181,24 @@ void gpuGridder::InitilizeGPUArrays()
     this->d_KB_Table->CopyToGPU(this->ker_bessel_Vector->GetPointer(), this->ker_bessel_Vector->bytes());
 }
 
+void gpuGridder::InitilizeCUDAStreams()
+{
+    cudaSetDevice(this->GPU_Device); // needed?
+
+    // Create the CUDA streams
+    this->streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreams);
+
+    for (int i = 0; i < this->nStreams; i++) // Loop through the streams
+    {
+        cudaStreamCreate(&this->streams[i]);
+    }
+}
+
 // Initilize the forward projection object
 void gpuGridder::InitilizeForwardProjection()
 {
     Log("InitilizeForwardProjection()");
+    cudaSetDevice(this->GPU_Device);
 
     this->ForwardProject_obj = new gpuForwardProject();
 
@@ -205,6 +228,9 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetCoordinateAxesOffset(0); // Default is no offset
     this->ForwardProject_obj->SetKBTable(this->d_KB_Table);
 
+    // Pass the pointer to the array of CUDA streams
+    this->ForwardProject_obj->SetCUDAStreams(this->streams);
+
     // Set the various parameters for the forward projection object
     this->ForwardProject_obj->SetGridSize(this->gridSize);
     this->ForwardProject_obj->SetBlockSize(this->blockSize);
@@ -215,6 +241,10 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
     this->ForwardProject_obj->SetKerHWidth(this->kerHWidth);
     this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
+    this->ForwardProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
+
+    // Set the initilization flag to true
+    this->FP_initilized = true;
 }
 
 void gpuGridder::ForwardProject()
@@ -231,6 +261,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     Log("ForwardProject(int AxesOffset, int nAxesToProcess)");
+    cudaSetDevice(this->GPU_Device);
 
     // this->newVolumeFlag = true;
     this->FP_initilized = false;
@@ -244,6 +275,9 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     {
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
+
+        // Initilize the CUDA streams
+        InitilizeCUDAStreams();
 
         // Initilize the forward projection object
         InitilizeForwardProjection();

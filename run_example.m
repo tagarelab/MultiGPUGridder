@@ -23,9 +23,9 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
-VolumeSize = 128;
+VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 100;
+n1_axes = 500;
 n2_axes = 20;
 
 
@@ -61,13 +61,17 @@ gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
 gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
 gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
 gridder.KBTable = single(KBTable);
-toc
+
 
 gridder.Set()
 
 disp("ForwardProject...")
-gridder.ForwardProject()
-toc
+for i = 1:2
+    tic
+    gridder.ForwardProject()
+    toc
+end
+
 
 
 
@@ -95,7 +99,8 @@ toc
 
 % Images = gridder.Get('Images');
 
-easyMontage(gridder.Images(:,:,1:10), 1)
+% easyMontage(gridder.Images(:,:,1:10), 1)
+easyMontage(gridder.Images(:,:,:), 1)
 % colormap jet
 
 
