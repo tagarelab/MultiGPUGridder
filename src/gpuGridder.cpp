@@ -36,7 +36,7 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     {
         std::cerr << "No free memory on GPU " << this->GPU_Device << '\n';
         this->ErrorFlag = 1;
-        return -1;        
+        return -1;
     }
 
     // Estimate how many bytes of memory is needed to process each coordinate axe
@@ -51,8 +51,6 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // How many coordinate axes would fit in the remaining free GPU memory?
     int EstimatedMaxAxes = (mem_free - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
 
-
-    
     Log("CASImg_Length:");
     Log(CASImg_Length);
     Log("Img_Length:");
@@ -68,11 +66,8 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     Log("mem_free:");
     Log(mem_free);
 
-
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 60% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.6);
-
-    EstimatedMaxAxes = 200;
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.2);
 
     Log("EstimatedMaxAxes:");
     Log(EstimatedMaxAxes);
@@ -195,29 +190,42 @@ void gpuGridder::InitilizeCUDAStreams()
     }
 }
 
-// Initilize the forward projection object
-void gpuGridder::InitilizeForwardProjection()
+void gpuGridder::Allocate()
 {
-    Log("InitilizeForwardProjection()");
-    cudaSetDevice(this->GPU_Device);
+    // Allocate the need memory
 
-    // Estimate the maximum number of coordinate axes to allocate per stream
-    this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
-
-    // Have the GPU arrays been allocated?
+    // Have the GPU arrays already been allocated?
     if (this->GPUArraysAllocatedFlag == false)
     {
+
+        // Estimate the maximum number of coordinate axes to allocate per stream
+        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
+
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
 
         // Initilize the CUDA streams
         InitilizeCUDAStreams();
 
+        // Create a forward projection object
+        this->ForwardProject_obj = new gpuForwardProject();
+
         this->GPUArraysAllocatedFlag = true;
     }
+}
 
-    // Create a forward projection object
-    this->ForwardProject_obj = new gpuForwardProject();
+// Initilize the forward projection object
+void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
+{
+    Log("InitilizeForwardProjection()");
+    cudaSetDevice(this->GPU_Device);
+
+    // Have the GPU arrays been allocated?
+    if (this->GPUArraysAllocatedFlag == false)
+    {
+        Allocate();
+        this->GPUArraysAllocatedFlag = true;
+    }
 
     // Pass the float pointers to the forward projection object
     float *coordAxesPtr = this->coordAxes->GetPointer();
@@ -265,8 +273,14 @@ void gpuGridder::InitilizeForwardProjection()
     this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
     this->ForwardProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
 
+    // Set the coordinate axes offset ( in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
+    this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset);
+
+    // Set the number of axes to process
+    this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
+
     // Set the initilization flag to true
-    this->FP_initilized = true;
+    // this->FP_initilized = true;
 }
 
 void gpuGridder::ForwardProject()
@@ -288,30 +302,13 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
     {
-        // Initilize the needed arrays on the GPU
-        InitilizeGPUArrays();
-
-        // Initilize the CUDA streams
-        InitilizeCUDAStreams();
+        Allocate();
 
         this->GPUArraysAllocatedFlag = true;
     }
 
-    // Has the forward projection been initilized?
-    if (this->FP_initilized == false)
-    {
-        // Initilize the forward projection object
-        InitilizeForwardProjection();
-
-        // Reset the flag
-        // this->FP_initilized = true;
-    }
-
-    // Set the coordinate axes offset ( in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
-    this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset);
-
-    // Set the number of axes to process
-    this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
+    // Initilize the forward projection object
+    InitilizeForwardProjection(AxesOffset, nAxesToProcess);
 
     // Do we have a new volume? If so, run the volume to CAS volume function
     // Assume for now that we have a new volume for each call to ForwardProject()

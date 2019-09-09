@@ -25,7 +25,7 @@ disp("Resetting devices...")
 
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 50;
+n1_axes = 500;
 n2_axes = 20;
 
 
@@ -70,20 +70,10 @@ disp("ForwardProject...")
 
 %%
 clc
-% gridder.Volume(1:120,1:40,:) = 2;
-% gridder.Volume = single(MRI_volume) ;
-% 
-% coordAxes =single([1 0 0 0 1 0 0 0 1]');
-% coordAxes  = repmat(coordAxes, [1 n1_axes*n2_axes]);
-% gridder.coordAxes = coordAxes;
 
-% gridder.coordAxes = rand(size(gridder.coordAxes));
-% gridder.coordAxes = [coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
-% gridder.Images = gridder.Images * 0;
+% gridder.Volume(1:randi(VolumeSize),1:randi(VolumeSize),1:randi(VolumeSize)) = 2;
+gridder.Volume = single(MRI_volume) ;
 
-% coordAxes=single([1 0 0 0 1 0 0 0 1]');
-% coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
-% 
 cols = size(coordAxes,2);
 P = randperm(cols);
 coordAxes = coordAxes(:,P);

@@ -27,7 +27,6 @@ public:
     // Constructor
     gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
     {
-        this->FP_initilized = false;
         this->newVolumeFlag = false;
         this->GPUArraysAllocatedFlag = false;
         this->nStreams = 1;
@@ -40,7 +39,7 @@ public:
         {
             std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
         }
-        };
+    };
 
     // ~gpuGridder() : ~AbstractGridder() { };
 
@@ -97,8 +96,8 @@ public:
     // Convert the volume to a CAS volume
     void VolumeToCASVolume();
 
-    // Initilize the forward projection object
-    void InitilizeForwardProjection();
+    // Allocate need memory
+    void Allocate();
 
     // Forward projection new volume flag
     bool newVolumeFlag;
@@ -142,11 +141,11 @@ private:
     // Initilize the CUDA streams
     void InitilizeCUDAStreams();
 
+    // Initilize the forward projection object
+    void InitilizeForwardProjection(int AxesOffset, int nAxesToProcess);
+
     // Forward projection object
     gpuForwardProject *ForwardProject_obj;
-
-    // Forward projection initilization flag
-    bool FP_initilized;
 
     // Array allocation flag
     bool GPUArraysAllocatedFlag;

@@ -89,22 +89,6 @@ void MultiGPUGridder::ForwardProject()
     gpuGridder_vec[0]->VolumeToCASVolume();
     cudaDeviceSynchronize(); // Wait for the first GPU to convert the volume to CAS volume
 
-    // Have the gpuGridders been initilized?
-    this->ForwardProject_Initilized_Flag = false; // test
-    if (this->ForwardProject_Initilized_Flag == false)
-    {
-        for (int i = 0; i < Num_GPUs; i++)
-        {
-            std::cout << "Initilizing gpuGridder " << i << '\n';
-            gpuGridder_vec[i]->InitilizeForwardProjection();
-        }
-
-        // Synchronize all of the GPUs
-        GPU_Sync();
-
-        this->ForwardProject_Initilized_Flag = true;
-    }
-
     for (int i = 0; i < Num_GPUs; i++)
     {
         gpuGridder_vec[i]->ForwardProject(coordAxesOffset[i], NumAxesPerGPU[i]);
