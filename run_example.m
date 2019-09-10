@@ -19,15 +19,14 @@ addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"))
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
 
 disp("Resetting devices...")
-for i = 1:4
-    reset(gpuDevice(i));
-end
+% for i = 1:4
+reset(gpuDevice());
+% end
 
-VolumeSize = 256;
+VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 200;
+n1_axes = 20;
 n2_axes = 50;
-
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
 pause(0.5)
@@ -46,41 +45,28 @@ coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
 nCoordAxes = length(coordAxes(:))/9;
 
 
-KB_Vector = load("KB_Vector.mat");
-KBTable = KB_Vector.KB_Vector;
 
-tic
+% tic
 gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(nCoordAxes), single(2));
-gridder.coordAxes = single(coordAxes(:));
-gridder.NumAxes = int32(nCoordAxes);
-gridder.VolumeSize = int32(VolumeSize);
-gridder.Volume = single(MRI_volume); %ones(gridder.VolumeSize, gridder.VolumeSize, gridder.VolumeSize, 'single');
-gridder.CASVolumeSize = repmat(gridder.VolumeSize * gridder.interpFactor + gridder.extraPadding * 2, 1, 3);
-gridder.CASVolume = zeros(gridder.CASVolumeSize, 'single');
-% gridder.CASImages = zeros([VolumeSize*interpFactor, VolumeSize*interpFactor, gridder.NumAxes], 'single');
-gridder.ImageSize = [gridder.VolumeSize, gridder.VolumeSize, gridder.NumAxes];
-gridder.Images = zeros(gridder.ImageSize(1), gridder.ImageSize(2), gridder.ImageSize(3), 'single');
-gridder.KBTable = single(KBTable);
+gridder.coordAxes = coordAxes;
+gridder.Volume = MRI_volume;
 
-tic
-gridder.Set()
-toc
 
 disp("ForwardProject...")
 
 %%
 
-for i = 1:3
+for i = 1
     
-    gridder.Volume = single(MRI_volume) ;
+%     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
     
 
-    cols = size(coordAxes,2);
-    P = randperm(cols);
-    coordAxes = coordAxes(:,P);
-
-    gridder.coordAxes = single(coordAxes(:));
+%     cols = size(coordAxes,2);
+%     P = randperm(cols);
+%     coordAxes = coordAxes(:,P);
+% 
+%     gridder.coordAxes = single(coordAxes(:));
 
     tic
     gridder.ForwardProject()
@@ -88,7 +74,7 @@ for i = 1:3
     
     % Check for missing sections
     % Should check the CUDA return flags as well
-    easyMontage(gridder.Images(:,:,1:10), 1)
+    easyMontage(gridder.Images(:,:,:), 1)
     pause(1)
 end
 
