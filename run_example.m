@@ -56,17 +56,17 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1
+for i = 1:5
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
-    
+%     gridder.resetVolume()
 
-%     cols = size(coordAxes,2);
-%     P = randperm(cols);
-%     coordAxes = coordAxes(:,P);
-% 
-%     gridder.coordAxes = single(coordAxes(:));
+    cols = size(coordAxes,2);
+    P = randperm(cols);
+    coordAxes = coordAxes(:,P);
+
+    gridder.coordAxes = single(coordAxes(:));
 
     tic
     gridder.ForwardProject()
@@ -75,7 +75,7 @@ for i = 1
     % Check for missing sections
     % Should check the CUDA return flags as well
     easyMontage(gridder.Images(:,:,:), 1)
-    pause(1)
+    pause(0.1)
 end
 
 return;

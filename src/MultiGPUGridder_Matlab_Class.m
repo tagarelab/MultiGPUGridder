@@ -114,5 +114,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Set(); % Run the set function in case one of the arrays has changed
             mexForwardProject(this.objectHandle);
         end      
+        %% setVolume - Set the volume
+        function setVolume(this, varargin)
+           this.Volume = varargin{1}; 
+        end
+        %% resetVolume - Reset the volume
+        function resetVolume(this)
+            % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
+           this.Volume = 0 * this.Volume; 
+        end
     end
 end
