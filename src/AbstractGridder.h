@@ -52,10 +52,10 @@ public:
 protected:
     // Create one instance of the following arrays to shared between objects of type AbstractGridder (and child objects)
     // All of these are on the CPU
-    static MemoryStruct<float> *Volume;
-    static MemoryStruct<float> *CASVolume;
     static MemoryStruct<float> *imgs;    // Output projection images
     static MemoryStruct<float> *CASimgs; // CAS Projection images
+    static MemoryStruct<float> *Volume;
+    static MemoryStruct<float> *CASVolume;
     static MemoryStruct<float> *coordAxes;
     static MemoryStruct<float> *ker_bessel_Vector;
 

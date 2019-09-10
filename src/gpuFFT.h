@@ -15,9 +15,6 @@
 class gpuFFT
 {
 private:
-    // float * InputVolume;
-
-    // float * OutputVolume;
 
     cufftHandle inverseFFTPlan;
 

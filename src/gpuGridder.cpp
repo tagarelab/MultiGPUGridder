@@ -212,12 +212,8 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
     this->ForwardProject_obj->SetKerHWidth(this->kerHWidth);
     this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
     this->ForwardProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
-
-    // Set the coordinate axes offset (in number of coordinate axes from the beginning of the pinned CPU coordinate axes array)
-    this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset);
-
-    // Set the number of axes to process
-    this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);
+    this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset); // Offset in number of coordinate axes from the beginning of the CPU array
+    this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);     // Number of axes to process
 }
 
 void gpuGridder::ForwardProject()
@@ -287,12 +283,12 @@ void gpuGridder::FreeMemory()
     std::cout << "gpuGridder FreeMemory()" << '\n';
 
     // Free the GPU memory
-    cudaFree(this->d_CASImgsComplex);
     this->d_Imgs->DeallocateGPUArray();
     this->d_CASImgs->DeallocateGPUArray();
+    this->d_KB_Table->DeallocateGPUArray();
     this->d_CASVolume->DeallocateGPUArray();
     this->d_CoordAxes->DeallocateGPUArray();
-    this->d_KB_Table->DeallocateGPUArray();
+    this->d_CASImgsComplex->DeallocateGPUArray();
 
     // Reset the GPU
     cudaSetDevice(this->GPU_Device);

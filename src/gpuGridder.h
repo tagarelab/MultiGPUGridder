@@ -86,7 +86,6 @@ private:
     // Kernel launching parameters
     int gridSize;
     int blockSize;
-
     int GPU_Device; // Which GPU to use?
     int nStreams;   // Streams to use on this GPU
 

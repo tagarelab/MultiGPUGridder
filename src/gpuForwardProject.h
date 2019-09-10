@@ -22,7 +22,7 @@
 class gpuForwardProject
 {
 private:
-    // Create vectors to hold all of the pointer offset values when running the CUDA kernels
+    // A structure for holding all of the pointer offset values when running the forward projection kernel
     struct Offsets
     {
         std::vector<int> numAxesPerStream;

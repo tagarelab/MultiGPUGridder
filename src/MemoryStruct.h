@@ -9,7 +9,7 @@
 #include <cuda.h>
 
 // Struct to contain the needed information for each allocated array (e.g. CASImgs, images, coordinate axes, etc.)
-template<class T = float>
+template <class T = float>
 struct MemoryStruct
 {
     // Deminsions of the array
@@ -32,7 +32,7 @@ struct MemoryStruct
         {
             this->size[i] = ArraySize[i];
         }
-        
+
         // Allocate the memory for the T type array
         AllocateArray();
     }
@@ -90,7 +90,7 @@ struct MemoryStruct
     }
 
     // Function to return the given array dimension as int array (i.e. no input given)
-    int* GetSize()
+    int *GetSize()
     {
         return this->size;
     }
@@ -139,11 +139,11 @@ struct MemoryStruct
     T *GetPointer(int offset)
     {
         return &this->ptr[offset];
-    } 
+    }
 
+    // Reset the array back to all zeros
     void Reset()
     {
-        // Reset the array back to all zeros
         std::memset(this->ptr, 0, this->bytes());
     }
 };
