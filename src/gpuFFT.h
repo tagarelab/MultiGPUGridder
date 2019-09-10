@@ -15,27 +15,30 @@
 class gpuFFT
 {
 private:
-    
     // float * InputVolume;
 
-    // float * OutputVolume;    
+    // float * OutputVolume;
 
-    // cufftHandle inverseFFTPlan;
-    
+    cufftHandle inverseFFTPlan;
+
+    bool inverseFFTPlannedFlag;
+
 public:
-    // gpuFFT();
+    // Constructor
+    gpuFFT()
+    {
+        this->inverseFFTPlannedFlag = false;
+    };
 
     // Deconstructor
-    // ~gpuFFT()
-    // {
-        // cufftDestroy(this->inverseFFTPlan);
-    // };
+    ~gpuFFT()
+    {
+        cufftDestroy(this->inverseFFTPlan);
+    };
 
-    static void PadVolume(float *inputVol, float* outputVol, int inputImgSize, int outputImgSize);
+    static void PadVolume(float *inputVol, float *outputVol, int inputImgSize, int outputImgSize);
 
-    static void VolumeToCAS(float* inputVol, int inputVolSize, float* outputVol, int interpFactor, int extraPadding);
+    static void VolumeToCAS(float *inputVol, int inputVolSize, float *outputVol, int interpFactor, int extraPadding);
 
-    static void CASImgsToImgs(cudaStream_t& stream, int CASImgSize, int ImgSize, float* d_CASImgs, float* d_imgs, cufftComplex* d_CASImgsComplex, int numImgs);
-
+    void CASImgsToImgs(cudaStream_t &stream, int CASImgSize, int ImgSize, float *d_CASImgs, float *d_imgs, cufftComplex *d_CASImgsComplex, int numImgs);
 };
-

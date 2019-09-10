@@ -25,7 +25,7 @@ disp("Resetting devices...")
 
 VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 50;
+n1_axes = 500;
 n2_axes = 20;
 
 
@@ -89,7 +89,7 @@ for i = 1:3
     % Check for missing sections
     % Should check the CUDA return flags as well
     easyMontage(gridder.Images(:,:,:), 1)
-%     pause(1)
+    pause(1)
 end
 
 return;

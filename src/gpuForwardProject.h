@@ -109,20 +109,20 @@ private:
     Offsets PlanOffsetValues();
 
     // gpuFFT object for running forward and inverse FFT
-    // gpuFFT * gpuFFT_obj;
+    gpuFFT * gpuFFT_obj;
 
 public:
 
     gpuForwardProject()
     {
         // Create a new gpuFFT object for running the forward and inverse FFT
-        // this->gpuFFT_obj = new gpuFFT();
+        this->gpuFFT_obj = new gpuFFT();
     }
 
     // Deconstructor
     ~gpuForwardProject()
     {
-        // delete this->gpuFFT_obj;
+        delete this->gpuFFT_obj;
     }
 
 

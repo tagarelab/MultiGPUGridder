@@ -89,7 +89,6 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
                         *(img_ptr + j * imgSize + i) = *(img_ptr + j * imgSize + i) +
                                                        w * (*(vol + k1 * volSize * volSize + j1 * volSize + i1));
 
-                    
                     } //End k1
                 }     //End j1
             }         //End i1
@@ -161,7 +160,6 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
             // Log2("EstimatedNumAxesPerStream: ", EstimatedNumAxesPerStream);
             // Log2("this->nAxes: ", this->nAxes);
 
-
             // If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
             if (processed_nAxes + EstimatedNumAxesPerStream >= this->nAxes)
             {
@@ -169,7 +167,8 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
                 // Log2("EstimatedNumAxesPerStream: ", i);
                 Offsets_obj.numAxesPerStream.push_back(min(EstimatedNumAxesPerStream, nAxes - processed_nAxes));
                 // Log2(" after EstimatedNumAxesPerStream: ", i);
-            } else 
+            }
+            else
             {
                 // Save the estimated number of axes to the numAxesPerStream
                 Offsets_obj.numAxesPerStream.push_back(EstimatedNumAxesPerStream);
@@ -255,7 +254,7 @@ void gpuForwardProject::Execute()
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int CASVolSize = this->d_CASVolume->GetSize(0);
-    int ImgSize    = this->d_Imgs->GetSize(0);
+    int ImgSize = this->d_Imgs->GetSize(0);
 
     // Plan the pointer offset values
     gpuForwardProject::Offsets Offsets_obj = PlanOffsetValues();
@@ -300,7 +299,7 @@ void gpuForwardProject::Execute()
         }
 
         // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
-        gpuFFT::CASImgsToImgs(
+        this->gpuFFT_obj->CASImgsToImgs(
             streams[Offsets_obj.stream_ID[i]],
             CASImgSize,
             ImgSize,

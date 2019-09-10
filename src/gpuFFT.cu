@@ -576,11 +576,11 @@ void gpuFFT::VolumeToCAS(float *inputVol, int inputVolSize, float *outputVol, in
     // Example: input size = 128; interpFactor = 2; paddedVolSize = 256
     int paddedVolSize = inputVolSize * interpFactor;
 
-    Log("VolumeToCAS():");
-    Log(inputVolSize);
-    Log(interpFactor);
-    Log(extraPadding);
-    Log(paddedVolSize);
+    // Log("VolumeToCAS():");
+    // Log(inputVolSize);
+    // Log(interpFactor);
+    // Log(extraPadding);
+    // Log(paddedVolSize);
 
     int array_size = paddedVolSize * paddedVolSize * paddedVolSize;
 
@@ -673,6 +673,14 @@ void gpuFFT::CASImgsToImgs(
     int numImgs)
 {
 
+    // Has the inverse FFT been planned? If not create one now
+    if (this->inverseFFTPlannedFlag == false)
+    {
+        cufftPlan2d(&this->inverseFFTPlan, CASImgSize, CASImgSize, CUFFT_C2C);
+
+        this->inverseFFTPlannedFlag = true;
+    }
+    
     int gridSize = 32;
     int blockSize = ceil(CASImgSize / gridSize);
 
@@ -686,28 +694,20 @@ void gpuFFT::CASImgsToImgs(
     // Run FFTShift
     cufftShift_2D_kernel<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgsComplex, CASImgSize, numImgs);
 
-    // Create a plan for taking the inverse of the CAS imgs
-    cufftHandle inverseFFTPlan;
-    int nRows = CASImgSize;
-    int nCols = CASImgSize;
-    int batch = numImgs;       // --- Number of batched executions
-    int rank = 2;              // --- 2D FFTs
-    int n[2] = {nRows, nCols}; // --- Size of the Fourier transform
-    int idist = nRows * nCols; // --- Distance between batches
-    int odist = nRows * nCols; // --- Distance between batches
+    // Execute the forward FFT on each 2D array
+    // cufftPlanMany is not feasible since the number of images changes
+    // cufftDestroy is then blocking the CPU and causes memory leaks if not called
+    // This has similar computation speed as cufftPlanMany
+    for (int i = 0; i < numImgs; i++)
+    {
+        // Set the FFT plan to the current stream to process
+        cufftSetStream(inverseFFTPlan, stream);
 
-    int inembed[] = {nRows, nCols}; // --- Input size with pitch
-    int onembed[] = {nRows, nCols}; // --- Output size with pitch
-
-    int istride = 1; // --- Distance between two successive input/output elements
-    int ostride = 1; // --- Distance between two successive input/output elements
-
-    // // NOTE: NULL here disables the advanced data layout of the cufftPlanMany
-    cufftPlanMany(&inverseFFTPlan, rank, n, inembed, istride, idist, onembed, ostride, odist, CUFFT_C2C, batch);
-    cufftSetStream(inverseFFTPlan, stream); // Set the FFT plan to the current stream to process
-
-    // Inverse FFT
-    cufftExecC2C(inverseFFTPlan, (cufftComplex *)d_CASImgsComplex, (cufftComplex *)d_CASImgsComplex, CUFFT_INVERSE);
+        cufftResult_t result = cufftExecC2C(inverseFFTPlan,
+                                            (cufftComplex *)&d_CASImgsComplex[i * CASImgSize * CASImgSize],
+                                            (cufftComplex *)&d_CASImgsComplex[i * CASImgSize * CASImgSize],
+                                            CUFFT_INVERSE);
+    }
 
     // Run FFTShift
     cufftShift_2D_kernel<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgsComplex, CASImgSize, numImgs);
@@ -715,8 +715,6 @@ void gpuFFT::CASImgsToImgs(
     // Run kernel to crop the projection images (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
     ComplexToNormalizedImgs<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgsComplex, d_imgs, CASImgSize, ImgSize, numImgs, CASImgSize * CASImgSize);
-
-    // cufftDestroy(inverseFFTPlan);
 
     return;
 }
