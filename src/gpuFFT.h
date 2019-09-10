@@ -12,8 +12,6 @@
 
 #include <cufft.h> // Library for CUDA FFT and inverse FFT functions see https://www.bu.edu/pasi/files/2011/07/Lecture83.pdf
 
-
-
 class gpuFFT
 {
 private:
@@ -22,10 +20,16 @@ private:
 
     // float * OutputVolume;    
 
-
+    // cufftHandle inverseFFTPlan;
+    
 public:
-    gpuFFT();
-    ~gpuFFT();
+    // gpuFFT();
+
+    // Deconstructor
+    // ~gpuFFT()
+    // {
+        // cufftDestroy(this->inverseFFTPlan);
+    // };
 
     static void PadVolume(float *inputVol, float* outputVol, int inputImgSize, int outputImgSize);
 

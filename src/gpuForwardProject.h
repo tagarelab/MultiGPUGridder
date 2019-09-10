@@ -108,7 +108,24 @@ private:
     // Plan the pointer offset values for running the CUDA kernels
     Offsets PlanOffsetValues();
 
+    // gpuFFT object for running forward and inverse FFT
+    // gpuFFT * gpuFFT_obj;
+
 public:
+
+    gpuForwardProject()
+    {
+        // Create a new gpuFFT object for running the forward and inverse FFT
+        // this->gpuFFT_obj = new gpuFFT();
+    }
+
+    // Deconstructor
+    ~gpuForwardProject()
+    {
+        // delete this->gpuFFT_obj;
+    }
+
+
     void SetPinnedCoordinateAxes(float *&coordAxes_CPU_Pinned) { this->coordAxes_CPU_Pinned = coordAxes_CPU_Pinned; }
 
     void SetPinnedCASImages(float *&CASImgs_CPU_Pinned) { this->CASImgs_CPU_Pinned = CASImgs_CPU_Pinned; }
@@ -150,9 +167,7 @@ public:
     void Execute();
 };
 
-// gpuForwardProject::gpuForwardProject(/* args */)
-// {
-// }
+
 
 // gpuForwardProject::~gpuForwardProject()
 // {

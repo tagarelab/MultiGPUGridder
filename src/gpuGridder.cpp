@@ -17,13 +17,13 @@
 
 int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
 {
-    Log("EstimateMaxAxesToAllocate()...");
-    Log("VolumeSize:");
-    Log(VolumeSize);
-    Log("interpFactor:");
-    Log(interpFactor);
-    Log("this->GPU_Device:");
-    Log(this->GPU_Device);
+    // Log("EstimateMaxAxesToAllocate()...");
+    // Log("VolumeSize:");
+    // Log(VolumeSize);
+    // Log("interpFactor:");
+    // Log(interpFactor);
+    // Log("this->GPU_Device:");
+    // Log(this->GPU_Device);
 
     // Estimate the maximum number of coordinate axes to allocate on the GPU
     cudaSetDevice(this->GPU_Device);
@@ -51,33 +51,33 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // How many coordinate axes would fit in the remaining free GPU memory?
     int EstimatedMaxAxes = (mem_free - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
 
-    Log("CASImg_Length:");
-    Log(CASImg_Length);
-    Log("Img_Length:");
-    Log(Img_Length);
-    Log("Bytes_per_Img:");
-    Log(Bytes_per_Img);
-    Log("Bytes_per_CASImg:");
-    Log(Bytes_per_CASImg);
-    Log("Bytes_for_CASVolume:");
-    Log(Bytes_for_CASVolume);
-    Log("Bytes_for_CoordAxes:");
-    Log(Bytes_for_CoordAxes);
-    Log("mem_free:");
-    Log(mem_free);
+    // Log("CASImg_Length:");
+    // Log(CASImg_Length);
+    // Log("Img_Length:");
+    // Log(Img_Length);
+    // Log("Bytes_per_Img:");
+    // Log(Bytes_per_Img);
+    // Log("Bytes_per_CASImg:");
+    // Log(Bytes_per_CASImg);
+    // Log("Bytes_for_CASVolume:");
+    // Log(Bytes_for_CASVolume);
+    // Log("Bytes_for_CoordAxes:");
+    // Log(Bytes_for_CoordAxes);
+    // Log("mem_free:");
+    // Log(mem_free);
 
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 60% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.2);
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.6);
 
-    Log("EstimatedMaxAxes:");
-    Log(EstimatedMaxAxes);
+    // Log("EstimatedMaxAxes:");
+    // Log(EstimatedMaxAxes);
 
     return EstimatedMaxAxes;
 }
 
 void gpuGridder::VolumeToCASVolume()
 {
-    Log("VolumeToCASVolume()");
+    // Log("VolumeToCASVolume()");
 
     cudaSetDevice(this->GPU_Device);
 
@@ -98,8 +98,8 @@ void gpuGridder::SetGPU(int GPU_Device)
     int numGPUDetected;
     cudaGetDeviceCount(&numGPUDetected);
 
-    Log("numGPUDetected:");
-    Log(numGPUDetected);
+    // Log("numGPUDetected:");
+    // Log(numGPUDetected);
 
     // Check wether the given GPU_Device value is valid
     if (GPU_Device < 0 || GPU_Device >= numGPUDetected) //  An invalid numGPUs selection was chosen
@@ -111,14 +111,14 @@ void gpuGridder::SetGPU(int GPU_Device)
     }
 
     this->GPU_Device = GPU_Device;
-    Log("GPU Added:");
-    Log(GPU_Device);
+    // Log("GPU Added:");
+    // Log(GPU_Device);
 }
 
 void gpuGridder::InitilizeGPUArrays()
 {
     // Initilize the GPU arrays and allocate the needed memory on the GPU
-    Log("InitilizeGPUArrays()");
+    // Log("InitilizeGPUArrays()");
 
     cudaSetDevice(this->GPU_Device);
 
@@ -177,7 +177,7 @@ void gpuGridder::InitilizeGPUArrays()
 
 void gpuGridder::InitilizeCUDAStreams()
 {
-    Log("InitilizeCUDAStreams()");
+    // Log("InitilizeCUDAStreams()");
 
     cudaSetDevice(this->GPU_Device); // needed?
 
@@ -217,7 +217,7 @@ void gpuGridder::Allocate()
 // Initilize the forward projection object
 void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
 {
-    Log("InitilizeForwardProjection()");
+    // Log("InitilizeForwardProjection()");
     cudaSetDevice(this->GPU_Device);
 
     // Have the GPU arrays been allocated?
@@ -285,7 +285,7 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
 
 void gpuGridder::ForwardProject()
 {
-    Log("ForwardProject()");
+    // Log("ForwardProject()");
 
     // Run the forward projection on all the coordinate axes with no offset
     ForwardProject(0, this->GetNumAxes());
@@ -296,9 +296,15 @@ void gpuGridder::ForwardProject()
 void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
-    Log("ForwardProject(int AxesOffset, int nAxesToProcess)");
+    // Log("ForwardProject(int AxesOffset, int nAxesToProcess)");
     cudaSetDevice(this->GPU_Device);
 
+    // Check to make sure the GPU has enough available memory left
+    size_t mem_tot_0 = 0;
+    size_t mem_free_0 = 0;
+    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+    std::cout << "Memory remaining on GPU " << this->GPU_Device << " " << mem_free_0 << " out of " << mem_tot_0 << '\n';
+  
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
     {
@@ -337,11 +343,11 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
     // Run the forward projection CUDA kernel
-    Log("gpuForwardProjectLaunch()");
+    // Log("gpuForwardProjectLaunch()");
     this->ForwardProject_obj->Execute();
 
     // cudaDeviceSynchronize();
-    Log("gpuForwardProjectLaunch() Done");
+    // Log("gpuForwardProjectLaunch() Done");
 
     return;
 }

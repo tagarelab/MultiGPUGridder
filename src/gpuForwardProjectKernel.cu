@@ -102,7 +102,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
     // Loop through all of the coordinate axes and calculate the corresponding pointer offset values
     // which are needed for running the CUDA kernels
 
-    Log2("PlanOffsetValues()", 0);
+    // Log2("PlanOffsetValues()", 0);
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int CASImgSize = this->d_CASImgs->GetSize(0);
@@ -250,7 +250,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
 
 void gpuForwardProject::Execute()
 {
-    std::cout << "Running gpuForwardProject()..." << '\n';
+    // std::cout << "Running gpuForwardProject()..." << '\n';
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int CASImgSize = this->d_CASImgs->GetSize(0);
@@ -266,7 +266,7 @@ void gpuForwardProject::Execute()
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
-        std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i] << '\n';
+        // std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i] << '\n';
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(

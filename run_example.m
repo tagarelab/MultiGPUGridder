@@ -23,9 +23,9 @@ disp("Resetting devices...")
     reset(gpuDevice());
 % end
 
-VolumeSize = 128;
+VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 500;
+n1_axes = 50;
 n2_axes = 20;
 
 
@@ -71,9 +71,9 @@ disp("ForwardProject...")
 %%
 
 for i = 1:3
-    clc
+    
 
-    % gridder.Volume(1:randi(VolumeSize),1:randi(VolumeSize),1:randi(VolumeSize)) = 2;
+    gridder.Volume(1:randi(VolumeSize),1:randi(VolumeSize),1:randi(VolumeSize)) = 2;
     % gridder.Volume = single(MRI_volume) ;
 
     cols = size(coordAxes,2);
@@ -85,9 +85,11 @@ for i = 1:3
     tic
     gridder.ForwardProject()
     toc
-
+    
+    % Check for missing sections
+    % Should check the CUDA return flags as well
     easyMontage(gridder.Images(:,:,:), 1)
-    pause(1)
+%     pause(1)
 end
 
 return;
