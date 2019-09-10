@@ -24,6 +24,7 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
     int kerIndex;
 
     __shared__ float locKer[1000];
+    // __shared__ float locKer[501];
 
     if (threadIdx.x == 0)
     {

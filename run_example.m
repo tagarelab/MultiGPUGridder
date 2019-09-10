@@ -23,9 +23,9 @@ disp("Resetting devices...")
 reset(gpuDevice());
 % end
 
-VolumeSize = 64;
+VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 10;
+n1_axes = 100;
 n2_axes = 50;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -74,7 +74,7 @@ for i = 1
     
     % Check for missing sections
     % Should check the CUDA return flags as well
-%     easyMontage(gridder.Images(:,:,:), 1)
+    easyMontage(gridder.Images(:,:,:), 1)
     pause(0.1)
 end
 
