@@ -2,8 +2,6 @@
 #define __CLASS_HANDLE_H__
 
 #include <mex.h>
-#include "MultiGPUGridder.h"
-
 #include <iostream>
 #include <stdint.h>
 #include <string>
@@ -45,6 +43,7 @@ inline class_handle<base> *convertMat2HandlePtr(const mxArray *in)
 {
     if (mxGetNumberOfElements(in) != 1 || mxGetClassID(in) != mxUINT64_CLASS || mxIsComplex(in))
         mexErrMsgTxt("Input must be a real uint64 scalar.");
+    // class_handle<base> *ptr = reinterpret_cast<class_handle<base> *>(*((uint64_t *)mxGetData(in)));
     class_handle<base> *ptr = reinterpret_cast<class_handle<base> *>(*((uint64_t *)mxGetData(in)));
     if (!ptr->isValid())
         mexErrMsgTxt("Handle not valid.");

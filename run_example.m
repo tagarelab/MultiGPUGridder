@@ -1,18 +1,353 @@
 clc
 close all
-clear obj 
+clear gridder 
 clear all
+
+% bdclose all; % clear all libraries out of memory ( supposedly )
+% clear all;   % clear all workspace variables, mex, etc. ( supposedly )'
+rehash;      % cause all .m files to be reparsed when invoked again
+
 
 addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
 
+
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
+
 disp("Resetting devices...")
 % for i = 1:4
-    reset(gpuDevice());
+reset(gpuDevice());
 % end
 
+VolumeSize = 256;
+interpFactor = 2;
+n1_axes = 100;
+n2_axes = 50;
+
+disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
+pause(0.5)
+
+load mri;
+img = squeeze(D);
+img = imresize3(img,[VolumeSize, VolumeSize, VolumeSize]);
+MRI_volume = single(img);
+% easyMontage(vol,1);
+
+% Define the projection directions
+coordAxes=single([1 0 0 0 1 0 0 0 1]');
+coordAxes=[coordAxes create_uniform_axes(n1_axes,n2_axes,0,10)];
+% coordAxes  = repmat(coordAxes, [1 n1_axes*n2_axes]);
+
+nCoordAxes = length(coordAxes(:))/9;
+
+
+
+% tic
+gridder = MultiGPUGridder_Matlab_Class(int32(VolumeSize), int32(nCoordAxes), single(2));
+gridder.coordAxes = coordAxes;
+gridder.Volume = MRI_volume;
+
+
+disp("ForwardProject...")
+
+%%
+
+for i = 1
+    
+%     gridder.Volume = single(MRI_volume) ;
+%     gridder.Volume(1:125,1:125,1:125) = 0;
+%     gridder.resetVolume()
+
+    cols = size(coordAxes,2);
+    P = randperm(cols);
+    coordAxes = coordAxes(:,P);
+
+    gridder.coordAxes = single(coordAxes(:));
+
+    tic
+    gridder.ForwardProject()
+    toc
+    
+    % Check for missing sections
+    % Should check the CUDA return flags as well
+    easyMontage(gridder.Images(:,:,:), 1)
+    pause(0.1)
+end
+
+return;
+
+%%
+clear gridder
+clear all
+close all
+
+%%
+
+% [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+% 
+% imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+
+
+
+
+% gpuGridder = gpuBatchGridder(VolumeSize,n1_axes*n2_axes+1,interpFactor);
+% gpuGridder.setVolume(MRI_volume);
+% imgs_GT  = gpuGridder.forwardProject(coordAxes);
+% 
+% CASImgs_GT = gather(gpuGridder.gridder.gpuCASImgs)
+% 
+% imagesc(real(fftshift2(fft2(fftshift2(CASImgs_GT(:,:,1))))))
+
+
+% CASVolume = gridder.Get('CASVolume');
+% max(CASVolume(:))
+
+% return
+
+
+% Images = gridder.Get('Images');
+
+% easyMontage(gridder.Images(:,:,1:10), 1)
+
+% colormap jet
+
+return;
+
+% CASImages = gridder.Get('CASImages');
+
+% easyMontage(gridder.CASImages(:,:,:), 1)
+% colormap jet
+
+
+
+% [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+% imgs = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+% easyMontage(imgs, 1)
+
+% colormap jet
+
+% return
+
+
+% easyMontage(gridder.CASVolume(:,:,1:10), 1)
+% easyMontage(CASVolume, 1)
+
+% easyMontage(gridder.Images(:,:,125:135), 1)
+% colormap jet
+
+% easyMontage(gridder.CASImages(:,:,125:135), 2)
+% colormap jet
+
+% 
+% if ( max(gridder.Images(:)) > 0)
+%     for i = 1:size(gridder.Images,3)
+%         x = gridder.Images(:,:,i);
+% 
+%         if max(x(:)) < max(gridder.Images(:))*0.1
+%             disp(i-1)
+%             break
+%         end
+%     end
+% end
+
+
+% Images = gridder.Get('Images');% 
+% easyMontage(Images(:,:,:), 1)
+
+
+
+% 
+% Images = gridder.Get('Images');
+
+% max(gridder.CASVolume(:))
+% max(gridder.CASImages(:))
+% max(CASImages(:))
+
+% Compare with GT
+tic
+[CASVol_GT, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(MRI_volume, interpFactor);
+
+gpuGridder = gpuBatchGridder(VolumeSize,n1_axes*n2_axes+1,interpFactor);
+gpuGridder.setVolume(MRI_volume);
+
+tic
+gpuGridderImg  = gpuGridder.forwardProject(coordAxes);
+toc
+
+
+gpuGridderCASImgs = gather(gpuGridder.gridder.gpuCASImgs);
+gpuGridderCASVolume = gather(gpuGridder.gridder.gpuVol);
+
+% easyMontage(gridder.CASImages, 1)
+% return
+% easyMontage(gridder.CASVolume - gpuGridderCASVolume, 1)
+% colorbar
+
+% easyMontage(gridder.CASImages(:,:,1:10) - gpuGridderCASImgs(:,:,1:10), 2)
+% colorbar
+
+
+ %%
+ 
+ for slice = 5:10
+    
+%     
+%     slice = 1
+
+    subplot(2,3,1)
+    imagesc(gridder.CASVolume(:,:,slice));
+    title("MultiGPU Slice " + num2str(slice))
+    colorbar
+    
+    subplot(2,3,2)    
+    imagesc(CASVol_GT(:,:,slice));
+    title("Matlab Slice " + num2str(slice))
+    colorbar
+    
+    subplot(2,3,3)
+    imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
+    colormap jet
+    title("Slice " + num2str(slice))
+    colorbar
+    
+    subplot(2,3,4)
+    imagesc(gridder.Images(:,:,slice));
+    title("MultiGPU Slice " + num2str(slice))
+    colorbar
+    
+    subplot(2,3,5)
+    imagesc(gpuGridderImg(:,:,slice));
+    title("Matlab Slice " + num2str(slice))
+    colorbar
+    
+    subplot(2,3,6)
+    imagesc(gridder.Images(:,:,slice) - gpuGridderImg(:,:,slice));
+    colormap gray
+    title("Slice " + num2str(slice))
+    colorbar
+    
+    
+    
+    
+    pause(0.5)
+ end
+ 
+ return
+% max(CASVolume(:)) / max(CASVol_GT(:)) 
+%%
+close all
+
+easyMontage(gridder.Images, 1)
+colormap jet
+
+for i = 1:size(gridder.Images,3)
+    x = gridder.Images(:,:,i);
+    
+    if max(x(:)) < max(gridder.Images(:))*0.5
+        disp(i)
+        break
+    end
+end
+
+return;
+
+%%
+
+GT_Imgs = load("gpuGridderImg.mat");
+GT_Imgs = GT_Imgs.gpuGridderImg;
+
+max(gridder.Images(:)) / max(GT_Imgs(:))
+
+GT_CASImgs = load("gpuGridderCASImgs.mat");
+GT_CASImgs = GT_CASImgs.gpuGridderCASImgs;
+
+for slice = 1
+    
+%     
+%     slice = 1
+    subplot(3,3,1)
+    imagesc(gridder.CASVolume(:,:,slice));
+    subplot(3,3,2)
+    imagesc(CASVol_GT(:,:,slice));
+    subplot(3,3,3)
+    imagesc(gridder.CASVolume(:,:,slice) - CASVol_GT(:,:,slice));
+    colorbar
+%     subplot(3,3,4)
+%     imagesc(gridder.CASImages(:,:,slice))
+%     axis square
+%     
+%     subplot(3,3,5)
+%     imagesc(GT_CASImgs(:,:,slice))
+%     axis square
+% 
+%     subplot(3,3,6)
+%     imagesc(gridder.CASImages(:,:,slice) - GT_CASImgs(:,:,slice))
+%     axis square
+%     colorbar
+
+    subplot(3,3,4)
+%     imagesc(imgsFromCASImgs(gridder.CASImages(:,:,slice), interpBox, fftinfo))
+    imagesc(gridder.CASImages(:,:,slice))
+    
+    axis square
+    
+    subplot(3,3,5)
+    imagesc(GT_CASImgs(:,:,slice))
+    axis square
+
+    subplot(3,3,6)
+    imagesc(gridder.CASImages(:,:,slice) - GT_CASImgs(:,:,slice))
+    axis square
+    colorbar
+    
+    
+    
+    
+    
+    
+    
+    
+    h(1) = subplot(3,3,7);
+
+%     imagesc(real(fftshift2(fft2(fftshift2(gridder.Images(:,:,slice))))))
+    imagesc(gridder.Images(:,:,slice))
+    axis square
+    colormap jet
+
+    h(2) = subplot(3,3,8);
+    imagesc(GT_Imgs(:,:,slice))
+    axis square
+    colormap jet
+    
+    h(3) = subplot(3,3,9);
+    imagesc(gridder.Images(:,:,slice) - GT_Imgs(:,:,slice))
+    axis square
+    colormap jet
+    colorbar
+    linkaxes(h, 'xy')
+    zoom on
+    pause(0.1)
+end
+
+
+return
+%%
+
+gridder.Delete();
+
+
+
+
+clear gridder
+
+
+
+return
+abc
 %% Create a volume 
 % Initialize parameters
 tic
@@ -69,6 +404,8 @@ obj.SetMaskRadius(single(size(vol,1)*interpFactor/2 - 1));
 
 disp("SetVolume()...")
 obj.setVolume(single(CASVol))
+imgs=imgsFromCASImgs(InterpCASImgs(:,:,1:10), interpBox, fftinfo); 
+
 
 disp("SetAxes()...")
 obj.SetAxes(coordAxes)

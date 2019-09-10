@@ -1,223 +1,128 @@
 %MultiGPUGridder_Matlab_Class Example MATLAB class wrapper to an underlying C++ class
 classdef MultiGPUGridder_Matlab_Class < handle
-    properties (SetAccess = private, Hidden = true)
+    properties (SetAccess = public, Hidden = false)
+        
         objectHandle; % Handle to the underlying C++ class instance
-        interpBox;
-        fftinfo;
-        interpFactor = 2;
-        origBox;
-        CASBox;
-        kernelHWidth = 2;
+
+        % Int 32 type variables        
+        VolumeSize;        
+        NumAxes;
+        GPUs = int32([0, 1, 2, 3]);
+        MaxAxesToAllocate;
+        nStreams = 2;
+        
+        % Single type variables        
+        interpFactor;
+        kernelHWidth = 2;        
+        extraPadding = 3;    
+        KBTable;
+        coordAxes;      
+        CASVolume;
+        CASImages;
+        Volume;
+        Images;                 
     end
+    
     methods
         %% Constructor - Create a new C++ class instance 
-        function this = MultiGPUGridder_Matlab_Class(varargin)
-            this.objectHandle = mexFunctionWrapper('new', varargin{:});
+        function this = MultiGPUGridder_Matlab_Class(varargin)  
+            % Inputs are:            
+            % (1) VolumeSize
+            % (2) nCoordAxes
+            % (3) interpFactor
+            % (4) Optional: CASImages flag (true / false)            
+            
+            this.VolumeSize = int32(varargin{1});
+            this.NumAxes = int32(varargin{2});
+            this.interpFactor = single(varargin{3});
+                        
+            varargin{1} = int32(varargin{1});
+            varargin{2} = int32(varargin{2});
+            varargin{3} = single(varargin{3});
+            
+            % Create the gridder instance
+            this.objectHandle = mexCreateGridder(varargin{1:3});           
+                       
+            % Initilize the output projection images array
+            ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
+            this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
+            
+            % Load the Kaiser Bessel lookup table
+            KB_Vector = load("KB_Vector.mat");
+            this.KBTable = single(KB_Vector.KB_Vector);
+            
+            % Create the Volume array
+            this.Volume = single(zeros(repmat(this.VolumeSize, 1, 3)));  
+            
+            % Create the CASVolume array
+            this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+            
+            % Set the optional CASImages array if the flag was passed
+            if length(varargin) >= 4                
+                % Create the CASImages array
+                 this.CASImages = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));         
+            end
+
         end        
-        %% Destructor - Destroy the C++ class instance
+        %% Deconstructor - Delete the C++ class instance 
         function delete(this)
-            mexFunctionWrapper('delete', this.objectHandle);
-        end
-        %% setCoordAxes - Set coordinate axes
-        function varargout = setCoordAxes(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('setCoordAxes', this.objectHandle, varargin{:});
-        end
-        %% SetVolume - Set GPU volume
-        function varargout = setVolume(this, varargin)
+            mexDeleteGridder(this.objectHandle);
+        end  
+        %% SetVariables - Set the variables of the C++ class instance 
+        function Set(this)
             
-            [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(varargin{1}, this.interpFactor);
-            this.origBox = origBox;
-            this.interpBox = interpBox;
-            this.fftinfo = fftinfo;
-            this.CASBox = CASBox;
+            if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.CASVolume) || isempty(this.Images) ...
+                || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreams))
+                error("Error: Required array is missing in Set() function.")             
+            end                    
             
-            [varargout{1:nargout}] = mexFunctionWrapper('SetVolume', this.objectHandle, CASVol);
-        end
-        %% GetVolume - Get the summed volume from all of the GPUs
-        function varargout = GetVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('GetVolume', this.objectHandle, varargin{:});
+            [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
+            [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));
+            [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));                           
+            [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
+            [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
+            [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
+            [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
             
-%              varargout{1:nargout}=volFromCAS(varargout{1:nargout},this.CASBox, this.interpBox, this.origBox,this.kernelHWidth);
-       
-        end
-        %% SetImages - Set CAS Imgs
-        function varargout = SetImages(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetImages', this.objectHandle, varargin{:});
-        end
-        %% resetVolume - Reset GPU volume
-        function varargout = resetVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('ResetVolume', this.objectHandle, varargin{:});
-        end
-        %% SetImgSize - Set output image size
-        function varargout = SetImgSize(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetImgSize', this.objectHandle, varargin{:});
-        end
-        %% SetMaskRadius - Set mask radius
-        function varargout = SetMaskRadius(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetMaskRadius', this.objectHandle, varargin{:});
-        end
-        %% SetNumberGPUs - Set number of GPUs to use with CUDA kernel
-        function varargout = SetNumberGPUs(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetNumberGPUs', this.objectHandle, varargin{:});
-        end
-        %% SetNumberStreams - Set number of GPUs to use with CUDA kernel
-        function varargout = SetNumberStreams(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetNumberStreams', this.objectHandle, varargin{:});
-        end
-        %% SetNumberBatches - Set number of batches to use with CUDA kernel
-        function varargout = SetNumberBatches(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('SetNumberBatches', this.objectHandle, varargin{:});
-        end
-        %% mem_alloc - Allocate memory
-        function varargout = mem_alloc(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('mem_alloc', this.objectHandle, varargin{:});
-        end
-        %% pin_mem - Pin CPU array to memory
-        function varargout = pin_mem(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('pin_mem', this.objectHandle, varargin{:});
-        end
-        %% disp_mem - Display memory
-        function varargout = disp_mem(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('disp_mem', this.objectHandle, varargin{:});
-        end
-        %% mem_Copy - Copy memory
-        function varargout = mem_Copy(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('mem_Copy', this.objectHandle, varargin{:});
-        end
-        %% mem_Return - Return memory array
-        function varargout = mem_Return(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('mem_Return', this.objectHandle, varargin{:});
-        end
-        %% GetImgs - Return CASImgs array
-        function varargout = GetImgs(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('GetImgs', this.objectHandle, varargin{:});
+            % Set the optional arrays
+            if ~isempty(this.CASImages)
+                [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));
+            end
+            if ~isempty(this.MaxAxesToAllocate)
+                [varargout{1:nargout}] = mexSetVariables('SetMaxAxesToAllocate', this.objectHandle, int32(this.MaxAxesToAllocate));
+            end            
+            
+        end 
+        %% GetVariables - Get the variables of the C++ class instance 
+        function varargout = Get(this, variableName)                 
+            switch variableName
+                case 'Volume'
+                    [varargout{1:nargout}] = mexGetVariables('Volume', this.objectHandle);
+                case 'CASVolume'
+                    [varargout{1:nargout}] = mexGetVariables('CASVolume', this.objectHandle);
+                case 'Images'
+                    [varargout{1:nargout}] = mexGetVariables('Images', this.objectHandle);
+                case 'CASImages'
+                    [varargout{1:nargout}] = mexGetVariables('CASImages', this.objectHandle);
+                otherwise
+                    disp('Failed to locate variable')
+            end                       
+            
+        end 
+        %% ForwardProject - Run the forward projection function
+        function ForwardProject(this, varargin)
+            this.Set(); % Run the set function in case one of the arrays has changed
+            mexForwardProject(this.objectHandle);
         end      
-        %% mem_Free - Free CPU memory
-        function varargout = mem_Free(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('mem_Free', this.objectHandle, varargin{:});
+        %% setVolume - Set the volume
+        function setVolume(this, varargin)
+            % The new volume will be copied to the GPUs during this.Set()
+           this.Volume = varargin{1}; 
         end
-        %% CUDA_alloc - Allocate GPU memory 
-        function varargout = CUDA_alloc(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CUDA_alloc', this.objectHandle, varargin{:});
-        end
-        %% CUDA_Free - Free GPU memory
-        function varargout = CUDA_Free(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CUDA_Free', this.objectHandle, varargin{:});
-        end
-        %% CUDA_disp_mem - Copy memory
-        function varargout = CUDA_disp_mem(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CUDA_disp_mem', this.objectHandle, varargin{:});
-        end
-        %% CUDA_Copy - Copy Matlab array to GPU array
-        function varargout = CUDA_Copy(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CUDA_Copy', this.objectHandle, varargin{:});
-        end
-        %% CUDA_Return - Return CUDA array back to Matlab
-        function varargout = CUDA_Return(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CUDA_Return', this.objectHandle, varargin{:});
-        end
-        %% Projection_Initilize - Initialize the projection kernels by allocating the rest of needed memory
-        function varargout = Projection_Initilize(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('Projection_Initilize', this.objectHandle, varargin{:});
-        end
-        %% Forward_Project - Run the forward projection kernel
-        function varargout = forwardProject(this, varargin)
-            coordAxes = varargin{1};
-            coordAxes = coordAxes(:);
-            disp("Forward Project...")
-            imgs = mexFunctionWrapper('forwardProject', this.objectHandle, coordAxes);
-            disp("imgsFromCASImgs...")
-            varargout{1}=imgsFromCASImgs(imgs, this.interpBox, this.fftinfo); 
-        end
-        %% Forward_Project get the CAS images
-        function varargout = forwardProjectCAS(this, varargin)
-            coordAxes = varargin{1};
-            coordAxes = coordAxes(:);
-            disp("Forward Project...")
-            varargout{1} = mexFunctionWrapper('forwardProject', this.objectHandle, coordAxes);
-        end
-        %% Set the kaiser bessel vector
-        function varargout = SetKerBesselVector(this, varargin)
-            [varargout{1:nargout}]  = mexFunctionWrapper('SetKerBesselVector', this.objectHandle,  varargin{:});
-        end        
-        
-        %% Back_Project - Run the back projection kernel
-        function varargout = backProject(this, varargin)
-            
-            imgs = varargin{1};
-            coordAxes = varargin{2};
-            
-            % Need to convert the images to CAS imgs
-            CAS_projection_imgs = CASImgsFromImgs(imgs, this.interpBox, this.fftinfo);
-            
-            this.SetImages(single(CAS_projection_imgs));
-            this.setCoordAxes(single(coordAxes(:)));
-            
-            this.Print()
-            
-            [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle);
-        end
-        %% Print- Print the current parameters to the console
-        function varargout = Print(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('Print', this.objectHandle, varargin{:});
-        end
-        %% Reconstruct Volume
-        function volReconstructed = reconstructVol(this, coordAxes)
-            
-            volCAS = this.GetVolume();
-%    
-%             % Get the density of inserted planes by backprojecting CASimages of values equal to one
-%             disp("Get Plane Density()...")
-%             interpImgs=ones([this.interpBox.size this.interpBox.size size(coordAxes(:),1)/9],'single');
-%             
-% %             CAS_interpImgs = [];
-% %             CAS_interpImgs = CASImgsFromImgs(interpImgs,this.interpBox, this.fftinfo);
-%             this.resetVolume();
-%             this.SetImages(single(interpImgs))
-% %             this.backProject(interpImgs, coordAxes(:))
-%             this.setCoordAxes(single(coordAxes(:)));
-%             [varargout{1:nargout}] = mexFunctionWrapper('Back_Project', this.objectHandle);
-%             
-%             volWt = this.GetVolume();
-
-%             imagesc(volWt(:,:,10))
-            
-            % Normalize the back projection result with the plane density
-            % Divide the previous volume with the plane density volume
-%             volCAS=volCAS./(volWt+1e-6);
-%             volCAS = volWt; % TEST
-
-            % Reconstruct the volume from CASVol
-            disp("volFromCAS()...")
-            volReconstructed=volFromCAS(volCAS,this.CASBox, this.interpBox, this.origBox,this.kernelHWidth);
-       
-            
-            
-        end
-        %% CropVolume - Crop a volume
-        function varargout = CropVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('CropVolume', this.objectHandle, single(varargin{:}));
-        end
-        
-        %% PadVolume - Zero pad a volume
-        function varargout = PadVolume(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('PadVolume', this.objectHandle, single(varargin{:}));
-        end
-        %% VolumeToCAS - Zero pad a volume
-        function varargout = VolumeToCAS(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('VolumeToCAS', this.objectHandle, single(varargin{:}));
-        end
-        %% MemoryTest - Test
-        function varargout = MemoryTestSavePtr(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('MemoryTestSavePtr', this.objectHandle, single(varargin{:}));
-        end
-        %% DivideByTwo - Test
-        function varargout = DivideByTwo(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('DivideByTwo', this.objectHandle, varargin{:});
-        end
-        %% MemoryTestPrint - Test
-        function varargout = MemoryTestPrint(this, varargin)
-            [varargout{1:nargout}] = mexFunctionWrapper('MemoryTestPrint', this.objectHandle, varargin{:});
+        %% resetVolume - Reset the volume
+        function resetVolume(this)
+            % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
+           this.Volume = 0 * this.Volume; 
         end
     end
 end

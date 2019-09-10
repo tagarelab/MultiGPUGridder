@@ -4,28 +4,14 @@
 
 // extern "C" bool mxUnshareArray(mxArray *array_ptr, bool noDeepCopy);
 
-int *GetMatlabDimensions(const mxArray *MatlabInputPointer)
-{
-
-    // Get the matrix size of the input Matlab pointer
-    const mwSize *dims_mwSize;
-    dims_mwSize = mxGetDimensions(MatlabInputPointer);
-
-    int *dims = new int[3];
-    dims[0] = (int)dims_mwSize[0];
-    dims[1] = (int)dims_mwSize[1];
-    dims[2] = (int)dims_mwSize[2];
-
-    return dims;
-}
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     // This is the wrapper for the corresponding Matlab class
     // Which allows for calling the C++ and CUDA functions while maintaining the memory pointers
 
-     mxUnshareArray(const_cast<mxArray *>(prhs[0]), true);  //</mxArray>
-     
+     //mxUnshareArray(const_cast<mxArray *>(prhs[0]), true);  //</mxArray>
+
     // Get the input command string
     char cmd[64];
     if (nrhs < 1 || mxGetString(prhs[0], cmd, sizeof(cmd)))
@@ -877,8 +863,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int extraPadding = 3;
 
         // Call the method
-        float * output_volume;
+        float * output_volume;// = new float[output_dims[0] * output_dims[1] * output_dims[2]];
         // auto t1 = std::chrono::high_resolution_clock::now();
+
+        // for (int i=0; i<output_dims[0]*output_dims[1]*output_dims[2]; i++)
+        // {
+        //     output_volume[i] = 0;
+        // }
 
         output_volume = MultiGPUGridder_instance->VolumeToCAS(matlabArrayPtr, dims[0], interpFactor, extraPadding);
 
