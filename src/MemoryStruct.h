@@ -49,7 +49,7 @@ struct MemoryStruct
     }
 
     // Function to return the number of bytes the array is
-    int bytes()
+    unsigned int bytes()
     {
         // Return the number of bytes
         int bytes = 1;

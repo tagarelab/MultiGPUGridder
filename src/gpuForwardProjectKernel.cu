@@ -137,6 +137,10 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
     // batch since the same GPU memory is used for the next batch.
     int numAxesGPU_Batch = 0;
 
+    Log2("this->MaxAxesAllocated: ", this->MaxAxesAllocated);
+    Log2("this->nAxes: ", this->nAxes);
+    Log2("this->nStreams: ", this->nStreams);
+
     // Estimate how many coordinate axes to assign to each stream
     int EstimatedNumAxesPerStream;
     if (this->nAxes <= this->MaxAxesAllocated)
@@ -265,7 +269,13 @@ void gpuForwardProject::Execute()
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
-        // std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i] << '\n';
+        if (Offsets_obj.numAxesPerStream[i] < 1)
+        {
+            continue;
+        }
+
+        std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
+                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(

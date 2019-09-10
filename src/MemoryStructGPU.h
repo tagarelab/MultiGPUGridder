@@ -89,7 +89,15 @@ struct MemoryStructGPU : public MemoryStruct
         // Is there enough available memory on the device to allocate this array?
         if (mem_free_0 < this->bytes())
         {
-            std::cerr << "Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
+            std::cerr << "Error: Requested " << this->bytes() << " but only have " << mem_free_0 << " of memory remaining on GPU " << this->GPU_Device << '\n';
+
+            std::cerr << "Size is: ";
+            for (int i = 0; i < this->dims; i++)
+            {
+                std::cerr << this->GetSize(i) << " ";
+            }
+            std::cerr << '\n';
+            std::cerr << "AllocateGPUArray(): Not enough memory on the device to allocate the requested memory. Try fewer number of projections or a smaller volume. Or increase SetNumberBatches()" << '\n';
 
             this->ptr = NULL; // Set the pointer to NULL
 

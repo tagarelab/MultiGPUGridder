@@ -67,10 +67,10 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // Log(mem_free);
 
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 60% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.6);
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.8);
 
-    // Log("EstimatedMaxAxes:");
-    // Log(EstimatedMaxAxes);
+    Log("EstimatedMaxAxes:");
+    Log(EstimatedMaxAxes);
 
     return EstimatedMaxAxes;
 }
