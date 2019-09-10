@@ -48,22 +48,22 @@ private:
     };
 
     // Pointer to the CASVolume array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASVolume;
+    MemoryStructGPU<float> *d_CASVolume;
 
     // Pointer to the CAS images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_CASImgs;
+    MemoryStructGPU<float> *d_CASImgs;
 
     // Pointer to the images array on the device (i.e. the GPU)
-    MemoryStructGPU *d_Imgs;
+    MemoryStructGPU<float> *d_Imgs;
 
     // Pointer to the complex CAS images array on the device (i.e. the GPU)
-    cufftComplex *d_CASImgsComplex;
+    MemoryStructGPU<cufftComplex> *d_CASImgsComplex;
 
     // Pointer to the coordinate axes vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_CoordAxes;
+    MemoryStructGPU<float> *d_CoordAxes;
 
     // Pointer to the Kaiser bessel vector on the device (i.e. the GPU)
-    MemoryStructGPU *d_KB_Table;
+    MemoryStructGPU<float> *d_KB_Table;
 
     // Pointer to the coordinate axes array which is pinned to the host (i.e. the CPU)
     float *coordAxes_CPU_Pinned;
@@ -126,44 +126,29 @@ public:
     }
 
 
+    // Setter functions
+    void SetCASVolume(MemoryStructGPU<float> *&CASVolume) { this->d_CASVolume = CASVolume; }
+    void SetCASImages(MemoryStructGPU<float> *&CASImgs) { this->d_CASImgs = CASImgs; }
+    void SetComplexCASImages(MemoryStructGPU<cufftComplex> *&CASImgsComplex) { this->d_CASImgsComplex = CASImgsComplex; }
+    void SetImages(MemoryStructGPU<float> *&Imgs) { this->d_Imgs = Imgs; }
+    void SetCoordinateAxes(MemoryStructGPU<float> *&CoordAxes) { this->d_CoordAxes = CoordAxes; }
+    void SetKBTable(MemoryStructGPU<float> *&KB_Table) { this->d_KB_Table = KB_Table; }
+    
     void SetPinnedCoordinateAxes(float *&coordAxes_CPU_Pinned) { this->coordAxes_CPU_Pinned = coordAxes_CPU_Pinned; }
-
     void SetPinnedCASImages(float *&CASImgs_CPU_Pinned) { this->CASImgs_CPU_Pinned = CASImgs_CPU_Pinned; }
-
     void SetPinnedImages(float *&Imgs_CPU_Pinned) { this->Imgs_CPU_Pinned = Imgs_CPU_Pinned; }
-
-    void SetCASVolume(MemoryStructGPU *&CASVolume) { this->d_CASVolume = CASVolume; }
-
-    void SetCASImages(MemoryStructGPU *&CASImgs) { this->d_CASImgs = CASImgs; }
-
-    void SetComplexCASImages(cufftComplex *&CASImgsComplex) { this->d_CASImgsComplex = CASImgsComplex; }
-
-    void SetImages(MemoryStructGPU *&Imgs) { this->d_Imgs = Imgs; }
-
     void SetCUDAStreams(cudaStream_t * streams) { this->streams = streams; }
-
-    void SetCoordinateAxes(MemoryStructGPU *&CoordAxes) { this->d_CoordAxes = CoordAxes; }
-
     void SetCoordinateAxesOffset(int coordAxesOffset) { this->coordAxesOffset = coordAxesOffset; }
-
-    void SetKBTable(MemoryStructGPU *&KB_Table) { this->d_KB_Table = KB_Table; }
-
     void SetGridSize(int gridSize) { this->gridSize = gridSize; }
-
     void SetBlockSize(int blockSize) { this->blockSize = blockSize; }
-
     void SetNumberOfAxes(int nAxes) { this->nAxes = nAxes; }
-
     void SetMaxAxesAllocated(int MaxAxesAllocated) { this->MaxAxesAllocated = MaxAxesAllocated; }
-
     void SetNumberOfStreams(int nStreams) { this->nStreams = nStreams; }
-
     void SetGPUDevice(int GPU_Device) { this->GPU_Device = GPU_Device; }
-
     void SetMaskRadius(int maskRadius) { this->maskRadius = maskRadius; }
-
     void SetKerHWidth(float kerHWidth) { this->kerHWidth = kerHWidth; }
 
+    // Run the forward projection
     void Execute();
 };
 

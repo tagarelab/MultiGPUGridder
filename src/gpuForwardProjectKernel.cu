@@ -316,7 +316,7 @@ void gpuForwardProject::Execute()
             ImgSize,
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-            &d_CASImgsComplex[Offsets_obj.gpuCASImgs_Offset[i]],
+            this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             Offsets_obj.numAxesPerStream[i]);
 
         // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)

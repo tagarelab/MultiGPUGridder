@@ -3,7 +3,8 @@
 #include "MemoryStruct.h"
 
 // Extend the memory struct from the abstract gridder class to include GPU related information
-struct MemoryStructGPU : public MemoryStruct
+template<class T = float>
+struct MemoryStructGPU : public MemoryStruct< T >
 {
     // Which GPU is the memory allocated on?
     int GPU_Device;
@@ -15,7 +16,7 @@ struct MemoryStructGPU : public MemoryStruct
     cudaStream_t stream;
 
     // Extend the constructor from MemoryStruct
-    MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct(dims, ArraySize)
+    MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct<T>(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -26,7 +27,7 @@ struct MemoryStructGPU : public MemoryStruct
         // Create the stream on the selected GPU
         cudaStreamCreate(&this->stream);
 
-        // Free the float array allocated in MemoryStruct. TO DO: make this not necessary
+        // Free the T type array allocated in MemoryStruct. TO DO: make this not necessary
         std::free(this->ptr);
 
         // Allocate the array on the GPU
@@ -39,39 +40,39 @@ struct MemoryStructGPU : public MemoryStruct
         DeallocateGPUArray();
     }
 
-    // Copy a float array from the CPU to the allocated array on the GPU
-    void CopyToGPU(float *Array, int Bytes)
+    // Copy a T type array from the CPU to the allocated array on the GPU
+    void CopyToGPU(T *Array, int Bytes)
     {
         if (Bytes != this->bytes())
         {
             std::cerr << "Error in CopyToGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
         }
 
-        // Given a float pointer (on host CPU) and number of bytes, copy the memory to this GPU array
+        // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
         cudaMemcpy(this->ptr, Array, Bytes, cudaMemcpyHostToDevice);
     }
 
-    // Copy a float array from the CPU to the allocated array on the GPU asynchronously
-    void CopyToGPUAsyc(float *Array, int Bytes)
+    // Copy a T type array from the CPU to the allocated array on the GPU asynchronously
+    void CopyToGPUAsyc(T *Array, int Bytes)
     {
         if (Bytes != this->bytes())
         {
             std::cerr << "Error in CopyToGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
         }
 
-        // Given a float pointer (on host CPU) and number of bytes, copy the memory to this GPU array
+        // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
         cudaMemcpyAsync(this->ptr, Array, Bytes, cudaMemcpyHostToDevice, this->stream);
     }
 
-    // Copy the array from the GPU to a float array on the CPU
-    void CopyFromGPU(float *Array, int Bytes)
+    // Copy the array from the GPU to a T type array on the CPU
+    void CopyFromGPU(T *Array, int Bytes)
     {
         if (Bytes != this->bytes())
         {
             std::cerr << "Error in CopyFromGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
         }
 
-        // Given a float pointer (on host CPU) and number of bytes, copy the memory to this GPU array
+        // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
         cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost);
     }
 

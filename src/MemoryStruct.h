@@ -9,6 +9,7 @@
 #include <cuda.h>
 
 // Struct to contain the needed information for each allocated array (e.g. CASImgs, images, coordinate axes, etc.)
+template<class T = float>
 struct MemoryStruct
 {
     // Deminsions of the array
@@ -18,7 +19,7 @@ struct MemoryStruct
     int *size;
 
     // Pointer to the memory allocated
-    float *ptr;
+    T *ptr;
 
     // Constructor for the structure
     MemoryStruct(int dims, int *ArraySize)
@@ -32,7 +33,7 @@ struct MemoryStruct
             this->size[i] = ArraySize[i];
         }
         
-        // Allocate the memory for the float array
+        // Allocate the memory for the T type array
         AllocateArray();
     }
 
@@ -42,10 +43,10 @@ struct MemoryStruct
         DeallocateArray();
     }
 
-    // Allocate the memory for the float array
+    // Allocate the memory for the T type array
     void AllocateArray()
     {
-        this->ptr = new float[this->length()];
+        this->ptr = new T[this->length()];
     }
 
     // Function to return the number of bytes the array is
@@ -58,7 +59,7 @@ struct MemoryStruct
             bytes = bytes * size[i];
         }
 
-        bytes = bytes * sizeof(float);
+        bytes = bytes * sizeof(T);
 
         return bytes;
     };
@@ -101,13 +102,13 @@ struct MemoryStruct
     }
 
     // Copy a given array
-    void CopyArray(float *Array)
+    void CopyArray(T *Array)
     {
         std::memcpy(this->ptr, Array, this->bytes());
     }
 
     // Copy a given pointer
-    void CopyPointer(float *&ptr)
+    void CopyPointer(T *&ptr)
     {
         // Free the currently allocated memory
         std::free(this->ptr);
@@ -129,13 +130,13 @@ struct MemoryStruct
     }
 
     // Get the pointer
-    float *GetPointer()
+    T *GetPointer()
     {
         return this->ptr;
     }
 
     // Get the pointer using some offset from the beginning of the array
-    float *GetPointer(int offset)
+    T *GetPointer(int offset)
     {
         return &this->ptr[offset];
     } 
