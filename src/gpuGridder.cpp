@@ -182,22 +182,13 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
     }
 
     // Pass the float pointers to the forward projection object
-    float *coordAxesPtr = this->coordAxes->GetPointer();
-    float *ImgsPtr = this->imgs->GetPointer();
-    this->ForwardProject_obj->SetPinnedCoordinateAxes(coordAxesPtr);
-    this->ForwardProject_obj->SetPinnedImages(ImgsPtr);
+    this->ForwardProject_obj->SetPinnedCoordinateAxes(this->coordAxes);
+    this->ForwardProject_obj->SetPinnedImages(this->imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
     if (this->CASimgs != nullptr)
     {
-        float *CASImagesPtr = this->CASimgs->GetPointer();
-        this->ForwardProject_obj->SetPinnedCASImages(CASImagesPtr);
-    }
-    else
-    {
-        // Set the pinned CASImgs pointer to be the null pointer
-        float *tempPtr = nullptr;
-        this->ForwardProject_obj->SetPinnedCASImages(tempPtr);
+        this->ForwardProject_obj->SetPinnedCASImages(this->CASimgs);
     }
 
     // Calculate the block size for running the CUDA kernels

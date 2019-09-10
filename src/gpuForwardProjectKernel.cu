@@ -281,7 +281,7 @@ void gpuForwardProject::Execute()
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
-            &coordAxes_CPU_Pinned[Offsets_obj.CoordAxes_CPU_Offset[i]],
+            this->coordAxes_CPU_Pinned->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
             cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
 
@@ -302,7 +302,7 @@ void gpuForwardProject::Execute()
         if (this->CASImgs_CPU_Pinned != NULL)
         {
             cudaMemcpyAsync(
-                &CASImgs_CPU_Pinned[Offsets_obj.CASImgs_CPU_Offset[i]],
+                CASImgs_CPU_Pinned->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
@@ -321,7 +321,7 @@ void gpuForwardProject::Execute()
 
         // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
         cudaMemcpyAsync(
-            &Imgs_CPU_Pinned[Offsets_obj.Imgs_CPU_Offset[i]],
+            Imgs_CPU_Pinned->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
             this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
             Offsets_obj.gpuImgs_streamBytes[i],
             cudaMemcpyDeviceToHost,
