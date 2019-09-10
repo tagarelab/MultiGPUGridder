@@ -65,7 +65,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
         end        
         %% Deconstructor - Delete the C++ class instance 
-        function Delete(this)
+        function delete(this)
             mexDeleteGridder(this.objectHandle);
         end  
         %% SetVariables - Set the variables of the C++ class instance 
@@ -116,6 +116,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end      
         %% setVolume - Set the volume
         function setVolume(this, varargin)
+            % The new volume will be copied to the GPUs during this.Set()
            this.Volume = varargin{1}; 
         end
         %% resetVolume - Reset the volume

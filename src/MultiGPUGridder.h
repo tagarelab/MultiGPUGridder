@@ -41,6 +41,12 @@ public:
 		this->GPU_Devices = GPU_Devices;
 	}
 
+	// Deconstructor
+	~MultiGPUGridder()
+	{
+		FreeMemory();
+	}
+	
 	// Set the number of CUDA streams to use with each GPU
 	void SetNumStreams(int nStreams);
 

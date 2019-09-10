@@ -25,7 +25,7 @@ reset(gpuDevice());
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 20;
+n1_axes = 10;
 n2_axes = 50;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -56,7 +56,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1:5
+for i = 1
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
@@ -74,14 +74,13 @@ for i = 1:5
     
     % Check for missing sections
     % Should check the CUDA return flags as well
-    easyMontage(gridder.Images(:,:,:), 1)
+%     easyMontage(gridder.Images(:,:,:), 1)
     pause(0.1)
 end
 
 return;
 
 %%
-gridder.delete()
 clear gridder
 clear all
 close all

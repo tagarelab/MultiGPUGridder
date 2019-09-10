@@ -51,11 +51,13 @@ AbstractGridder::~AbstractGridder()
 void AbstractGridder::FreeMemory()
 {
     // Free all of the allocated CPU memory
-    delete this->Volume;
-    delete this->CASVolume;
-    delete this->imgs;
-    delete this->CASimgs;
-    delete this->coordAxes;
+    std::cout << "AbstractGridder FreeMemory()" << '\n';
+
+    // delete this->Volume;
+    // delete this->CASVolume;
+    // delete this->imgs;
+    // delete this->CASimgs;
+    // delete this->coordAxes;
 
 }
 

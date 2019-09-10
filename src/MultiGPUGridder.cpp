@@ -114,18 +114,21 @@ void MultiGPUGridder::GPU_Sync()
 
 void MultiGPUGridder::FreeMemory()
 {
+    std::cout << "FreeMemory(): " << '\n';
     // Free all of the allocated GPU memory
     for (int i = 0; i < Num_GPUs; i++)
-    {
+    {   
+        std::cout << "GPU " << i << '\n';
         delete gpuGridder_vec[i];       
     }
 
     // Free all of the allocated CPU memory
-    delete this->Volume;
-    delete this->CASVolume;
-    delete this->imgs;
-    delete this->CASimgs;
-    delete this->coordAxes;
+    // Let Matlab delete this instead for now
+    // delete this->Volume;
+    // delete this->CASVolume;
+    // delete this->imgs;
+    // delete this->CASimgs;
+    // delete this->coordAxes;
 
 }
 

@@ -357,14 +357,15 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 void gpuGridder::FreeMemory()
 {
     // Free all of the allocated memory
+    std::cout << "gpuGridder FreeMemory()" << '\n';
 
     // Free the GPU memory
-    // this->d_CASVolume->DeallocateGPUArray();
-    // this->d_CASImgs->DeallocateGPUArray();
-    // cudaFree(this->d_CASImgsComplex);
-    // this->d_Imgs->DeallocateGPUArray();
-    // this->d_CoordAxes->DeallocateGPUArray();
-    // this->d_KB_Table->DeallocateGPUArray();
+    this->d_CASVolume->DeallocateGPUArray();
+    this->d_CASImgs->DeallocateGPUArray();
+    cudaFree(this->d_CASImgsComplex);
+    this->d_Imgs->DeallocateGPUArray();
+    this->d_CoordAxes->DeallocateGPUArray();
+    this->d_KB_Table->DeallocateGPUArray();
 
     // Reset the GPU
     cudaSetDevice(this->GPU_Device);
