@@ -23,10 +23,10 @@ disp("Resetting devices...")
 reset(gpuDevice());
 % end
 
-VolumeSize = 128;
+VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 10;
-n2_axes = 50;
+n1_axes = 500;
+n2_axes = 20;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
 pause(0.5)

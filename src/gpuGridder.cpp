@@ -111,14 +111,14 @@ void gpuGridder::InitilizeGPUArrays()
         size[0] = this->imgs->GetSize(0) * this->interpFactor;
         size[1] = this->imgs->GetSize(1) * this->interpFactor;
         size[2] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
-
+        
         this->d_CASImgs = new MemoryStructGPU<float>(3, size, this->GPU_Device);
 
         delete[] size;
     }
 
     // Allocate the complex CAS images array
-    this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->imgs->GetDim(), this->imgs->GetSize(), this->GPU_Device);
+    this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->imgs->GetDim(), this->d_CASImgs->GetSize(), this->GPU_Device);
 
     // Limit the number of axes to allocate to be MaxAxesToAllocate
     int *imgs_size = new int[3];
@@ -131,7 +131,12 @@ void gpuGridder::InitilizeGPUArrays()
     delete[] imgs_size;
 
     // Allocate the coordinate axes array
+    int *axes_size = new int[1];
+    axes_size[0] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
+    axes_size[0] = axes_size[0] * 9; // 9 elements per coordinate axes
+
     this->d_CoordAxes = new MemoryStructGPU<float>(this->coordAxes->GetDim(), this->coordAxes->GetSize(), this->GPU_Device);
+    delete[] axes_size;
 
     // Allocate the Kaiser bessel lookup table
     this->d_KB_Table = new MemoryStructGPU<float>(this->ker_bessel_Vector->GetDim(), this->ker_bessel_Vector->GetSize(), this->GPU_Device);
