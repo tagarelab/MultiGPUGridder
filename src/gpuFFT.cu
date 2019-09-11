@@ -65,105 +65,8 @@ __global__ void cufftShift_2D_kernel(T *data, int N, int nSlices)
     }
 }
 
-__global__ void cufftShift_3D_slice_kernel(cufftComplex *input, cufftComplex *output, int N, int nSlices)
-{
-    // 3D Volume, 2D Slice, 1D Line
-    int sLine = N;
-    int sSlice = N * N;
-    int sVolume = N * N * N;
-
-    // Transformations Equations
-    int sEq1 = (sVolume + sSlice + sLine) / 2;
-    int sEq2 = (sVolume + sSlice - sLine) / 2;
-    int sEq3 = (sVolume - sSlice + sLine) / 2;
-    int sEq4 = (sVolume - sSlice - sLine) / 2;
-
-    // Thread Index 2D
-    int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (xIndex < 0 || xIndex > N || yIndex<0 | yIndex> N)
-    {
-        return;
-    }
-
-    // Each thread will do all the slices for some X, Y position in the 3D matrix
-    for (int zIndex = 0; zIndex < nSlices; zIndex++)
-    {
-        // Thread Index Converted into 1D Index
-        int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
-
-        if (zIndex < N / 2)
-        {
-            if (xIndex < N / 2)
-            {
-                if (yIndex < N / 2)
-                {
-                    // First Quad
-                    output[index].x = input[index + sEq1].x;
-                    output[index].y = input[index + sEq1].y;
-                }
-                else
-                {
-                    // Third Quad
-                    output[index].x = input[index + sEq3].x;
-                    output[index].y = input[index + sEq3].y;
-                }
-            }
-            else
-            {
-                if (yIndex < N / 2)
-                {
-                    // Second Quad
-                    output[index].x = input[index + sEq2].x;
-                    output[index].y = input[index + sEq2].y;
-                }
-                else
-                {
-                    // Fourth Quad
-                    output[index].x = input[index + sEq4].x;
-                    output[index].y = input[index + sEq4].y;
-                }
-            }
-        }
-        else
-        {
-            if (xIndex < N / 2)
-            {
-                if (yIndex < N / 2)
-                {
-                    // First Quad
-                    output[index].x = input[index - sEq4].x;
-                    output[index].y = input[index - sEq4].y;
-                }
-                else
-                {
-                    // Third Quad
-                    output[index].x = input[index - sEq2].x;
-                    output[index].y = input[index - sEq2].y;
-                }
-            }
-            else
-            {
-                if (yIndex < N / 2)
-                {
-                    // Second Quad
-                    output[index].x = input[index - sEq3].x;
-                    output[index].y = input[index - sEq3].y;
-                }
-                else
-                {
-                    // Fourth Quad
-                    output[index].x = input[index - sEq1].x;
-                    output[index].y = input[index - sEq1].y;
-                }
-            }
-        }
-    }
-}
-
 template <typename T>
-__global__ void cufftShift_3D_slice_kernel(T *data, int N, int nSlices)
+__global__ void cufftShift_3D_kernel(T *data, int N, int nSlices)
 {
     // In place FFT shift using GPU
     // Modified from https://raw.githubusercontent.com/marwan-abdellah/cufftShift/master/Src/CUDA/Kernels/in-place/cufftShift_3D_IP.cu
@@ -351,7 +254,32 @@ __global__ void ComplexToReal(cufftComplex *ComplexImg, float *RealImg, int imgS
     }
 }
 
-__global__ void PadVolumeKernel(float *input, float *output, int inputImgSize, int outputImgSize, int padding)
+__global__ void RealToComplexKernel(float *RealImg, cufftComplex *ComplexImg, int imgSize, int nSlices)
+{
+    // CUDA kernel for converting a real image to a complex type
+
+    // CUDA kernel for converting the CASImgs to imgs
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+
+    // Are we outside the bounds of the image?
+    if (i >= imgSize || i < 0 || j >= imgSize || j < 0)
+    {
+        return;
+    }
+
+    // Each thread will do all the slices for some position X and Y
+    for (int k = 0; k < nSlices; k++)
+    {
+        // Get the linear index of the current position
+        int ndx = i + j * imgSize + k * imgSize * imgSize;
+
+        ComplexImg[ndx].x = RealImg[ndx];
+    }
+}
+
+template <typename T>
+__global__ void PadVolumeKernel(T *input, T *output, int inputImgSize, int outputImgSize, int padding)
 {
     // Zero pad a volume using the GPU
 
@@ -382,83 +310,8 @@ __global__ void PadVolumeKernel(float *input, float *output, int inputImgSize, i
     }
 }
 
-void gpuFFT::PadVolume(float *inputVol, float *outputVol, int inputImgSize, int outputImgSize)
-{
-    // Pad a volume (of dimensions 3) with zeros
-    // Note: Output volume is larger than the input volume
-
-    // Check the input parameters
-    if (inputImgSize <= 0)
-    {
-        std::cerr << "CropVolume(): Invalid image size." << '\n';
-    }
-
-    // Create the output volume
-    //float *outputVol = new float[outputImgSize * outputImgSize * outputImgSize];
-    memset(outputVol, 0, outputImgSize * outputImgSize * outputImgSize * sizeof(float));
-
-    // for (int i = 0; i < outputImgSize * outputImgSize * outputImgSize; i++)
-    // {
-    //     outputVol[i] = 0;
-    // }
-
-    // How much to add to each side?
-    int padding = (outputImgSize - inputImgSize) / 2;
-
-    // For very small matrix sizes it might be faster to use the CPU instead of the GPU
-    bool use_gpu = true;
-
-    if (use_gpu == true)
-    {
-        // Allocate GPU memory to hold the input and output arrays
-        float *d_input;
-        cudaMalloc(&d_input, sizeof(float) * inputImgSize * inputImgSize * inputImgSize);
-        float *d_output;
-        cudaMalloc(&d_output, sizeof(float) * outputImgSize * outputImgSize * outputImgSize);
-
-        // Copy the input volume to the device
-        cudaMemcpy(d_input, inputVol, sizeof(float) * inputImgSize * inputImgSize * inputImgSize, cudaMemcpyHostToDevice);
-
-        // Run kernel to pad the intput array
-        int gridSize = 32;
-        int blockSize = ceil(inputImgSize / gridSize);
-
-        dim3 dimGridCrop(gridSize, gridSize, 1);
-        dim3 dimBlockCrop(blockSize, blockSize, 1);
-
-        PadVolumeKernel<<<dimGridCrop, dimBlockCrop>>>(d_input, d_output, inputImgSize, outputImgSize, padding);
-
-        // Copy the result back to the host
-        cudaMemcpy(outputVol, d_output, sizeof(float) * outputImgSize * outputImgSize * outputImgSize, cudaMemcpyDeviceToHost);
-
-        // Free the GPU memory
-        cudaFree(d_input);
-        cudaFree(d_output);
-    }
-    else
-    {
-        // Iterate over the input image (i.e. the smaller image)
-        for (int i = 0; i < inputImgSize; i++)
-        {
-            for (int j = 0; j < inputImgSize; j++)
-            {
-                for (int k = 0; k < inputImgSize; k++)
-                {
-
-                    int input_ndx = i + j * inputImgSize + k * inputImgSize * inputImgSize;
-
-                    int output_ndx = (i + padding) + (j + padding) * outputImgSize + (k + padding) * outputImgSize * outputImgSize;
-
-                    outputVol[output_ndx] = inputVol[input_ndx];
-                }
-            }
-        }
-    }
-
-    return;
-}
-
-__global__ void CropImgs(float *input, float *output, int inputImgSize, int outputImgSize, int nSlices)
+template <typename T>
+__global__ void CropImgs(T *input, T *output, int inputImgSize, int outputImgSize, int nSlices)
 {
     // Given the final projection images, crop out the zero padding to reduce memory size and transfer speed back to the CPU
     // inputImgSize is the size of the CASImgs (i.e. larger)
@@ -499,7 +352,7 @@ __global__ void CropImgs(float *input, float *output, int inputImgSize, int outp
     }
 }
 
-__global__ void ComplexToNormalizedImgs(cufftComplex *ComplexImg, float *output, int inputImgSize, int outputImgSize, int nSlices, int NormalizeFactor)
+__global__ void ComplexToCroppedNormalizedImgs(cufftComplex *ComplexImg, float *output, int inputImgSize, int outputImgSize, int nSlices, int NormalizeFactor)
 {
     // CUDA kernel for cropped a complex cufftComplex array and extracting the real component
 
@@ -566,104 +419,58 @@ void gpuFFT::VolumeToCAS(float *inputVol, int inputVolSize, float *outputVol, in
 {
     // Convert a CUDA array to CAS array
     // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
-    // Step 1: Pad with zeros
+    // Step 1: Pad the input volume with zeros and convert to cufftComplex type
     // Step 2: fftshift
     // Step 3: Take discrete Fourier transform using cuFFT
     // Step 4: fftshift
     // Step 5: Convert to CAS volume using CUDA kernel
+    // Step 6: Apply extra zero padding
 
-    // STEP 1
-    // Example: input size = 128; interpFactor = 2; paddedVolSize = 256
+    // Example: input size = 128; interpFactor = 2 -> paddedVolSize = 256
     int paddedVolSize = inputVolSize * interpFactor;
 
-    // Log("VolumeToCAS():");
-    // Log(inputVolSize);
-    // Log(interpFactor);
-    // Log(extraPadding);
-    // Log(paddedVolSize);
-
-    int array_size = paddedVolSize * paddedVolSize * paddedVolSize;
-
-    // Pad the input volume with zeros
-    float *inputVol_Padded = new float[paddedVolSize * paddedVolSize * paddedVolSize];
-
-    // Allocate memory for the resulting CAS volumes
-    float *d_CAS_Vol, *h_CAS_Vol;
-    cufftComplex *h_complex_array, *d_complex_array;
-    h_CAS_Vol = (float *)malloc(sizeof(float) * array_size);
-    h_complex_array = (cufftComplex *)malloc(sizeof(cufftComplex) * array_size);
-
-    cudaMalloc(&d_CAS_Vol, sizeof(float) * array_size);
-    cudaMalloc(&d_complex_array, sizeof(cufftComplex) * array_size);
-
-    // Pad the input volume with zeros
-    PadVolume(inputVol, inputVol_Padded, inputVolSize, paddedVolSize);
-
-    // Plan the forward FFT
-    cufftHandle forwardFFTPlan;
-    cufftPlan3d(&forwardFFTPlan, paddedVolSize, paddedVolSize, paddedVolSize, CUFFT_C2C);
-
-    // Convert the padded volume to a cufftComplex array
-    // TO DO: Replace this with the CUDA kernel
-    for (int k = 0; k < array_size; k++)
-    {
-        h_complex_array[k].x = inputVol_Padded[k]; // Real component
-        h_complex_array[k].y = 0;                  // Imaginary component
-    }
-
-    // Copy the complex version of the GPU volume to the first GPU
-    cudaMemcpy(d_complex_array, h_complex_array, array_size * sizeof(cufftComplex), cudaMemcpyHostToDevice);
-
-    int gridSize = ceil(paddedVolSize / 32);
-    int blockSize = 32; // i.e. 32*32 threads
-
-    // Define CUDA kernel dimensions for converting the complex volume to a CAS volume
-    dim3 dimGrid(gridSize, gridSize, 1);
-    dim3 dimBlock(blockSize, blockSize, 1);
-
-    // STEP 2
-    // Apply an in place 3D FFT Shift
-    cufftShift_3D_slice_kernel<<<dimGrid, dimBlock>>>(d_complex_array, paddedVolSize, paddedVolSize);
-
-    // STEP 3
-    // Execute the forward FFT on the 3D array
-    cufftExecC2C(forwardFFTPlan, (cufftComplex *)d_complex_array, (cufftComplex *)d_complex_array, CUFFT_FORWARD);
-
-    // STEP 4
-    // Apply a second in place 3D FFT Shift
-    cufftShift_3D_slice_kernel<<<dimGrid, dimBlock>>>(d_complex_array, paddedVolSize, paddedVolSize);
-
-    // STEP 5
-    // Convert the complex result of the forward FFT to a CAS img type
-    ComplexImgsToCASImgs<<<dimGrid, dimBlock>>>(
-        d_CAS_Vol, d_complex_array, paddedVolSize);
-
-    // Copy the resulting CAS volume back to the host
-    cudaMemcpy(h_CAS_Vol, d_CAS_Vol, array_size * sizeof(float), cudaMemcpyDeviceToHost);
-
-    // Wait for the stream to finish copying the result back to the host
-    // cudaStreamSynchronize(Stream);
-    cudaDeviceSynchronize(); // TO DO: replace with stream sync?
-
-    // STEP 6
-    // Pad the result with the additional padding
-    // Example: input size = 128; interpFactor = 2; extra padding = 3; -> paddedVolSize_Extra= 262
+    // Example: input size = 128; interpFactor = 2; extra padding = 3; -> paddedVolSize_Extra = 262
     int paddedVolSize_Extra = paddedVolSize + extraPadding * 2;
 
-    // Pad the padded volume with the extra zero padding
-    // TO DO: make PadVolume completely on the GPU to remove the stream sync step above
-    PadVolume(h_CAS_Vol, outputVol, paddedVolSize, paddedVolSize_Extra);
+    // Allocate memory for the intermediate steps
+    float *d_Vol, *d_CAS_Vol, *d_CAS_Vol_Padded;
+    cufftComplex *d_complex_array;
+    cudaMalloc(&d_Vol, sizeof(float) * inputVolSize * inputVolSize * inputVolSize);
+    cudaMalloc(&d_CAS_Vol, sizeof(float) * paddedVolSize * paddedVolSize * paddedVolSize);
+    cudaMalloc(&d_CAS_Vol_Padded, sizeof(float) * pow(inputVolSize * interpFactor + extraPadding * 2, 3));
+    cudaMalloc(&d_complex_array, sizeof(cufftComplex) * paddedVolSize * paddedVolSize * paddedVolSize);
 
-    // Free the temporary memory
+    // Copy the volume to the corresponding GPU array
+    cudaMemcpy(d_Vol, inputVol, sizeof(float) * inputVolSize * inputVolSize * inputVolSize, cudaMemcpyHostToDevice);
+
+    // STEP 1: Pad the input volume with zeros and convert to cufftComplex type
+    gpuFFT::PadVolume(d_Vol, d_CAS_Vol, inputVolSize, paddedVolSize);
+
+    // Convert the d_CAS_Vol to complex type (need cufftComplex type for the forward FFT)
+    gpuFFT::RealToComplex(d_CAS_Vol, d_complex_array, paddedVolSize, paddedVolSize);
+
+    // STEP 2: Apply an in place 3D FFT Shift
+    gpuFFT::cufftShift_3D(d_complex_array, paddedVolSize, paddedVolSize);
+
+    // STEP 3: Execute the forward FFT on the 3D array
+    gpuFFT::FowardFFT(d_complex_array, paddedVolSize);
+
+    // STEP 4: Apply a second in place 3D FFT Shift
+    gpuFFT::cufftShift_3D(d_complex_array, paddedVolSize, paddedVolSize);
+
+    // STEP 5: Convert the complex result of the forward FFT to a CAS img type
+    gpuFFT::ComplexImgsToCAS(d_complex_array, d_CAS_Vol, paddedVolSize);
+
+    // STEP 6: Pad the result with the additional padding
+    gpuFFT::PadVolume(d_CAS_Vol, d_CAS_Vol_Padded, paddedVolSize, paddedVolSize_Extra);
+
+    // Copy the resulting CAS volume back to the host
+    cudaMemcpy(outputVol, d_CAS_Vol_Padded, sizeof(float) * paddedVolSize * paddedVolSize * paddedVolSize, cudaMemcpyDeviceToHost);
+
+    // Free the temporary memory allocated
     cudaFree(d_complex_array);
     cudaFree(d_CAS_Vol);
-    std::free(inputVol_Padded);
-    std::free(h_CAS_Vol);
-    std::free(h_complex_array);
-    cufftDestroy(forwardFFTPlan);
-
-    // Return the resulting CAS volume
-    return;
+    cudaFree(d_CAS_Vol_Padded);
 }
 
 void gpuFFT::CASImgsToImgs(
@@ -680,7 +487,7 @@ void gpuFFT::CASImgsToImgs(
 
         this->inverseFFTPlannedFlag = true;
     }
-    
+
     int gridSize = 32;
     int blockSize = ceil(CASImgSize / gridSize);
 
@@ -689,10 +496,10 @@ void gpuFFT::CASImgsToImgs(
     dim3 dimBlock(blockSize, blockSize, 1);
 
     // Convert the CASImgs to complex cufft type
-    CASImgsToComplexImgs<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs);
+    gpuFFT::CASImgsToComplex(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs, stream);
 
     // Run FFTShift
-    cufftShift_2D_kernel<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgsComplex, CASImgSize, numImgs);
+    gpuFFT::cufftShift_2D(d_CASImgsComplex, CASImgSize, numImgs, stream);
 
     // Execute the forward FFT on each 2D array
     // cufftPlanMany is not feasible since the number of images changes
@@ -710,11 +517,258 @@ void gpuFFT::CASImgsToImgs(
     }
 
     // Run FFTShift
-    cufftShift_2D_kernel<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgsComplex, CASImgSize, numImgs);
+    gpuFFT::cufftShift_2D(d_CASImgsComplex, CASImgSize, numImgs, stream);
 
     // Run kernel to crop the projection images (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-    ComplexToNormalizedImgs<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgsComplex, d_imgs, CASImgSize, ImgSize, numImgs, CASImgSize * CASImgSize);
+    gpuFFT::ComplexToCroppedNormalized(d_CASImgsComplex, d_imgs, CASImgSize, ImgSize, numImgs, stream);
+
+    return;
+}
+
+template <typename T>
+void gpuFFT::PadVolume(T *d_inputVol, T *d_outputVol, int inputImgSize, int outputImgSize)
+{
+    // Pad a GPU allocated array (of dimensions 3) with zeros
+    // Note: Output volume is larger than the input volume
+
+    int padding = (outputImgSize - inputImgSize) / 2;
+
+    // Check the input parameters
+    if (inputImgSize <= 0)
+    {
+        std::cerr << "Error PadVolume(): inputImgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (outputImgSize <= 0 || outputImgSize < inputImgSize)
+    {
+        std::cerr << "Error PadVolume(): The output image size must be larger than the input image size." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(outputImgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    PadVolumeKernel<<<dimGrid, dimBlock>>>(d_inputVol, d_outputVol, inputImgSize, outputImgSize, padding);
+
+    return;
+}
+
+void gpuFFT::RealToComplex(float *d_Real, cufftComplex *d_Complex, int imgSize, int nSlices)
+{
+    // Convert a real GPU allocated array (of dimensions 3) to a cufftComplex type
+
+    // Check the input parameters
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error RealToComplex(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (nSlices <= 0)
+    {
+        std::cerr << "Error RealToComplex(): nSlices must be a positive integer." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(imgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    RealToComplexKernel<<<dimGrid, dimBlock>>>(d_Real, d_Complex, imgSize, nSlices);
+
+    return;
+}
+
+template <typename T>
+void gpuFFT::cufftShift_2D(T *d_Array, int imgSize, int nSlices, cudaStream_t &stream)
+{
+    // Run an inplace 2D FFT shift on a GPU array
+
+    // Check the input parameters
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error cufftShift_2D(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (nSlices <= 0)
+    {
+        std::cerr << "Error cufftShift_2D(): nSlices must be a positive integer." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(imgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    // Use the CUDA stream if one was provided
+    if (stream != NULL)
+    {
+        cufftShift_2D_kernel<<<dimGrid, dimBlock, 0, stream>>>(d_Array, imgSize, nSlices);
+    }
+    else
+    {
+        cufftShift_2D_kernel<<<dimGrid, dimBlock>>>(d_Array, imgSize, nSlices);
+    }
+
+    return;
+}
+
+template <typename T>
+void gpuFFT::cufftShift_3D(T *d_Complex, int imgSize, int nSlices)
+{
+    // Run an inplace 3D FFT shift on a cufftComplex type
+
+    // Check the input parameters
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error cufftShift_3D(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (nSlices <= 0)
+    {
+        std::cerr << "Error cufftShift_3D(): nSlices must be a positive integer." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(imgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    cufftShift_3D_kernel<<<dimGrid, dimBlock>>>(d_Complex, imgSize, nSlices);
+
+    return;
+}
+
+template <typename R>
+void gpuFFT::ComplexImgsToCAS(cufftComplex *d_Complex, R *d_Real, int imgSize)
+{
+    // Run an inplace 3D FFT shift on a cufftComplex type
+
+    // Check the input parameter
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error ComplexImgsToCAS(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(imgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    ComplexImgsToCASImgs<<<dimGrid, dimBlock>>>(d_Real, d_Complex, imgSize);
+
+    return;
+}
+
+void gpuFFT::FowardFFT(cufftComplex *d_Complex, int imgSize)
+{
+    // Run a forward FFT on a cufftComplex type array
+
+    // Check the input parameter
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error FowardFFT(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+
+    // Plan the forward FFT
+    cufftHandle forwardFFTPlan;
+    cufftPlan3d(&forwardFFTPlan, imgSize, imgSize, imgSize, CUFFT_C2C);
+    cufftExecC2C(forwardFFTPlan, (cufftComplex *)d_Complex, (cufftComplex *)d_Complex, CUFFT_FORWARD);
+
+    // Free the plan
+    cufftDestroy(forwardFFTPlan);
+}
+
+void gpuFFT::CASImgsToComplex(float *d_CASImgs, cufftComplex *d_CASImgsComplex, int imgSize, int nSlices, cudaStream_t &stream)
+{
+    // Convert a CAS array to complex
+
+    // Check the input parameters
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error RealToComplex(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (nSlices <= 0)
+    {
+        std::cerr << "Error RealToComplex(): nSlices must be a positive integer." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(imgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    // Use the CUDA stream if one was provided
+    if (stream != NULL)
+    {
+        CASImgsToComplexImgs<<<dimGrid, dimBlock, 0, stream>>>(d_CASImgs, d_CASImgsComplex, imgSize, nSlices);
+    }
+    else
+    {
+        CASImgsToComplexImgs<<<dimGrid, dimBlock>>>(d_CASImgs, d_CASImgsComplex, imgSize, nSlices);
+    }
+
+    return;
+}
+
+void gpuFFT::ComplexToCroppedNormalized(cufftComplex *d_Complex, float *d_imgs, int ComplexImgSize, int imgSize, int nSlices, cudaStream_t &stream)
+{
+    // Convert a CAS array to complex
+
+    // Check the input parameters
+    if (imgSize <= 0)
+    {
+        std::cerr << "Error ComplexToCroppedNormalized(): imgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (ComplexImgSize <= 0)
+    {
+        std::cerr << "Error ComplexToCroppedNormalized(): ComplexImgSize must be a positive integer." << '\n';
+        return;
+    }
+    else if (nSlices <= 0)
+    {
+        std::cerr << "Error ComplexToCroppedNormalized(): nSlices must be a positive integer." << '\n';
+        return;
+    }
+
+    // Define CUDA kernel launch dimensions
+    int gridSize = ceil(imgSize / 32);
+    int blockSize = 32; // i.e. 32*32 threads
+
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
+
+    // Use the CUDA stream if one was provided
+    if (stream != NULL)
+    {
+        ComplexToCroppedNormalizedImgs<<<dimGrid, dimBlock, 0, stream>>>(d_Complex, d_imgs, ComplexImgSize, imgSize, nSlices, ComplexImgSize * ComplexImgSize);
+    }
+    else
+    {
+        ComplexToCroppedNormalizedImgs<<<dimGrid, dimBlock>>>(d_Complex, d_imgs, ComplexImgSize, imgSize, nSlices, ComplexImgSize * ComplexImgSize);
+    }
 
     return;
 }
