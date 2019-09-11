@@ -55,6 +55,12 @@ void gpuGridder::VolumeToCASVolume()
         this->extraPadding);
 }
 
+void gpuGridder::CopyCASVolumeToGPUAsyc()
+{
+    // Copy the CAS volume to the GPU asynchronously
+    this->d_CASVolume->CopyToGPUAsyc(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+}
+
 void gpuGridder::SetGPU(int GPU_Device)
 {
     // Set which GPU to use
@@ -256,6 +262,9 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     {
         // Run the volume to CAS volume function
         VolumeToCASVolume();
+
+        // Copy the CAS volume to the corresponding GPU array
+        this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
     }
 
     // Check the error flags to see if we had any issues during the initilization
@@ -269,9 +278,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         std::cerr << "Error during intilization." << '\n';
         return; // Don't run the kernel and return
     }
-
-    // Copy the CAS volume to the corresponding GPU array
-    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
     // Run the forward projection CUDA kernel
     this->ForwardProject_obj->Execute();

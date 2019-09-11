@@ -39,6 +39,9 @@ public:
 
 		// Save the GPU device numbers
 		this->GPU_Devices = GPU_Devices;
+
+		// Set the flag to false
+		this->ForwardProjectInitializedFlag = false;
 	}
 
 	// Deconstructor
@@ -54,6 +57,20 @@ public:
 	void ForwardProject();
 
 private:
+
+	// Plan which GPU will process which coordinate axes
+    struct CoordinateAxesPlan
+    {
+        // Vector to hold the number of axes to assign for each GPU
+        std::vector<int> NumAxesPerGPU;
+
+        // Offset index of the starting coordinate axes for each GPU
+        int *coordAxesOffset;
+    };
+
+	// Function to assign the coordinate axes to each GPU
+	CoordinateAxesPlan PlanCoordinateAxes();
+
 	// Vector to hold the gpuGridder objects (one for each GPU)
 	std::vector<gpuGridder *> gpuGridder_vec;
 
@@ -68,6 +85,10 @@ private:
 
 	// Free all of the allocated memory
 	void FreeMemory();
+
+	
+    // Flag for remembering if this is the first time running the forward projection
+    bool ForwardProjectInitializedFlag;
 };
 
 #endif

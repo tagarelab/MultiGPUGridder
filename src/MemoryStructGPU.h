@@ -57,7 +57,7 @@ struct MemoryStructGPU : public MemoryStruct< T >
     {
         if (Bytes != this->bytes())
         {
-            std::cerr << "Error in CopyToGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
+            std::cerr << "Error in CopyToGPUAsyc(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
         }
 
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array

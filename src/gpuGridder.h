@@ -46,6 +46,9 @@ public:
     // Convert the volume to a CAS volume
     void VolumeToCASVolume();
 
+    // Copy the CAS volume to the GPU asynchronously
+    void CopyCASVolumeToGPUAsyc();
+
     // Allocate needed GPU memory
     void Allocate();
 

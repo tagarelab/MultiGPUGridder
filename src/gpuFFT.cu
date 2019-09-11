@@ -488,23 +488,16 @@ void gpuFFT::CASImgsToImgs(
         this->inverseFFTPlannedFlag = true;
     }
 
-    int gridSize = 32;
-    int blockSize = ceil(CASImgSize / gridSize);
-
-    // Convert a CAS images array to images
-    dim3 dimGrid(gridSize, gridSize, 1);
-    dim3 dimBlock(blockSize, blockSize, 1);
-
     // Convert the CASImgs to complex cufft type
     gpuFFT::CASImgsToComplex(d_CASImgs, d_CASImgsComplex, CASImgSize, numImgs, stream);
 
-    // Run FFTShift
+    // Run FFTShift on each 2D slice
     gpuFFT::cufftShift_2D(d_CASImgsComplex, CASImgSize, numImgs, stream);
 
     // Execute the forward FFT on each 2D array
-    // cufftPlanMany is not feasible since the number of images changes
-    // cufftDestroy is then blocking the CPU and causes memory leaks if not called
-    // This has similar computation speed as cufftPlanMany
+    // cufftPlanMany is not feasible since the number of images changes and
+    // cufftDestroy is blocks the CPU and causes memory leaks if not called
+    // FFT on each 2D slice has similar computation speed as cufftPlanMany
     for (int i = 0; i < numImgs; i++)
     {
         // Set the FFT plan to the current stream to process
