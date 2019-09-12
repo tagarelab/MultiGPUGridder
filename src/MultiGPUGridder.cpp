@@ -110,7 +110,7 @@ void MultiGPUGridder::ForwardProject()
     }
 
     // Synchronize all of the GPUs
-    // GPU_Sync(); // needed?
+    GPU_Sync(); // needed?
 
     for (int i = 0; i < Num_GPUs; i++)
     {

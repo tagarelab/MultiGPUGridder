@@ -39,7 +39,7 @@ public:
     // Convert a CASImgs array to images
     void CASImgsToImgs(cudaStream_t &stream, int CASImgSize, int ImgSize, float *d_CASImgs, float *d_imgs, cufftComplex *d_CASImgsComplex, int numImgs);
 
-    ////////// Functions using device memory (i.e. GPU) //////////
+    ////////// Wrappers for calling the CUDA kernels outside the .cu file //////////
     // Pad a GPU array with zeros
     template <typename T>
     static void PadVolume(T *d_inputVol, T *d_outputVol, int inputImgSize, int outputImgSize);
