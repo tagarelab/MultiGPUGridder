@@ -71,6 +71,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         MultiGPUGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
+    // Set the pointer to the Plane Density volume
+    if (!strcmp("SetPlaneDensity", cmd))
+    {
+        // Pointer to the volume array and the dimensions of the array
+        MultiGPUGridderObj->SetPlaneDensity((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
+    }
+
+
     // Set the GPUS to use
     if (!strcmp("SetGPUs", cmd))
     {

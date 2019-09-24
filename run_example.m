@@ -12,21 +12,19 @@ addpath('./src')
 addpath('./utils')
 addpath('./bin') % The compiled mex file is stored in the bin folder
 
-
-
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
 addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
 
 disp("Resetting devices...")
-% for i = 1:4
-reset(gpuDevice());
-% end
+for i = 1:4
+reset(gpuDevice(i));
+end
 
-VolumeSize = 256;
+VolumeSize = 64;
 interpFactor = 2;
 n1_axes = 50;
-n2_axes = 30;
+n2_axes = 50;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
 pause(0.5)
@@ -72,13 +70,37 @@ for i = 1:5
     gridder.ForwardProject()
     toc
     
+       [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+      CASImgsTest = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+    easyMontage(CASImgsTest,1)
+    
+    
     % Check for missing sections
     % Should check the CUDA return flags as well
-    easyMontage(gridder.Images(:,:,1:10), 1)
-    pause(0.1)
+%     easyMontage(gridder.Images(:,:,1:10), 1)
+%     pause(0.1)
+end
+% return
+
+
+% Run the back projection
+
+for i = 1:5
+% gridder.resetVolume()
+% gridder.Images(1:32,1:32,:) = 0;
+gridder.Volume(:,:,:) = 0;
+gridder.CASVolume(:,:,:) = 0;
+gridder.CASImages(1:128,1:120,:) = 0;
+tic
+gridder.backProject()
+toc
+
+disp("Plotting...")
+% easyMontage(gridder.CASImages(:,:,:), 1)
+easyMontage(gridder.Volume, 2)
 end
 
-return;
+return
 
 %%
 clear gridder

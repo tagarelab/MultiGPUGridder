@@ -133,12 +133,12 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
     if (this->nAxes <= this->MaxAxesAllocated)
     {
         // The number of coordinate axes is less than or equal to the total number of axes to process
-        EstimatedNumAxesPerStream = floor((double)this->nAxes / (double)this->nStreams);
+        EstimatedNumAxesPerStream = ceil((double)this->nAxes / (double)this->nStreams);
     }
     else
     {
         // Several batches will be needed so evenly split the MaxAxesAllocated by the number of streams
-        EstimatedNumAxesPerStream = floor((double)this->MaxAxesAllocated / (double)this->nStreams);
+        EstimatedNumAxesPerStream = ceil((double)this->MaxAxesAllocated / (double)this->nStreams);
     }
 
     while (processed_nAxes < this->nAxes && batch < MaxBatches)
@@ -168,8 +168,8 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
             Offsets_obj.gpuCoordAxes_Stream_Offset.push_back(numAxesGPU_Batch * 9);
 
             // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
-            if (this->CASImgs_CPU_Pinned != NULL)
-            {
+            // if (this->CASImgs_CPU_Pinned != NULL)
+            // {
                 // Have to use unsigned long long since the array may be longer than the max value int32 can represent
                 // imgSize is the size of the zero padded projection images
                 unsigned long long *CASImgs_Offset = new unsigned long long[3];
@@ -181,7 +181,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
 
                 // How many bytes are the output images?
                 Offsets_obj.gpuCASImgs_streamBytes.push_back(CASImgSize * CASImgSize * Offsets_obj.numAxesPerStream.back() * sizeof(float));
-            }
+            // }
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
             // imgSize is the size of the zero padded projection images
@@ -206,6 +206,15 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
 
             // Remember which stream this is
             Offsets_obj.stream_ID.push_back(i);
+
+            std::cout << "Added " << Offsets_obj.numAxesPerStream.back() << " axes" << '\n';
+            std::cout << "Planned " << processed_nAxes << " axes out of " << this->nAxes << '\n';
+
+            // Have all the axes been processed?
+            if (processed_nAxes == this->nAxes)
+            {
+                break;
+            }
         }
 
         // Increment the batch number
@@ -220,6 +229,7 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
 
 void gpuForwardProject::Execute()
 {
+    
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int ImgSize = this->d_Imgs->GetSize(0);
     int CASImgSize = this->d_CASImgs->GetSize(0);
@@ -228,9 +238,14 @@ void gpuForwardProject::Execute()
     // Plan the pointer offset values
     gpuForwardProject::Offsets Offsets_obj = PlanOffsetValues();
 
+    // Calculate the block size for running the CUDA kernels
+    // NOTE: gridSize times blockSize needs to equal CASimgSize
+    int gridSize = 32; // 32
+    int blockSize = ceil(((double)this->d_Imgs->GetSize(0) * (double)this->interpFactor) / (double)gridSize);
+
     // Define CUDA kernel dimensions
-    dim3 dimGrid(this->gridSize, this->gridSize, 1);
-    dim3 dimBlock(this->blockSize, this->blockSize, 1);
+    dim3 dimGrid(gridSize, gridSize, 1);
+    dim3 dimBlock(blockSize, blockSize, 1);
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
@@ -262,34 +277,42 @@ void gpuForwardProject::Execute()
             this->d_KB_Table->GetSize(0),
             this->kerHWidth);
 
+        std::cout << "Offsets_obj.CASImgs_CPU_Offset[i]: " << Offsets_obj.CASImgs_CPU_Offset[i] << '\n';
+        std::cout << "Offsets_obj.gpuCASImgs_Offset[i]: " << Offsets_obj.gpuCASImgs_Offset[i] << '\n';
+        std::cout << "Offsets_obj.gpuCASImgs_streamBytes[i]: " << Offsets_obj.gpuCASImgs_streamBytes[i] << '\n';
+        std::cout << "CASImgs_CPU_Pinned->GetPointer(): " << CASImgs_CPU_Pinned->GetPointer() << '\n';
+        std::cout << "CASImgs_CPU_Pinned->bytes(): " << CASImgs_CPU_Pinned->bytes() << '\n';
+        std::cout << "this->d_CASImgs->GetPointer(): " << this->d_CASImgs->GetPointer() << '\n';
+
+
         // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
-        if (this->CASImgs_CPU_Pinned != NULL)
-        {
+        // if (this->CASImgs_CPU_Pinned != NULL)
+        // {
             cudaMemcpyAsync(
-                CASImgs_CPU_Pinned->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
+                CASImgs_CPU_Pinned->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]), 
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
                 streams[Offsets_obj.stream_ID[i]]);
-        }
+        // }
 
         // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
-        this->gpuFFT_obj->CASImgsToImgs(
-            streams[Offsets_obj.stream_ID[i]],
-            CASImgSize,
-            ImgSize,
-            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-            this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            Offsets_obj.numAxesPerStream[i]);
+        // this->gpuFFT_obj->CASImgsToImgs(
+        //     streams[Offsets_obj.stream_ID[i]],
+        //     CASImgSize,
+        //     ImgSize,
+        //     this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+        //     this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        //     Offsets_obj.numAxesPerStream[i]);
 
-        // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
-        cudaMemcpyAsync(
-            Imgs_CPU_Pinned->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
-            this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-            Offsets_obj.gpuImgs_streamBytes[i],
-            cudaMemcpyDeviceToHost,
-            streams[Offsets_obj.stream_ID[i]]);
+        // // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
+        // cudaMemcpyAsync(
+        //     Imgs_CPU_Pinned->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
+        //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+        //     Offsets_obj.gpuImgs_streamBytes[i],
+        //     cudaMemcpyDeviceToHost,
+        //     streams[Offsets_obj.stream_ID[i]]);
     }
 
     return;

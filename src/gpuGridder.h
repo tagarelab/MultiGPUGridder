@@ -3,6 +3,7 @@
 #include "AbstractGridder.h"
 #include "gpuFFT.h"
 #include "gpuForwardProject.h"
+#include "gpuBackProject.h"
 #include "MemoryStruct.h"
 #include "MemoryStructGPU.h"
 
@@ -59,7 +60,8 @@ public:
     void ForwardProject(int AxesOffset, int nAxesToProcess);
 
     // Run the back projection and return the volume
-    float *BackProject();
+    void BackProject(int AxesOffset, int nAxesToProcess);
+    void BackProject();
 
     // Setter functions
     int SetNumStreams(int nStreams) { this->nStreams = nStreams; }
@@ -67,15 +69,18 @@ public:
 
     // Getter functions
     cudaStream_t *GetStreamsPtr() { return this->streams; }
+    float *GetVolumeFromDevice();
+    float *GetCASVolumeFromDevice();
+    float *GetPlaneDensityFromDevice();
     int GetGPUDevice() { return this->GPU_Device; }
     int GetNumStreams() { return this->nStreams; }
     int GetGridSize() { return this->gridSize; }
     int GetBlockSize() { return this->blockSize; }
-    float *GetCASVolumePtr_Device() { return this->d_CASVolume->ptr; }
-    float *GetCASImgsPtr_Device() { return this->d_CASImgs->ptr; }
-    float *GetImgsPtr_Device() { return this->d_Imgs->ptr; }
-    float *GetCoordAxesPtr_Device() { return this->d_CoordAxes->ptr; }
-    float *GetKBTablePtr_Device() { return this->d_KB_Table->ptr; }
+    float *GetCASVolumePtr_Device() { return this->d_CASVolume->GetPointer(); }
+    float *GetCASImgsPtr_Device() { return this->d_CASImgs->GetPointer(); }
+    float *GetImgsPtr_Device() { return this->d_Imgs->GetPointer(); }
+    float *GetCoordAxesPtr_Device() { return this->d_CoordAxes->GetPointer(); }
+    float *GetKBTablePtr_Device() { return this->d_KB_Table->GetPointer(); }
 
 private:
     // Initilize pointers for allocating memory on the GPU
@@ -85,6 +90,8 @@ private:
     MemoryStructGPU<float> *d_Imgs;     // Output images
     MemoryStructGPU<float> *d_KB_Table; // Kaiser bessel lookup table
     MemoryStructGPU<float> *d_CoordAxes;
+    MemoryStructGPU<float> *d_PlaneDensity;
+    MemoryStructGPU<float> *d_Volume;
 
     // Kernel launching parameters
     int gridSize;
@@ -98,16 +105,20 @@ private:
     // Forward projection object
     gpuForwardProject *ForwardProject_obj;
 
+    // Back projection object
+    gpuBackProject *BackProject_obj;
+
     // Array allocation flag
     bool GPUArraysAllocatedFlag;
 
-    // Flag to run / not run the volume to CAS volume 
+    // Flag to run / not run the volume to CAS volume
     bool VolumeToCASVolumeFlag;
 
     // Initilization functions
     void InitilizeGPUArrays();
     void InitilizeCUDAStreams();
     void InitilizeForwardProjection(int AxesOffset, int nAxesToProcess);
+    void InitilizeBackProjection(int AxesOffset, int nAxesToProcess);
 
     // Estimate the maximum number of coordinate axes to allocate on the GPUs
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);

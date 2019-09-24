@@ -41,7 +41,8 @@ public:
 		this->GPU_Devices = GPU_Devices;
 
 		// Set the flag to false
-		this->ForwardProjectInitializedFlag = false;
+		this->ProjectInitializedFlag = false;
+
 	}
 
 	// Deconstructor
@@ -56,6 +57,14 @@ public:
 	// Run the forward projection kernel on each gpuGridder object
 	void ForwardProject();
 
+	// Run the back projection kernel on each gpuGridder object
+	void BackProject();
+
+	// Get the volumes from each GPU, sum them together, and copy the result back to the host memory
+	void SumPlaneDensity();
+	void SumVolumes();
+	void SumCASVolumes();
+	
 private:
 
 	// Plan which GPU will process which coordinate axes
@@ -88,7 +97,7 @@ private:
 
 	
     // Flag for remembering if this is the first time running the forward projection
-    bool ForwardProjectInitializedFlag;
+    bool ProjectInitializedFlag;
 };
 
 #endif
