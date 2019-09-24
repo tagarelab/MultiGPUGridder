@@ -54,7 +54,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1
+for i = 1:5
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
@@ -85,11 +85,12 @@ end
 
 % Run the back projection
 
+for i = 1:5
 % gridder.resetVolume()
 % gridder.Images(1:32,1:32,:) = 0;
 gridder.Volume(:,:,:) = 0;
 gridder.CASVolume(:,:,:) = 0;
-% gridder.CASImages(1:32,1:32,:) = 0;
+gridder.CASImages(1:128,1:120,:) = 0;
 tic
 gridder.backProject()
 toc
@@ -97,6 +98,7 @@ toc
 disp("Plotting...")
 % easyMontage(gridder.CASImages(:,:,:), 1)
 easyMontage(gridder.Volume, 2)
+end
 
 return
 
