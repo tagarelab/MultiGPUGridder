@@ -16,6 +16,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         kerHWidth = 2;        
         extraPadding = 3;    
         KBTable;
+        PlaneDensity;
         coordAxes;      
         CASVolume;
         CASImages;
@@ -35,12 +36,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.NumAxes = int32(varargin{2});
             this.interpFactor = single(varargin{3});
                         
-            varargin{1} = int32(varargin{1});
-            varargin{2} = int32(varargin{2});
-            varargin{3} = single(varargin{3});
+            gridder_Varargin = [];
+            gridder_Varargin{1} = int32(varargin{1});
+            gridder_Varargin{2} = int32(varargin{2});
+            gridder_Varargin{3} = single(varargin{3});
+            gridder_Varargin{4} = int32(length(this.GPUs));
+            gridder_Varargin{5} = int32(this.GPUs);
             
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(varargin{1:3});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:5});           
                        
             % Initilize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
@@ -60,6 +64,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
             this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
 %             this.CASImages = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));         
+
+    
+            % Create the PlaneDensity array
+            this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+           
 
         end        
         %% Deconstructor - Delete the C++ class instance 
@@ -81,7 +90,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
             [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
-            
+            [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
+               
             % Set the optional arrays
             if ~isempty(this.CASImages)
                 [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));
@@ -138,6 +148,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Convert the CASVolume to Volume
             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+            
+            % Normalize by the plane density
+            this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
             this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
 
         end   

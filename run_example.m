@@ -80,7 +80,7 @@ for i = 1
 %     easyMontage(gridder.Images(:,:,1:10), 1)
 %     pause(0.1)
 end
-return
+% return
 
 
 % Run the back projection
@@ -88,8 +88,8 @@ return
 % gridder.resetVolume()
 % gridder.Images(1:32,1:32,:) = 0;
 gridder.Volume(:,:,:) = 0;
-% gridder.CASVolume(:,:,:) = 0;
-% gridder.CASImages(:,:,:) = 0;
+gridder.CASVolume(:,:,:) = 0;
+% gridder.CASImages(1:32,1:32,:) = 0;
 tic
 gridder.backProject()
 toc

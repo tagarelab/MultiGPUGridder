@@ -255,12 +255,17 @@ void gpuBackProject::Execute()
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
-    int gridSize = 32; // 32
-    int blockSize = ceil(((double)this->d_Imgs->GetSize(0) * (double)this->interpFactor) / (double)gridSize);
+    // int gridSize = 32; // 32
+    // int blockSize = ceil(((double)this->d_Imgs->GetSize(0) * (double)this->interpFactor) / (double)gridSize);
+
 
 	// Define CUDA kernel dimensions
-	dim3 dimGrid(this->gridSize, this->gridSize, 1);
-	dim3 dimBlock(this->blockSize, this->blockSize, 1);
+	int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
+	int blockSize = 4;
+
+	// Define CUDA kernel dimensions
+	dim3 dimGrid(gridSize, gridSize, gridSize);
+	dim3 dimBlock(blockSize, blockSize, blockSize);
 
 	for (int i = 0; i < Offsets_obj.num_offsets; i++)
 	{

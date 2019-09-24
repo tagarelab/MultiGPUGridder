@@ -165,6 +165,12 @@ void MultiGPUGridder::BackProject()
 
     // Synchronize all of the GPUs
     GPU_Sync();
+
+    // Combine the CAS volume arrays from each GPU and copy back to the host
+    SumCASVolumes();
+
+    // Combine the plane density arrays from each GPU and copy back to the host
+    SumPlaneDensity();
 }
 
 void MultiGPUGridder::GPU_Sync()
@@ -199,13 +205,18 @@ void MultiGPUGridder::SumCASVolumes()
         float *tempVolume = gpuGridder_vec[i]->GetCASVolumeFromDevice();
 
         std::cout << "Adding volumes" << '\n';
+        std::cout << "this->h_CASVolume->length(): " << this->h_CASVolume->length() << '\n';
+
 
         // Add the volumes together
         for (int i = 0; i < this->h_CASVolume->length(); i++)
         {
             SummedVolume[i] = SummedVolume[i] + tempVolume[i];
+
         }
     }
+
+    std::cout << "this->h_CASVolume: " << this->h_CASVolume << '\n';
 
     // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)
     if (this->h_CASVolume != NULL)

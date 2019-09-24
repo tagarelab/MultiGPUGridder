@@ -293,12 +293,12 @@ void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
     this->BackProject_obj->SetPinnedImages(this->h_Imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
-    if (this->h_CASImgs != nullptr)
-    {
+    // if (this->h_CASImgs != nullptr)
+    // {
         Log("SetPinnedCASImages");
 
         this->BackProject_obj->SetPinnedCASImages(this->h_CASImgs);
-    }
+    // }
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
@@ -424,7 +424,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // }
 
     // Copy the CAS volume to the corresponding GPU array
-    // this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+    this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
     // this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
 
     // Check the error flags to see if we had any issues during the initilization
