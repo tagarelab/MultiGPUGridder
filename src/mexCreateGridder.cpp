@@ -21,7 +21,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int *GPU_Device = (int *)mxGetData(prhs[4]);
 
     // Return a handle to a new C++ instance
-    Log("Creating gpuGridder class");
     plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder(*VolumeSize, *numCoordAxes, *interpFactor, Num_GPUs, GPU_Device));
 
 }

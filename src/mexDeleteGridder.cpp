@@ -7,8 +7,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
     // Destroy the C++ object
-    Log("Destroying the MultiGPUGridder class");
-
     // Return a handle to a new C++ instance
     destroyObject<MultiGPUGridder>(prhs[0]);
     

@@ -147,10 +147,6 @@ gpuBackProject::Offsets gpuBackProject::PlanOffsetValues()
 	// batch since the same GPU memory is used for the next batch.
 	int numAxesGPU_Batch = 0;
 
-	Log2("this->MaxAxesAllocated: ", this->MaxAxesAllocated);
-	Log2("this->nAxes: ", this->nAxes);
-	Log2("this->nStreams: ", this->nStreams);
-
 	// Estimate how many coordinate axes to assign to each stream
 	int EstimatedNumAxesPerStream;
 	if (this->nAxes <= this->MaxAxesAllocated)
@@ -274,8 +270,8 @@ void gpuBackProject::Execute()
 			continue;
 		}
 
-		std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
-				  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+		// std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
+		// 		  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
 		// Copy the section of gpuCoordAxes which this stream will process on the current GPU
 		cudaMemcpyAsync(
@@ -315,14 +311,6 @@ void gpuBackProject::Execute()
 			// 	Offsets_obj.numAxesPerStream[i]);
 		}
 
-		std::cout << '\n';
-		std::cout << '\n';
-		std::cout << '\n';
-		std::cout << "Offsets_obj.numAxesPerStream[i]: " << Offsets_obj.numAxesPerStream[i] << '\n';
-		std::cout << '\n';
-		std::cout << '\n';
-		std::cout << '\n';
-
 		// Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
 		// if (CASImgs_CPU_Pinned != NULL)
 		// {
@@ -335,8 +323,6 @@ void gpuBackProject::Execute()
 		// }
 
 		// cudaDeviceSynchronize();
-
-		std::cout << "this->d_PlaneDensity->GetPointer(): " << this->d_PlaneDensity->GetPointer() << '\n';
 
 		// Run the back projection kernel
 		gpuBackProjectKernel<<<dimGrid, dimBlock, 0, streams[Offsets_obj.stream_ID[i]]>>>(

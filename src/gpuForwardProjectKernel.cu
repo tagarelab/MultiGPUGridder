@@ -124,10 +124,6 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
     // batch since the same GPU memory is used for the next batch.
     int numAxesGPU_Batch = 0;
 
-    Log2("this->MaxAxesAllocated: ", this->MaxAxesAllocated);
-    Log2("this->nAxes: ", this->nAxes);
-    Log2("this->nStreams: ", this->nStreams);
-
     // Estimate how many coordinate axes to assign to each stream
     int EstimatedNumAxesPerStream;
     if (this->nAxes <= this->MaxAxesAllocated)
@@ -207,9 +203,6 @@ gpuForwardProject::Offsets gpuForwardProject::PlanOffsetValues()
             // Remember which stream this is
             Offsets_obj.stream_ID.push_back(i);
 
-            std::cout << "Added " << Offsets_obj.numAxesPerStream.back() << " axes" << '\n';
-            std::cout << "Planned " << processed_nAxes << " axes out of " << this->nAxes << '\n';
-
             // Have all the axes been processed?
             if (processed_nAxes == this->nAxes)
             {
@@ -254,8 +247,8 @@ void gpuForwardProject::Execute()
             continue;
         }
 
-        std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
-                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+        // std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
+        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
@@ -276,14 +269,6 @@ void gpuForwardProject::Execute()
             this->d_KB_Table->GetPointer(),
             this->d_KB_Table->GetSize(0),
             this->kerHWidth);
-
-        std::cout << "Offsets_obj.CASImgs_CPU_Offset[i]: " << Offsets_obj.CASImgs_CPU_Offset[i] << '\n';
-        std::cout << "Offsets_obj.gpuCASImgs_Offset[i]: " << Offsets_obj.gpuCASImgs_Offset[i] << '\n';
-        std::cout << "Offsets_obj.gpuCASImgs_streamBytes[i]: " << Offsets_obj.gpuCASImgs_streamBytes[i] << '\n';
-        std::cout << "CASImgs_CPU_Pinned->GetPointer(): " << CASImgs_CPU_Pinned->GetPointer() << '\n';
-        std::cout << "CASImgs_CPU_Pinned->bytes(): " << CASImgs_CPU_Pinned->bytes() << '\n';
-        std::cout << "this->d_CASImgs->GetPointer(): " << this->d_CASImgs->GetPointer() << '\n';
-
 
         // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
         // if (this->CASImgs_CPU_Pinned != NULL)

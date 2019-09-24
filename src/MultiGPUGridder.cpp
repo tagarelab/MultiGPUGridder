@@ -189,8 +189,6 @@ void MultiGPUGridder::SumCASVolumes()
     // Get the CAS volume off each GPU and sum the arrays together
     // This function is used to get the result after the back projection
 
-    std::cout << "SumCASVolumes(): " << '\n';
-
     // Temporary volume array
     float *SummedVolume = new float[this->h_CASVolume->length()];
 
@@ -204,10 +202,6 @@ void MultiGPUGridder::SumCASVolumes()
         // Get the volume from the current GPU
         float *tempVolume = gpuGridder_vec[i]->GetCASVolumeFromDevice();
 
-        std::cout << "Adding volumes" << '\n';
-        std::cout << "this->h_CASVolume->length(): " << this->h_CASVolume->length() << '\n';
-
-
         // Add the volumes together
         for (int i = 0; i < this->h_CASVolume->length(); i++)
         {
@@ -215,8 +209,6 @@ void MultiGPUGridder::SumCASVolumes()
 
         }
     }
-
-    std::cout << "this->h_CASVolume: " << this->h_CASVolume << '\n';
 
     // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)
     if (this->h_CASVolume != NULL)
@@ -232,8 +224,6 @@ void MultiGPUGridder::SumVolumes()
 {
     // Get the volume off each GPU and sum the arrays together
 
-    std::cout << "SumVolumes(): " << '\n';
-
     // Temporary volume array
     float *SummedVolume = new float[this->h_Volume->length()];
 
@@ -246,8 +236,6 @@ void MultiGPUGridder::SumVolumes()
     {
         // Get the volume from the current GPU
         float *tempVolume = gpuGridder_vec[i]->GetVolumeFromDevice();
-
-        std::cout << "Adding volumes" << '\n';
 
         // Add the volumes together
         for (int i = 0; i < this->h_Volume->length(); i++)
@@ -271,8 +259,6 @@ void MultiGPUGridder::SumPlaneDensity()
     // Get the plane density off each GPU and sum the arrays together
     // This function is used to get the result after the back projection
 
-    std::cout << "GetSummedPlaneDensity(): " << '\n';
-
     // Temporary volume array
     float *SummedVolume = new float[this->h_PlaneDensity->length()];
 
@@ -285,8 +271,6 @@ void MultiGPUGridder::SumPlaneDensity()
     {
         // Get the volume from the current GPU
         float *tempVolume = gpuGridder_vec[i]->GetPlaneDensityFromDevice();
-
-        std::cout << "Adding volumes" << '\n';
 
         // Add the volumes together
         for (int i = 0; i < this->h_PlaneDensity->length(); i++)

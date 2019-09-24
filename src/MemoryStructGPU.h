@@ -145,14 +145,10 @@ struct MemoryStructGPU : public MemoryStruct<T>
         else
         {
             cudaSetDevice(this->GPU_Device);
-            // this->ptr = NULL; // Reset the pointer back to NULL
-            // std::cout << "this->ptr: " << this->ptr << '\n';
 
             // There is enough memory left on the current GPU
             // cudaDeviceSynchronize(); // test
             cudaError_t status = cudaMalloc((void **)&this->ptr, this->bytes());
-
-            // std::cout << "this->ptr: " << this->ptr << '\n';
 
             if (status != 0)
             {
@@ -175,11 +171,8 @@ struct MemoryStructGPU : public MemoryStruct<T>
     {
         // Set the current GPU
         // cudaSetDevice(this->GPU_Device);
-        // std::cout << "this->ptr: " << this->ptr << '\n';
 
         cudaError_t status = cudaMalloc((void **)&this->ptr, Bytes);
-
-        // std::cout << "this->ptr: " << this->ptr << '\n';
 
         if (status != 0)
         {

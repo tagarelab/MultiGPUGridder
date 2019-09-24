@@ -33,7 +33,6 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     ArraySize[0] = 1;
 
     this->h_Imgs = new MemoryStruct<float>(1, ArraySize);
-    std::cout << "this->h_Imgs->IsInitialized(): " << this->h_Imgs->IsInitialized() << '\n';
     this->h_Volume = new MemoryStruct<float>(1, ArraySize);
     this->h_CoordAxes = new MemoryStruct<float>(1, ArraySize);
     this->h_KB_Table = new MemoryStruct<float>(1, ArraySize);
@@ -54,7 +53,6 @@ AbstractGridder::~AbstractGridder()
 void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySize)
 {
     // Set the keiser bessel vector
-    std::cout << "this->h_KB_Table->IsInitialized(): " << this->h_KB_Table->IsInitialized() << '\n';
     if (this->h_KB_Table->IsInitialized() == false)
     {
         this->h_KB_Table = new MemoryStruct<float>(1, ArraySize);
@@ -71,7 +69,6 @@ void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySiz
 void AbstractGridder::SetVolume(float *Volume, int *ArraySize)
 {
     // First save the given pointer
-    std::cout << "this->h_Volume->IsInitialized(): " << this->h_Volume->IsInitialized() << '\n';
     if (this->h_Volume->IsInitialized() == false)
     {
         this->h_Volume = new MemoryStruct<float>(3, ArraySize);
@@ -167,16 +164,11 @@ void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
 
 void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
 {
-     std::cout << "this->h_CoordAxes->IsInitialized(): " << this->h_CoordAxes->IsInitialized() << '\n';
-
     // Set the coordinate axes pointer
     if (this->h_CoordAxes->IsInitialized() == false)
     {
-        std::cout << "new MemoryStruct<float>(1, ArraySize);" << '\n';
         this->h_CoordAxes = new MemoryStruct<float>(1, ArraySize);
-        std::cout << "->CopyPointer(coordAxes);" << '\n';
         this->h_CoordAxes->CopyPointer(coordAxes);
-        std::cout << "->PinArray();" << '\n';
         this->h_CoordAxes->PinArray();
     }
     else
@@ -184,8 +176,6 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
         // Just copy the pointer
         this->h_CoordAxes->CopyPointer(coordAxes);
     }
-
-    std::cout << "this->h_CoordAxes->GetPointer(): " << this->h_CoordAxes->GetPointer() << '\n';
 
     // Set the number of coordinate axes by dividing by the number of elements per axe (i.e. 9)
     this->SetNumAxes(ArraySize[0] / 9);

@@ -36,9 +36,6 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 60% of the maximum possible
     EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.8);
 
-    Log("EstimatedMaxAxes:");
-    Log(EstimatedMaxAxes);
-
     return EstimatedMaxAxes;
 }
 
@@ -200,7 +197,7 @@ void gpuGridder::Allocate()
     if (this->GPUArraysAllocatedFlag == false)
     {
         // Estimate the maximum number of coordinate axes to allocate per stream
-        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
+        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->h_Volume->GetSize(0), this->interpFactor);
 
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
@@ -269,10 +266,8 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
 // Initilize the forward back object
 void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
 {
-    Log("InitilizeBackProjection()");
-    cudaSetDevice(this->GPU_Device);
 
-    std::cout << "this->GPUArraysAllocatedFlag: " << this->GPUArraysAllocatedFlag << '\n';
+    cudaSetDevice(this->GPU_Device);
 
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
@@ -281,20 +276,16 @@ void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
         this->GPUArraysAllocatedFlag = true;
     }
 
-    Log("SetPinnedCoordinateAxes");
-
     // Pass the float pointers to the forward projection object
     this->BackProject_obj->SetPinnedCoordinateAxes(this->h_CoordAxes);
 
-    Log("SetPinnedImages");
 
     this->BackProject_obj->SetPinnedImages(this->h_Imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
     // if (this->h_CASImgs != nullptr)
     // {
-        Log("SetPinnedCASImages");
-
+   
         this->BackProject_obj->SetPinnedCASImages(this->h_CASImgs);
     // }
 
@@ -302,8 +293,6 @@ void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
     this->blockSize = ceil((this->h_Imgs->GetSize(0) * this->interpFactor) / this->gridSize);
-
-    std::cout << "this->blockSize: " << this->blockSize << '\n';
 
     // Pass the pointers and parameters to the forward projection object
     this->BackProject_obj->SetCASVolume(this->d_CASVolume);
@@ -347,8 +336,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
-
-    PrintMemoryAvailable();
 
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
@@ -400,8 +387,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
-
-    PrintMemoryAvailable();
 
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)

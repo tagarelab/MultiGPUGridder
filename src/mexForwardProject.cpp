@@ -20,6 +20,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Run the forward projection function
     MultiGPUGridderObj->ForwardProject();
 
-    Log("Done with forward projection");
-
 }

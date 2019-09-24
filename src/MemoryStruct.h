@@ -69,7 +69,6 @@ struct MemoryStruct
     // Allocate the memory for the T type array
     void AllocateArray()
     {
-        // std::cout << "this->Allocated: " << this->Allocated << '\n';
         this->ptr = new T[this->length()];
         this->Allocated = true;
         this->Initialized = true;
@@ -78,14 +77,11 @@ struct MemoryStruct
     // Function to return the number of bytes the array is
     long long int bytes()
     {
-        // std::cout << "bytes: " << '\n';
         // Return the number of bytes
         long long bytes = 1;
         for (int i = 0; i < this->dims; i++)
         {
-            // std::cout << "size[i]: " << size[i] << '\n';
             bytes = bytes * size[i];
-            // std::cout << "bytes: " << bytes << '\n';
         }
 
         bytes = bytes * sizeof(T);

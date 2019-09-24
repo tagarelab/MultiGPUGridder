@@ -22,6 +22,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Run the back projection function
     MultiGPUGridderObj->BackProject();
 
-    Log("Done with back projection");
 
 }

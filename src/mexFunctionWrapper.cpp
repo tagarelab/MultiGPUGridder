@@ -47,8 +47,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             mwSize numDims;
             numDims = mxGetNumberOfDimensions(prhs[1]);
 
-            std::cout << "numDims: " << numDims << '\n';
-
             if (numDims != 2)
             {
                 mexErrMsgTxt("SetVolumeSize: Input should be a single integer value.");

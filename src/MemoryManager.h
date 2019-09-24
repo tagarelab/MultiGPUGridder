@@ -32,7 +32,6 @@ public:
     {
         // Free all the GPU memory
         CUDA_Free("all");
-        std::cout << "MemoryManager() deconstructor" << '\n';
     }
 
     bool GPUArrayAllocated(std::string varNameString, int GPU_Device);
