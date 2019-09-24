@@ -119,7 +119,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
         end 
         %% ForwardProject - Run the forward projection function
-        function ForwardProject(this, varargin)
+        function ProjectionImages = forwardProject(this, varargin)
 
             if ~isempty(varargin) > 0
                 % A new set of coordinate axes was passed
@@ -131,6 +131,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
             this.Set(); % Run the set function in case one of the arrays has changed
             mexForwardProject(this.objectHandle);
+            
+            
+            % Run the inverse FFT on the CAS images
+            this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+            
+            ProjectionImages = this.Images;
             
         end         
         %% BackProject - Run the back projection function
@@ -165,5 +171,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = 0 * this.Volume; 
         end
+        %% reconstructVol - Get the reconstructed volume
+        function Volume = reconstructVol(this, varargin)
+            Volume = this.Volume;         
+        end   
     end
 end
