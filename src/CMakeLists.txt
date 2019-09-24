@@ -8,7 +8,8 @@ SET(CMAKE_CXX_STANDARD 11)
 project(cmake_and_cuda LANGUAGES CXX CUDA)
 
 #include(CTest)
-
+find_package(CUDA 10.0 REQUIRED)
+include_directories("${CUDA_INCLUDE_DIRS}")
 
 
 option(WITH_NVPROF    "Enable NVidia profiler bindings (requires CUDA)" FALSE)

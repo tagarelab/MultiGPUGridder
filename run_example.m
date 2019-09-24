@@ -25,7 +25,7 @@ reset(gpuDevice());
 
 VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 500;
+n1_axes = 50;
 n2_axes = 30;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -56,7 +56,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1
+for i = 1:5
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
