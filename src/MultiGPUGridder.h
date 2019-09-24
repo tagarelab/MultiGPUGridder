@@ -60,6 +60,11 @@ public:
 	// Run the back projection kernel on each gpuGridder object
 	void BackProject();
 
+	// Get the volumes from each GPU, sum them together, and copy the result back to the host memory
+	void SumPlaneDensity();
+	void SumVolumes();
+	void SumCASVolumes();
+	
 private:
 
 	// Plan which GPU will process which coordinate axes

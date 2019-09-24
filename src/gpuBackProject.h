@@ -62,6 +62,8 @@ private:
     // Block size for the CUDA kernel
     int blockSize;
 
+    int interpFactor;
+
     // Number of coordinate axes to process
     int nAxes;
 
@@ -99,6 +101,8 @@ public:
 
         // Default value for the optional CAS images array
         this->CASImgs_CPU_Pinned = NULL;
+
+        interpFactor = 2;
     }
 
     // Deconstructor

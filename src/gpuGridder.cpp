@@ -42,15 +42,39 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     return EstimatedMaxAxes;
 }
 
+float *gpuGridder::GetVolumeFromDevice()
+{
+    float *Volume = new float[this->d_Volume->length()];
+    this->d_Volume->CopyFromGPU(Volume, this->d_Volume->bytes());
+
+    return Volume;
+}
+
+float *gpuGridder::GetCASVolumeFromDevice()
+{
+    float *CASVolume = new float[this->d_CASVolume->length()];
+    this->d_CASVolume->CopyFromGPU(CASVolume, this->d_CASVolume->bytes());
+
+    return CASVolume;
+}
+
+float *gpuGridder::GetPlaneDensityFromDevice()
+{
+    float *PlaneDensity = new float[this->d_PlaneDensity->length()];
+    this->d_PlaneDensity->CopyFromGPU(PlaneDensity, this->d_PlaneDensity->bytes());
+
+    return PlaneDensity;
+}
+
 void gpuGridder::VolumeToCASVolume()
 {
     cudaSetDevice(this->GPU_Device);
 
     // Convert the volume to CAS volume
     gpuFFT::VolumeToCAS(
-        this->Volume->GetPointer(),
-        this->Volume->GetSize(0),
-        this->CASVolume->GetPointer(),
+        this->h_Volume->GetPointer(),
+        this->h_Volume->GetSize(0),
+        this->h_CASVolume->GetPointer(),
         this->interpFactor,
         this->extraPadding);
 }
@@ -58,7 +82,7 @@ void gpuGridder::VolumeToCASVolume()
 void gpuGridder::CopyCASVolumeToGPUAsyc()
 {
     // Copy the CAS volume to the GPU asynchronously
-    this->d_CASVolume->CopyToGPUAsyc(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+    this->d_CASVolume->CopyToGPUAsyc(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
 }
 
 void gpuGridder::SetGPU(int GPU_Device)
@@ -93,44 +117,51 @@ void gpuGridder::InitilizeGPUArrays()
         return;
     }
 
+    // Allocate the volume
+    this->d_Volume = new MemoryStructGPU<float>(this->h_Volume->GetDim(), this->h_Volume->GetSize(), this->GPU_Device);
+
     // Allocate the CAS volume
-    this->d_CASVolume = new MemoryStructGPU<float>(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
-    this->d_CASVolume->CopyToGPUAsyc(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+    this->d_CASVolume = new MemoryStructGPU<float>(this->h_CASVolume->GetDim(), this->h_CASVolume->GetSize(), this->GPU_Device);
+    this->d_CASVolume->AllocateGPUArray();
 
     // Allocate the plane density array (for the back projection)
-    this->d_PlaneDensity = new MemoryStructGPU<float>(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
+    this->d_PlaneDensity = new MemoryStructGPU<float>(this->h_CASVolume->GetDim(), this->h_CASVolume->GetSize(), this->GPU_Device);
+    this->d_PlaneDensity->AllocateGPUArray();
 
     // Allocate the CAS images
-    if (this->CASimgs != nullptr)
+    if (this->h_CASImgs != nullptr)
     {
         // The pinned CASImgs was previously created so use its deminsions (i.e. creating CASImgs is optional)
-        this->d_CASImgs = new MemoryStructGPU<float>(this->CASimgs->GetDim(), this->CASimgs->GetSize(), this->GPU_Device);
-        this->d_CASImgs->CopyToGPUAsyc(this->CASimgs->GetPointer(), this->CASimgs->bytes());
+        this->d_CASImgs = new MemoryStructGPU<float>(this->h_CASImgs->GetDim(), this->h_CASImgs->GetSize(), this->GPU_Device);
+        this->d_CASImgs->AllocateGPUArray();
+        // this->d_CASImgs->CopyToGPUAsyc(this->h_CASImgs->GetPointer(), this->h_CASImgs->bytes());
     }
     else
     {
         // First, create a dims array of the correct size of d_CASImgs
         int *size = new int[3];
-        size[0] = this->imgs->GetSize(0) * this->interpFactor;
-        size[1] = this->imgs->GetSize(1) * this->interpFactor;
+        size[0] = this->h_Imgs->GetSize(0) * this->interpFactor;
+        size[1] = this->h_Imgs->GetSize(1) * this->interpFactor;
         size[2] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
-        
-        this->d_CASImgs = new MemoryStructGPU<float>(3, size, this->GPU_Device);
 
+        this->d_CASImgs = new MemoryStructGPU<float>(3, size, this->GPU_Device);
+        this->d_CASImgs->AllocateGPUArray();
         delete[] size;
     }
 
     // Allocate the complex CAS images array
-    this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->imgs->GetDim(), this->d_CASImgs->GetSize(), this->GPU_Device);
+    this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->h_Imgs->GetDim(), this->d_CASImgs->GetSize(), this->GPU_Device);
+    this->d_CASImgsComplex->AllocateGPUArray();
 
     // Limit the number of axes to allocate to be MaxAxesToAllocate
     int *imgs_size = new int[3];
-    imgs_size[0] = this->imgs->GetSize(0);
-    imgs_size[1] = this->imgs->GetSize(1);
+    imgs_size[0] = this->h_Imgs->GetSize(0);
+    imgs_size[1] = this->h_Imgs->GetSize(1);
     imgs_size[2] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
 
     // Allocate the images
-    this->d_Imgs = new MemoryStructGPU<float>(this->imgs->GetDim(), imgs_size, this->GPU_Device);
+    this->d_Imgs = new MemoryStructGPU<float>(this->h_Imgs->GetDim(), imgs_size, this->GPU_Device);
+    this->d_Imgs->AllocateGPUArray();
     delete[] imgs_size;
 
     // Allocate the coordinate axes array
@@ -138,12 +169,14 @@ void gpuGridder::InitilizeGPUArrays()
     axes_size[0] = std::min(this->GetNumAxes(), this->MaxAxesToAllocate);
     axes_size[0] = axes_size[0] * 9; // 9 elements per coordinate axes
 
-    this->d_CoordAxes = new MemoryStructGPU<float>(this->coordAxes->GetDim(), this->coordAxes->GetSize(), this->GPU_Device);
+    this->d_CoordAxes = new MemoryStructGPU<float>(this->h_CoordAxes->GetDim(), this->h_CoordAxes->GetSize(), this->GPU_Device);
+    this->d_CoordAxes->AllocateGPUArray();
     delete[] axes_size;
 
     // Allocate the Kaiser bessel lookup table
-    this->d_KB_Table = new MemoryStructGPU<float>(this->ker_bessel_Vector->GetDim(), this->ker_bessel_Vector->GetSize(), this->GPU_Device);
-    this->d_KB_Table->CopyToGPUAsyc(this->ker_bessel_Vector->GetPointer(), this->ker_bessel_Vector->bytes());
+    this->d_KB_Table = new MemoryStructGPU<float>(this->h_KB_Table->GetDim(), this->h_KB_Table->GetSize(), this->GPU_Device);
+    this->d_KB_Table->AllocateGPUArray();
+    this->d_KB_Table->CopyToGPUAsyc(this->h_KB_Table->GetPointer(), this->h_KB_Table->bytes());
 }
 
 void gpuGridder::InitilizeCUDAStreams()
@@ -169,7 +202,7 @@ void gpuGridder::Allocate()
         // Estimate the maximum number of coordinate axes to allocate per stream
         // this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
 
-        this->MaxAxesToAllocate = 200;// TEST
+        this->MaxAxesToAllocate = 200; // TEST
 
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
@@ -179,6 +212,9 @@ void gpuGridder::Allocate()
 
         // Create a forward projection object
         this->ForwardProject_obj = new gpuForwardProject();
+
+        // Create a back projection object
+        this->BackProject_obj = new gpuBackProject();
 
         this->GPUArraysAllocatedFlag = true;
     }
@@ -198,19 +234,19 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
     }
 
     // Pass the float pointers to the forward projection object
-    this->ForwardProject_obj->SetPinnedCoordinateAxes(this->coordAxes);
-    this->ForwardProject_obj->SetPinnedImages(this->imgs);
+    this->ForwardProject_obj->SetPinnedCoordinateAxes(this->h_CoordAxes);
+    this->ForwardProject_obj->SetPinnedImages(this->h_Imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
     // if (this->CASimgs != nullptr)
     // {
-        this->ForwardProject_obj->SetPinnedCASImages(this->CASimgs);
+    this->ForwardProject_obj->SetPinnedCASImages(this->h_CASImgs);
     // }
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
-    this->blockSize = ceil((this->imgs->GetSize(0) * this->interpFactor) / this->gridSize);
+    this->blockSize = ceil((this->h_Imgs->GetSize(0) * this->interpFactor) / this->gridSize);
 
     // Pass the pointers and parameters to the forward projection object
     this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
@@ -235,8 +271,10 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
 // Initilize the forward back object
 void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
 {
-    // Log("InitilizeForwardProjection()");
+    Log("InitilizeBackProjection()");
     cudaSetDevice(this->GPU_Device);
+
+    std::cout << "this->GPUArraysAllocatedFlag: " << this->GPUArraysAllocatedFlag << '\n';
 
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
@@ -245,20 +283,29 @@ void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
         this->GPUArraysAllocatedFlag = true;
     }
 
+    Log("SetPinnedCoordinateAxes");
+
     // Pass the float pointers to the forward projection object
-    this->ForwardProject_obj->SetPinnedCoordinateAxes(this->coordAxes);
-    this->ForwardProject_obj->SetPinnedImages(this->imgs);
+    this->BackProject_obj->SetPinnedCoordinateAxes(this->h_CoordAxes);
+
+    Log("SetPinnedImages");
+
+    this->BackProject_obj->SetPinnedImages(this->h_Imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
-    if (this->CASimgs != nullptr)
+    if (this->h_CASImgs != nullptr)
     {
-        this->ForwardProject_obj->SetPinnedCASImages(this->CASimgs);
+        Log("SetPinnedCASImages");
+
+        this->BackProject_obj->SetPinnedCASImages(this->h_CASImgs);
     }
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
     this->gridSize = 32;
-    this->blockSize = ceil((this->imgs->GetSize(0) * this->interpFactor) / this->gridSize);
+    this->blockSize = ceil((this->h_Imgs->GetSize(0) * this->interpFactor) / this->gridSize);
+
+    std::cout << "this->blockSize: " << this->blockSize << '\n';
 
     // Pass the pointers and parameters to the forward projection object
     this->BackProject_obj->SetCASVolume(this->d_CASVolume);
@@ -324,15 +371,15 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     }
 
     // Copy the CAS volume to the corresponding GPU array
-    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+    this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
 
     // Check the error flags to see if we had any issues during the initilization
     if (this->ErrorFlag == 1 ||
-        this->d_CASVolume->ErrorFlag == 1 ||
-        this->d_CASImgs->ErrorFlag == 1 ||
-        this->d_Imgs->ErrorFlag == 1 ||
-        this->d_CoordAxes->ErrorFlag == 1 ||
-        this->d_KB_Table->ErrorFlag == 1)
+        this->d_CASVolume->GetErrorFlag() == 1 ||
+        this->d_CASImgs->GetErrorFlag() == 1 ||
+        this->d_Imgs->GetErrorFlag() == 1 ||
+        this->d_CoordAxes->GetErrorFlag() == 1 ||
+        this->d_KB_Table->GetErrorFlag() == 1)
     {
         std::cerr << "Error during intilization." << '\n';
         return; // Don't run the kernel and return
@@ -370,22 +417,23 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     InitilizeBackProjection(AxesOffset, nAxesToProcess);
 
     // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
-    if (this->VolumeToCASVolumeFlag == true)
-    {
-        // Run the volume to CAS volume function
-        VolumeToCASVolume();
+    // if (this->VolumeToCASVolumeFlag == true)
+    // {
+    //     // Run the volume to CAS volume function
+    //     VolumeToCASVolume();
+    // }
 
-        // Copy the CAS volume to the corresponding GPU array
-        this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
-    }
+    // Copy the CAS volume to the corresponding GPU array
+    // this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+    // this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
 
     // Check the error flags to see if we had any issues during the initilization
     if (this->ErrorFlag == 1 ||
-        this->d_CASVolume->ErrorFlag == 1 ||
-        this->d_CASImgs->ErrorFlag == 1 ||
-        this->d_Imgs->ErrorFlag == 1 ||
-        this->d_CoordAxes->ErrorFlag == 1 ||
-        this->d_KB_Table->ErrorFlag == 1)
+        this->d_CASVolume->GetErrorFlag() == 1 ||
+        this->d_CASImgs->GetErrorFlag() == 1 ||
+        this->d_Imgs->GetErrorFlag() == 1 ||
+        this->d_CoordAxes->GetErrorFlag() == 1 ||
+        this->d_KB_Table->GetErrorFlag() == 1)
     {
         std::cerr << "Error during intilization." << '\n';
         return; // Don't run the kernel and return

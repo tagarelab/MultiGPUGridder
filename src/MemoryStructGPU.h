@@ -3,17 +3,9 @@
 #include "MemoryStruct.h"
 
 // Extend the memory struct from the abstract gridder class to include GPU related information
-template<class T = float>
-struct MemoryStructGPU : public MemoryStruct< T >
+template <class T = float>
+struct MemoryStructGPU : public MemoryStruct<T>
 {
-    // Which GPU is the memory allocated on?
-    int GPU_Device;
-
-    // Error flag to rememeber if the allocation was succesful or not
-    int ErrorFlag;
-
-    // CUDA stream for asyc copying to / from the GPU
-    cudaStream_t stream;
 
     // Extend the constructor from MemoryStruct
     MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct<T>(dims, ArraySize)
@@ -27,17 +19,52 @@ struct MemoryStructGPU : public MemoryStruct< T >
         // Create the stream on the selected GPU
         cudaStreamCreate(&this->stream);
 
-        // Free the T type array allocated in MemoryStruct. TO DO: make this not necessary
-        std::free(this->ptr);
+        this->ptr = NULL; // Set the pointer to NULL
 
         // Allocate the array on the GPU
-        AllocateGPUArray();
+        // AllocateGPUArray();
+    }
+
+    // Extend the constructor from MemoryStruct: Array of 3 dimensions
+    MemoryStructGPU(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
+    {
+        // Which GPU to use for allocating the array
+        this->GPU_Device = GPU_Device;
+
+        // Set the GPU device to the device which contains the CUDA array
+        cudaSetDevice(this->GPU_Device);
+
+        // Create the stream on the selected GPU
+        cudaStreamCreate(&this->stream);
+
+        this->ptr = NULL; // Set the pointer to NULL
+
+        // Allocate the array on the GPU
+        // AllocateGPUArray();
+    }
+
+    // Extend the constructor from MemoryStruct: Array of 1 dimensions
+    MemoryStructGPU(int dims, int ArraySizeX, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX)
+    {
+        // Which GPU to use for allocating the array
+        this->GPU_Device = GPU_Device;
+
+        // Set the GPU device to the device which contains the CUDA array
+        cudaSetDevice(this->GPU_Device);
+
+        // Create the stream on the selected GPU
+        cudaStreamCreate(&this->stream);
+
+        this->ptr = NULL; // Set the pointer to NULL
     }
 
     // Deconstructor to free the GPU memory
     ~MemoryStructGPU()
     {
-        DeallocateGPUArray();
+        if (this->Allocated == true)
+        {
+            DeallocateGPUArray();
+        }
     }
 
     // Copy a T type array from the CPU to the allocated array on the GPU
@@ -61,7 +88,18 @@ struct MemoryStructGPU : public MemoryStruct< T >
         }
 
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
-        cudaMemcpyAsync(this->ptr, Array, Bytes, cudaMemcpyHostToDevice, this->stream);
+        cudaError_t status = cudaMemcpyAsync(this->ptr, Array, Bytes, cudaMemcpyHostToDevice, this->stream);
+
+        if (status != 0)
+        {
+            std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+            this->ErrorFlag = -1; // Set the error flag to -1 to remember that this failed
+
+            int *curr_device = new int[1];
+            cudaGetDevice(curr_device);
+
+            std::cerr << "Current device is " << curr_device[0] << " while GPU_Device is " << this->GPU_Device << '\n';
+        }
     }
 
     // Copy the array from the GPU to a T type array on the CPU
@@ -106,11 +144,62 @@ struct MemoryStructGPU : public MemoryStruct< T >
         }
         else
         {
+            cudaSetDevice(this->GPU_Device);
+            // this->ptr = NULL; // Reset the pointer back to NULL
+            // std::cout << "this->ptr: " << this->ptr << '\n';
+
             // There is enough memory left on the current GPU
-            cudaMalloc(&this->ptr, this->bytes());
+            // cudaDeviceSynchronize(); // test
+            cudaError_t status = cudaMalloc((void **)&this->ptr, this->bytes());
+
+            // std::cout << "this->ptr: " << this->ptr << '\n';
+
+            if (status != 0)
+            {
+                std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+                this->ErrorFlag = -1; // Set the error flag to -1 to remember that this failed
+
+                int *curr_device = new int[1];
+                cudaGetDevice(curr_device);
+
+                std::cerr << "Current device is " << curr_device[0] << " while GPU_Device is " << this->GPU_Device << '\n';
+            }
 
             this->ErrorFlag = 0; // Set the error flag to 0 to remember that this was sucessful
+            this->Allocated = true;
         }
+    }
+
+    // Allocate the memory to a given GPU device
+    void AllocateGPUArray(int Bytes)
+    {
+        // Set the current GPU
+        // cudaSetDevice(this->GPU_Device);
+        // std::cout << "this->ptr: " << this->ptr << '\n';
+
+        cudaError_t status = cudaMalloc((void **)&this->ptr, Bytes);
+
+        // std::cout << "this->ptr: " << this->ptr << '\n';
+
+        if (status != 0)
+        {
+            std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+            this->ErrorFlag = -1; // Set the error flag to -1 to remember that this failed
+
+            int *curr_device = new int[1];
+            cudaGetDevice(curr_device);
+
+            std::cerr << "Current device is " << curr_device[0] << " while GPU_Device is " << this->GPU_Device << '\n';
+        }
+
+        this->ErrorFlag = 0; // Set the error flag to 0 to remember that this was sucessful
+        this->Allocated = true;
+    }
+
+    // Reset the GPU array back to all zeros
+    void Reset()
+    {
+        cudaMemset(this->ptr, 0, this->bytes());
     }
 
     // Free the GPU memory
@@ -118,4 +207,11 @@ struct MemoryStructGPU : public MemoryStruct< T >
     {
         cudaFree(this->ptr);
     }
+
+protected:
+    // Which GPU is the memory allocated on?
+    int GPU_Device;
+
+    // CUDA stream for asyc copying to / from the GPU
+    cudaStream_t stream;
 };

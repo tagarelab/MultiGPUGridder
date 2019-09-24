@@ -54,7 +54,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1:5
+for i = 1
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
@@ -78,10 +78,27 @@ for i = 1:5
     % Check for missing sections
     % Should check the CUDA return flags as well
 %     easyMontage(gridder.Images(:,:,1:10), 1)
-    pause(0.1)
+%     pause(0.1)
 end
+return
 
-return;
+
+% Run the back projection
+
+% gridder.resetVolume()
+% gridder.Images(1:32,1:32,:) = 0;
+gridder.Volume(:,:,:) = 0;
+% gridder.CASVolume(:,:,:) = 0;
+% gridder.CASImages(:,:,:) = 0;
+tic
+gridder.backProject()
+toc
+
+disp("Plotting...")
+% easyMontage(gridder.CASImages(:,:,:), 1)
+easyMontage(gridder.Volume, 2)
+
+return
 
 %%
 clear gridder

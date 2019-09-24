@@ -135,6 +135,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
             this.Set(); % Run the set function in case one of the arrays has changed
             mexBackProject(this.objectHandle);
+            
+            % Convert the CASVolume to Volume
+            [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+            this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+
         end   
         %% setVolume - Set the volume
         function setVolume(this, varargin)
