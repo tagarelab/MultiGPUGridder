@@ -39,6 +39,10 @@ add_library(gridderLib SHARED
 
 		gpuForwardProject.h
 		gpuForwardProjectKernel.cu
+
+		gpuBackProject.h
+		gpuBackProject.cu
+
 		gpuFFT.h
 		gpuFFT.cu
 		
@@ -63,7 +67,7 @@ if(WITH_MATLAB)
 	matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp LINK_TO gridderLib)
 	matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp LINK_TO gridderLib)	
 	matlab_add_mex(NAME mexForwardProject SRC mexForwardProject.cpp LINK_TO gridderLib)	
-	
+	matlab_add_mex(NAME mexBackProject SRC mexBackProject.cpp LINK_TO gridderLib)	
 
 	message(STATUS "Matlab library located")
 endif()

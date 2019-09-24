@@ -41,7 +41,8 @@ public:
 		this->GPU_Devices = GPU_Devices;
 
 		// Set the flag to false
-		this->ForwardProjectInitializedFlag = false;
+		this->ProjectInitializedFlag = false;
+
 	}
 
 	// Deconstructor
@@ -55,6 +56,9 @@ public:
 
 	// Run the forward projection kernel on each gpuGridder object
 	void ForwardProject();
+
+	// Run the back projection kernel on each gpuGridder object
+	void BackProject();
 
 private:
 
@@ -88,7 +92,7 @@ private:
 
 	
     // Flag for remembering if this is the first time running the forward projection
-    bool ForwardProjectInitializedFlag;
+    bool ProjectInitializedFlag;
 };
 
 #endif

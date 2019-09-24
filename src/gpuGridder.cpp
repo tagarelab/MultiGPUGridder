@@ -97,6 +97,9 @@ void gpuGridder::InitilizeGPUArrays()
     this->d_CASVolume = new MemoryStructGPU<float>(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
     this->d_CASVolume->CopyToGPUAsyc(this->CASVolume->GetPointer(), this->CASVolume->bytes());
 
+    // Allocate the plane density array (for the back projection)
+    this->d_PlaneDensity = new MemoryStructGPU<float>(this->CASVolume->GetDim(), this->CASVolume->GetSize(), this->GPU_Device);
+
     // Allocate the CAS images
     if (this->CASimgs != nullptr)
     {
@@ -164,7 +167,9 @@ void gpuGridder::Allocate()
     if (this->GPUArraysAllocatedFlag == false)
     {
         // Estimate the maximum number of coordinate axes to allocate per stream
-        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
+        // this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
+
+        this->MaxAxesToAllocate = 200;// TEST
 
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
@@ -197,10 +202,10 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
     this->ForwardProject_obj->SetPinnedImages(this->imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
-    if (this->CASimgs != nullptr)
-    {
+    // if (this->CASimgs != nullptr)
+    // {
         this->ForwardProject_obj->SetPinnedCASImages(this->CASimgs);
-    }
+    // }
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
@@ -225,6 +230,55 @@ void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
     this->ForwardProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
     this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset); // Offset in number of coordinate axes from the beginning of the CPU array
     this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);     // Number of axes to process
+}
+
+// Initilize the forward back object
+void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
+{
+    // Log("InitilizeForwardProjection()");
+    cudaSetDevice(this->GPU_Device);
+
+    // Have the GPU arrays been allocated?
+    if (this->GPUArraysAllocatedFlag == false)
+    {
+        Allocate();
+        this->GPUArraysAllocatedFlag = true;
+    }
+
+    // Pass the float pointers to the forward projection object
+    this->ForwardProject_obj->SetPinnedCoordinateAxes(this->coordAxes);
+    this->ForwardProject_obj->SetPinnedImages(this->imgs);
+
+    // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
+    if (this->CASimgs != nullptr)
+    {
+        this->ForwardProject_obj->SetPinnedCASImages(this->CASimgs);
+    }
+
+    // Calculate the block size for running the CUDA kernels
+    // NOTE: gridSize times blockSize needs to equal CASimgSize
+    this->gridSize = 32;
+    this->blockSize = ceil((this->imgs->GetSize(0) * this->interpFactor) / this->gridSize);
+
+    // Pass the pointers and parameters to the forward projection object
+    this->BackProject_obj->SetCASVolume(this->d_CASVolume);
+    this->BackProject_obj->SetPlaneDensity(this->d_PlaneDensity);
+    this->BackProject_obj->SetImages(this->d_Imgs);
+    this->BackProject_obj->SetCoordinateAxes(this->d_CoordAxes);
+    this->BackProject_obj->SetKBTable(this->d_KB_Table);
+    this->BackProject_obj->SetCUDAStreams(this->streams);
+    this->BackProject_obj->SetGridSize(this->gridSize);
+    this->BackProject_obj->SetBlockSize(this->blockSize);
+    this->BackProject_obj->SetNumberOfAxes(this->GetNumAxes());
+    this->BackProject_obj->SetMaxAxesAllocated(this->MaxAxesToAllocate);
+    this->BackProject_obj->SetNumberOfStreams(this->nStreams);
+    this->BackProject_obj->SetGPUDevice(this->GPU_Device);
+    this->BackProject_obj->SetMaskRadius(this->maskRadius);
+    this->BackProject_obj->SetKerHWidth(this->kerHWidth);
+    this->BackProject_obj->SetCASImages(this->d_CASImgs);
+    this->BackProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
+    this->BackProject_obj->SetCoordinateAxesOffset(AxesOffset); // Offset in number of coordinate axes from the beginning of the CPU array
+    this->BackProject_obj->SetNumberOfAxes(nAxesToProcess);     // Number of axes to process
 }
 
 void gpuGridder::ForwardProject()
@@ -263,6 +317,59 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     InitilizeForwardProjection(AxesOffset, nAxesToProcess);
 
     // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
+    if (this->VolumeToCASVolumeFlag == false)
+    {
+        // Run the volume to CAS volume function
+        // VolumeToCASVolume();
+    }
+
+    // Copy the CAS volume to the corresponding GPU array
+    this->d_CASVolume->CopyToGPU(this->CASVolume->GetPointer(), this->CASVolume->bytes());
+
+    // Check the error flags to see if we had any issues during the initilization
+    if (this->ErrorFlag == 1 ||
+        this->d_CASVolume->ErrorFlag == 1 ||
+        this->d_CASImgs->ErrorFlag == 1 ||
+        this->d_Imgs->ErrorFlag == 1 ||
+        this->d_CoordAxes->ErrorFlag == 1 ||
+        this->d_KB_Table->ErrorFlag == 1)
+    {
+        std::cerr << "Error during intilization." << '\n';
+        return; // Don't run the kernel and return
+    }
+
+    // Run the forward projection CUDA kernel
+    cudaSetDevice(this->GPU_Device);
+    this->ForwardProject_obj->Execute();
+}
+
+void gpuGridder::BackProject()
+{
+    // Run the back projection on all the coordinate axes with no offset
+    BackProject(0, this->GetNumAxes());
+
+    return;
+}
+
+void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
+{
+    // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
+    cudaSetDevice(this->GPU_Device);
+
+    PrintMemoryAvailable();
+
+    // Have the GPU arrays been allocated?
+    if (this->GPUArraysAllocatedFlag == false)
+    {
+        Allocate();
+
+        this->GPUArraysAllocatedFlag = true;
+    }
+
+    // Initilize the back projection object
+    InitilizeBackProjection(AxesOffset, nAxesToProcess);
+
+    // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
     if (this->VolumeToCASVolumeFlag == true)
     {
         // Run the volume to CAS volume function
@@ -284,8 +391,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         return; // Don't run the kernel and return
     }
 
-    // Run the forward projection CUDA kernel
-    this->ForwardProject_obj->Execute();
+    // Run the back projection CUDA kernel
+    this->BackProject_obj->Execute();
 }
 
 void gpuGridder::FreeMemory()

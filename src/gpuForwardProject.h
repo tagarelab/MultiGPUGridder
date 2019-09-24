@@ -73,6 +73,8 @@ private:
     // Which GPU device to use
     int GPU_Device;
 
+    int interpFactor;
+
     // Offset for processing a subset of all the coordinate axes
     // This is in number of axes from the beginning of the pinned CPU coordinate axes array
     int coordAxesOffset;
@@ -98,6 +100,8 @@ public:
 
         // Default value for the optional CAS images array
         this->CASImgs_CPU_Pinned = NULL;
+
+        this->interpFactor = 2;
     }
 
     // Deconstructor

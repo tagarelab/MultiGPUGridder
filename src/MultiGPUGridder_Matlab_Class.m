@@ -9,11 +9,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
         NumAxes;
         GPUs = int32([0, 1, 2, 3]);
         MaxAxesToAllocate;
-        nStreams = 32;
+        nStreams = 2;
         
         % Single type variables        
         interpFactor;
-        kernelHWidth = 2;        
+        kerHWidth = 2;        
         extraPadding = 3;    
         KBTable;
         coordAxes;      
@@ -29,8 +29,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Inputs are:            
             % (1) VolumeSize
             % (2) nCoordAxes
-            % (3) interpFactor
-            % (4) Optional: CASImages flag (true / false)            
+            % (3) interpFactor        
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
@@ -56,12 +55,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Create the CASVolume array
             this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
-            
-            % Set the optional CASImages array if the flag was passed
-            if length(varargin) >= 4                
-                % Create the CASImages array
-                 this.CASImages = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));         
-            end
+                     
+            % Create the CASImages array
+            CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
+            this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
+%             this.CASImages = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));         
 
         end        
         %% Deconstructor - Delete the C++ class instance 
@@ -111,9 +109,33 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end 
         %% ForwardProject - Run the forward projection function
         function ForwardProject(this, varargin)
+
+            if ~isempty(varargin) > 0
+                % A new set of coordinate axes was passed
+                this.coordAxes = varargin{1};            
+            end
+
+            [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+            this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
+
             this.Set(); % Run the set function in case one of the arrays has changed
             mexForwardProject(this.objectHandle);
-        end      
+            
+        end         
+        %% BackProject - Run the back projection function
+        function backProject(this, varargin)
+
+            if ~isempty(varargin) > 0
+                % A new set of images to back project was passed
+                this.Images = varargin{1};
+
+                % A new set of coordinate axes to use with the back projection was passed
+                this.coordAxes = varargin{2};
+            end
+
+            this.Set(); % Run the set function in case one of the arrays has changed
+            mexBackProject(this.objectHandle);
+        end   
         %% setVolume - Set the volume
         function setVolume(this, varargin)
             % The new volume will be copied to the GPUs during this.Set()

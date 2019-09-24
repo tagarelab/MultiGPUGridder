@@ -87,14 +87,60 @@ void MultiGPUGridder::ForwardProject()
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
 
     // If this is the first time running allocate the needed GPU memory
-    if (this->ForwardProjectInitializedFlag == false)
+    if (this->ProjectInitializedFlag == false)
     {
         for (int i = 0; i < Num_GPUs; i++)
         {
             gpuGridder_vec[i]->SetNumAxes(AxesPlan_obj.NumAxesPerGPU[i]);
             gpuGridder_vec[i]->Allocate();
         }
-        this->ForwardProjectInitializedFlag = true;
+        this->ProjectInitializedFlag = true;
+    }
+
+    // Convert the volume to CAS volume using the first GPU
+    // The CASVolume is shared amoung all the objects since CASVolume is a static member in the AbstractGridder class
+    // cudaSetDevice(this->GPU_Devices[0]);
+    // gpuGridder_vec[0]->VolumeToCASVolume();
+    // cudaDeviceSynchronize(); // Wait for the first GPU to convert the volume to CAS volume
+
+    // Copy the CAS Volume to each GPU at the same time
+    // for (int i = 0; i < Num_GPUs; i++)
+    // {
+    //     gpuGridder_vec[i]->CopyCASVolumeToGPUAsyc();
+    // }
+
+    // Synchronize all of the GPUs
+    GPU_Sync(); // needed?
+
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+    }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
+}
+
+void MultiGPUGridder::BackProject()
+{
+    // Run the back projection kernel on each gpuGridder object
+    // Each GPU will process a subset of the coordinate axes
+    // Since the axes array is static all objects share the same variable
+    // So we just need to pass an offset (in number of coordinate axes) from the beginng
+    // To select the subset of axes to process
+
+    // Plan which GPU will process which coordinate axes
+    CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
+
+    // If this is the first time running allocate the needed GPU memory
+    if (this->ProjectInitializedFlag == false)
+    {
+        for (int i = 0; i < Num_GPUs; i++)
+        {
+            gpuGridder_vec[i]->SetNumAxes(AxesPlan_obj.NumAxesPerGPU[i]);
+            gpuGridder_vec[i]->Allocate();
+        }
+        this->ProjectInitializedFlag = true;
     }
 
     // Convert the volume to CAS volume using the first GPU
@@ -114,7 +160,7 @@ void MultiGPUGridder::ForwardProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
     }
 
     // Synchronize all of the GPUs
