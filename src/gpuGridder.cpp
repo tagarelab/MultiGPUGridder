@@ -200,9 +200,7 @@ void gpuGridder::Allocate()
     if (this->GPUArraysAllocatedFlag == false)
     {
         // Estimate the maximum number of coordinate axes to allocate per stream
-        // this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
-
-        this->MaxAxesToAllocate = 200; // TEST
+        this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->Volume->GetSize(0), this->interpFactor);
 
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();

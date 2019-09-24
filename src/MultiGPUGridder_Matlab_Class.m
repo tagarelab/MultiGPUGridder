@@ -145,7 +145,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 % A new set of images to back project was passed
                 this.Images = varargin{1};
-
+                
+                % Run the forward FFT and convert the images to CAS images
+                [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+                this.CASImages = CASImgsFromImgs(this.Images, interpBox, []);
+ 
                 % A new set of coordinate axes to use with the back projection was passed
                 this.coordAxes = varargin{2};
             end
