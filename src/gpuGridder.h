@@ -15,9 +15,20 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 
+// Are we compiling on a windows or linux machine?
+#if defined(_MSC_VER) //  Microsoft
+#include <algorithm>
+#elif defined(__GNUC__) // Linux
+
+#else
+
+#endif
+
+
+
 // NVTX labeling tools (for the nvidia profiling)
-#include <nvToolsExt.h>
-#include <cuda_profiler_api.h>
+// #include <nvToolsExt.h>
+// #include <cuda_profiler_api.h>
 
 class gpuGridder : public AbstractGridder
 {
@@ -60,7 +71,7 @@ public:
     void BackProject(int AxesOffset, int nAxesToProcess);
 
     // Setter functions
-    int SetNumStreams(int nStreams) { this->nStreams = nStreams; }
+	void SetNumStreams(int nStreams) { this->nStreams = nStreams; }
     void SetGPU(int GPU_Device);
 
     // Getter functions
