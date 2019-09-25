@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <vector>
+#include <iostream>
+// #include <math.h>
 
 // Include the CUDA Runtime
 #include <cuda_runtime.h>
@@ -23,8 +25,6 @@
 #else
 
 #endif
-
-
 
 // NVTX labeling tools (for the nvidia profiling)
 // #include <nvToolsExt.h>
@@ -71,7 +71,7 @@ public:
     void BackProject(int AxesOffset, int nAxesToProcess);
 
     // Setter functions
-	void SetNumStreams(int nStreams) { this->nStreams = nStreams; }
+    void SetNumStreams(int nStreams) { this->nStreams = nStreams; }
     void SetGPU(int GPU_Device);
 
     // Getter functions
@@ -88,6 +88,23 @@ public:
     float *GetImgsPtr_Device() { return this->d_Imgs->GetPointer(); }
     float *GetCoordAxesPtr_Device() { return this->d_CoordAxes->GetPointer(); }
     float *GetKBTablePtr_Device() { return this->d_KB_Table->GetPointer(); }
+
+    // A structure for holding all of the pointer offset values when running the forward projection kernel
+    struct Offsets
+    {
+        std::vector<int> numAxesPerStream;
+        std::vector<int> CoordAxes_CPU_Offset;
+        std::vector<int> coord_Axes_CPU_streamBytes;
+        std::vector<int> gpuImgs_Offset;
+        std::vector<int> gpuCASImgs_streamBytes;
+        std::vector<int> gpuCASImgs_Offset;
+        std::vector<int> gpuCoordAxes_Stream_Offset;
+        std::vector<unsigned long long> CASImgs_CPU_Offset;
+        std::vector<unsigned long long> Imgs_CPU_Offset;
+        std::vector<int> gpuImgs_streamBytes;
+        std::vector<int> stream_ID;
+        int num_offsets;
+    };
 
 private:
     // Initilize pointers for allocating memory on the GPU
@@ -109,12 +126,6 @@ private:
     // CUDA streams to use for forward / back projection
     cudaStream_t *streams;
 
-    // Forward projection object
-    gpuForwardProject *ForwardProject_obj;
-
-    // Back projection object
-    gpuBackProject *BackProject_obj;
-
     // Array allocation flag
     bool GPUArraysAllocatedFlag;
 
@@ -124,8 +135,6 @@ private:
     // Initilization functions
     void InitilizeGPUArrays();
     void InitilizeCUDAStreams();
-    void InitilizeForwardProjection(int AxesOffset, int nAxesToProcess);
-    void InitilizeBackProjection(int AxesOffset, int nAxesToProcess);
 
     // Estimate the maximum number of coordinate axes to allocate on the GPUs
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);
@@ -135,4 +144,9 @@ private:
 
     // Free all of the allocated memory
     void FreeMemory();
+
+protected:
+
+    // Plan the pointer offset values for running the CUDA kernels
+    Offsets PlanOffsetValues(int coordAxesOffset, int nAxes);
 };

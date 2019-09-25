@@ -205,115 +205,9 @@ void gpuGridder::Allocate()
         // Initilize the CUDA streams
         InitilizeCUDAStreams();
 
-        // Create a forward projection object
-        this->ForwardProject_obj = new gpuForwardProject();
-
-        // Create a back projection object
-        this->BackProject_obj = new gpuBackProject();
-
         this->GPUArraysAllocatedFlag = true;
     }
 }
-
-// Initilize the forward projection object
-void gpuGridder::InitilizeForwardProjection(int AxesOffset, int nAxesToProcess)
-{
-    // Log("InitilizeForwardProjection()");
-    cudaSetDevice(this->GPU_Device);
-
-    // Have the GPU arrays been allocated?
-    if (this->GPUArraysAllocatedFlag == false)
-    {
-        Allocate();
-        this->GPUArraysAllocatedFlag = true;
-    }
-
-    // Pass the float pointers to the forward projection object
-    this->ForwardProject_obj->SetPinnedCoordinateAxes(this->h_CoordAxes);
-    this->ForwardProject_obj->SetPinnedImages(this->h_Imgs);
-
-    // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
-    // if (this->CASimgs != nullptr)
-    // {
-    this->ForwardProject_obj->SetPinnedCASImages(this->h_CASImgs);
-    // }
-
-    // Calculate the block size for running the CUDA kernels
-    // NOTE: gridSize times blockSize needs to equal CASimgSize
-    this->gridSize = 32;
-    this->blockSize = ceil((this->h_Imgs->GetSize(0) * this->interpFactor) / this->gridSize);
-
-    // Pass the pointers and parameters to the forward projection object
-    this->ForwardProject_obj->SetCASVolume(this->d_CASVolume);
-    this->ForwardProject_obj->SetImages(this->d_Imgs);
-    this->ForwardProject_obj->SetCoordinateAxes(this->d_CoordAxes);
-    this->ForwardProject_obj->SetKBTable(this->d_KB_Table);
-    this->ForwardProject_obj->SetCUDAStreams(this->streams);
-    this->ForwardProject_obj->SetGridSize(this->gridSize);
-    this->ForwardProject_obj->SetBlockSize(this->blockSize);
-    this->ForwardProject_obj->SetNumberOfAxes(this->GetNumAxes());
-    this->ForwardProject_obj->SetMaxAxesAllocated(this->MaxAxesToAllocate);
-    this->ForwardProject_obj->SetNumberOfStreams(this->nStreams);
-    this->ForwardProject_obj->SetGPUDevice(this->GPU_Device);
-    this->ForwardProject_obj->SetMaskRadius(this->maskRadius);
-    this->ForwardProject_obj->SetKerHWidth(this->kerHWidth);
-    this->ForwardProject_obj->SetCASImages(this->d_CASImgs);
-    this->ForwardProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
-    this->ForwardProject_obj->SetCoordinateAxesOffset(AxesOffset); // Offset in number of coordinate axes from the beginning of the CPU array
-    this->ForwardProject_obj->SetNumberOfAxes(nAxesToProcess);     // Number of axes to process
-}
-
-// Initilize the forward back object
-void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
-{
-
-    cudaSetDevice(this->GPU_Device);
-
-    // Have the GPU arrays been allocated?
-    if (this->GPUArraysAllocatedFlag == false)
-    {
-        Allocate();
-        this->GPUArraysAllocatedFlag = true;
-    }
-
-    // Pass the float pointers to the forward projection object
-    this->BackProject_obj->SetPinnedCoordinateAxes(this->h_CoordAxes);
-
-    this->BackProject_obj->SetPinnedImages(this->h_Imgs);
-
-    // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
-    // if (this->h_CASImgs != nullptr)
-    // {
-
-    this->BackProject_obj->SetPinnedCASImages(this->h_CASImgs);
-    // }
-
-    // Calculate the block size for running the CUDA kernels
-    // NOTE: gridSize times blockSize needs to equal CASimgSize
-    this->gridSize = 32;
-    this->blockSize = ceil((this->h_Imgs->GetSize(0) * this->interpFactor) / this->gridSize);
-
-    // Pass the pointers and parameters to the forward projection object
-    this->BackProject_obj->SetCASVolume(this->d_CASVolume);
-    this->BackProject_obj->SetPlaneDensity(this->d_PlaneDensity);
-    this->BackProject_obj->SetImages(this->d_Imgs);
-    this->BackProject_obj->SetCoordinateAxes(this->d_CoordAxes);
-    this->BackProject_obj->SetKBTable(this->d_KB_Table);
-    this->BackProject_obj->SetCUDAStreams(this->streams);
-    this->BackProject_obj->SetGridSize(this->gridSize);
-    this->BackProject_obj->SetBlockSize(this->blockSize);
-    this->BackProject_obj->SetNumberOfAxes(this->GetNumAxes());
-    this->BackProject_obj->SetMaxAxesAllocated(this->MaxAxesToAllocate);
-    this->BackProject_obj->SetNumberOfStreams(this->nStreams);
-    this->BackProject_obj->SetGPUDevice(this->GPU_Device);
-    this->BackProject_obj->SetMaskRadius(this->maskRadius);
-    this->BackProject_obj->SetKerHWidth(this->kerHWidth);
-    this->BackProject_obj->SetCASImages(this->d_CASImgs);
-    this->BackProject_obj->SetComplexCASImages(this->d_CASImgsComplex);
-    this->BackProject_obj->SetCoordinateAxesOffset(AxesOffset); // Offset in number of coordinate axes from the beginning of the CPU array
-    this->BackProject_obj->SetNumberOfAxes(nAxesToProcess);     // Number of axes to process
-}
-
 
 void gpuGridder::PrintMemoryAvailable()
 {
@@ -322,6 +216,129 @@ void gpuGridder::PrintMemoryAvailable()
     size_t mem_free_0 = 0;
     cudaMemGetInfo(&mem_free_0, &mem_tot_0);
     std::cout << "Memory remaining on GPU " << this->GPU_Device << " " << mem_free_0 << " out of " << mem_tot_0 << '\n';
+}
+
+gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes)
+{
+    // Loop through all of the coordinate axes and calculate the corresponding pointer offset values
+    // which are needed for running the CUDA kernels
+
+    // For compactness define the CASImgSize, CASVolSize, and ImgSize here
+    int CASImgSize = this->d_CASImgs->GetSize(0);
+    int CASVolSize = this->d_CASVolume->GetSize(0);
+    int ImgSize = this->d_Imgs->GetSize(0);
+
+    // Create an instance of the Offsets struct
+    gpuGridder::Offsets Offsets_obj;
+    Offsets_obj.num_offsets = 0;
+
+    // Cumulative number of axes which have already been assigned to a CUDA stream
+    int processed_nAxes = 0;
+
+    // While we have coordinate axes to process, loop through the GPUs and the streams
+    int MaxBatches = 10000; // Maximum iterations in case we get stuck in the while loop for some reason
+    int batch = 0;
+
+    // Initilize a variable which will remember how many axes have been assigned to the GPU
+    // during the current batch. This is needed for calculating the offset for the stream when
+    // the number of streams is greater than the number of GPUs. This resets to zeros after each
+    // batch since the same GPU memory is used for the next batch.
+    int numAxesGPU_Batch = 0;
+
+    // Estimate how many coordinate axes to assign to each stream
+    int EstimatedNumAxesPerStream;
+    if (nAxes <= this->MaxAxesToAllocate)
+    {
+        // The number of coordinate axes is less than or equal to the total number of axes to process
+        EstimatedNumAxesPerStream = ceil((double)nAxes / (double)this->nStreams);
+    }
+    else
+    {
+        // Several batches will be needed so evenly split the MaxAxesToAllocate by the number of streams
+        EstimatedNumAxesPerStream = ceil((double)this->MaxAxesToAllocate / (double)this->nStreams);
+    }
+
+    while (processed_nAxes < nAxes && batch < MaxBatches)
+    {
+        for (int i = 0; i < this->nStreams; i++) // Loop through the streams
+        {
+            // If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
+            if (processed_nAxes + EstimatedNumAxesPerStream >= nAxes)
+            {
+                // Process the remaining fraction of EstimatedNumAxesPerStream
+                Offsets_obj.numAxesPerStream.push_back(std::min(EstimatedNumAxesPerStream, nAxes - processed_nAxes));
+            }
+            else
+            {
+                // Save the estimated number of axes to the numAxesPerStream
+                Offsets_obj.numAxesPerStream.push_back(EstimatedNumAxesPerStream);
+            }
+
+            // Calculate the offsets (in bytes) to determine which part of the array to copy for this stream
+            // When using multiple GPUs coordAxesOffset will be the number already assigned to other GPUs
+            Offsets_obj.CoordAxes_CPU_Offset.push_back((processed_nAxes + coordAxesOffset) * 9); // Each axes has 9 elements (X, Y, Z)
+            Offsets_obj.coord_Axes_CPU_streamBytes.push_back(Offsets_obj.numAxesPerStream.back() * 9 * sizeof(float));
+
+            // Use the number of axes already assigned to this GPU since starting the current batch to calculate the currect offset
+            Offsets_obj.gpuCASImgs_Offset.push_back(numAxesGPU_Batch * CASImgSize * CASImgSize);
+            Offsets_obj.gpuImgs_Offset.push_back(numAxesGPU_Batch * ImgSize * ImgSize);
+            Offsets_obj.gpuCoordAxes_Stream_Offset.push_back(numAxesGPU_Batch * 9);
+
+            // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
+            if (this->h_CASImgs != NULL)
+            {
+                // Have to use unsigned long long since the array may be longer than the max value int32 can represent
+                // imgSize is the size of the zero padded projection images
+                unsigned long long *CASImgs_Offset = new unsigned long long[3];
+                CASImgs_Offset[0] = (unsigned long long)(CASImgSize);
+                CASImgs_Offset[1] = (unsigned long long)(CASImgSize);
+                CASImgs_Offset[2] = (unsigned long long)(processed_nAxes + coordAxesOffset);
+
+                Offsets_obj.CASImgs_CPU_Offset.push_back(CASImgs_Offset[0] * CASImgs_Offset[1] * CASImgs_Offset[2]);
+
+                // How many bytes are the output images?
+                Offsets_obj.gpuCASImgs_streamBytes.push_back(CASImgSize * CASImgSize * Offsets_obj.numAxesPerStream.back() * sizeof(float));
+            }
+
+            // Have to use unsigned long long since the array may be longer than the max value int32 can represent
+            // imgSize is the size of the zero padded projection images
+            unsigned long long *Imgs_Offset = new unsigned long long[3];
+            Imgs_Offset[0] = (unsigned long long)(ImgSize);
+            Imgs_Offset[1] = (unsigned long long)(ImgSize);
+            Imgs_Offset[2] = (unsigned long long)(processed_nAxes + coordAxesOffset);
+
+            Offsets_obj.Imgs_CPU_Offset.push_back(Imgs_Offset[0] * Imgs_Offset[1] * Imgs_Offset[2]);
+
+            // How many bytes are the output images?
+            Offsets_obj.gpuImgs_streamBytes.push_back(ImgSize * ImgSize * Offsets_obj.numAxesPerStream.back() * sizeof(float));
+
+            // Update the overall number of coordinate axes which have already been assigned to a CUDA stream
+            processed_nAxes = processed_nAxes + Offsets_obj.numAxesPerStream.back();
+
+            // Update the number of axes which have been assigned to this GPU during the current batch
+            numAxesGPU_Batch = numAxesGPU_Batch + Offsets_obj.numAxesPerStream.back();
+
+            // Add one to the number of offset values
+            Offsets_obj.num_offsets++;
+
+            // Remember which stream this is
+            Offsets_obj.stream_ID.push_back(i);
+
+            // Have all the axes been processed?
+            if (processed_nAxes == nAxes)
+            {
+                break;
+            }
+        }
+
+        // Increment the batch number
+        batch++;
+
+        // Reset the number of axes processed during the current batch variable
+        numAxesGPU_Batch = 0;
+    }
+
+    return Offsets_obj;
 }
 
 void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
@@ -338,9 +355,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     }
 
     // PrintMemoryAvailable();
-
-    // Initilize the forward projection object
-    InitilizeForwardProjection(AxesOffset, nAxesToProcess);
 
     // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
     if (this->VolumeToCASVolumeFlag == false)
@@ -366,7 +380,82 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
     // Run the forward projection CUDA kernel
     cudaSetDevice(this->GPU_Device);
-    this->ForwardProject_obj->Execute();
+
+    // For compactness define the CASImgSize, CASVolSize, and ImgSize here
+    int ImgSize = this->d_Imgs->GetSize(0);
+    int CASImgSize = this->d_CASImgs->GetSize(0);
+    int CASVolSize = this->d_CASVolume->GetSize(0);
+
+    // Plan the pointer offset values
+    gpuGridder::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
+
+    // Calculate the block size for running the CUDA kernels
+    // NOTE: gridSize times blockSize needs to equal CASimgSize
+    int gridSize = 32; // 32
+    int blockSize = ceil(((double)this->d_Imgs->GetSize(0) * (double)this->interpFactor) / (double)gridSize);
+
+    for (int i = 0; i < Offsets_obj.num_offsets; i++)
+    {
+        if (Offsets_obj.numAxesPerStream[i] < 1)
+        {
+            continue;
+        }
+
+        std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
+                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+
+        // Copy the section of gpuCoordAxes which this stream will process on the current GPU
+        cudaMemcpyAsync(
+            this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
+            this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
+            Offsets_obj.coord_Axes_CPU_streamBytes[i],
+            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
+
+        // Run the forward projection kernel
+        gpuForwardProject::RunKernel(
+            this->d_CASVolume->GetPointer(),
+            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            this->d_KB_Table->GetPointer(),
+            this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
+            this->kerHWidth,
+            Offsets_obj.numAxesPerStream[i],
+            gridSize,
+            blockSize,
+            CASVolSize,
+            CASImgSize,
+            this->maskRadius,
+            this->d_KB_Table->GetSize(0),
+            &streams[Offsets_obj.stream_ID[i]]);
+
+        // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
+        // if (this->CASImgs_CPU_Pinned != NULL)
+        // {
+        cudaMemcpyAsync(
+            this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
+            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            Offsets_obj.gpuCASImgs_streamBytes[i],
+            cudaMemcpyDeviceToHost,
+            streams[Offsets_obj.stream_ID[i]]);
+        // }
+
+        // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
+        // this->gpuFFT_obj->CASImgsToImgs(
+        //     streams[Offsets_obj.stream_ID[i]],
+        //     CASImgSize,
+        //     ImgSize,
+        //     this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+        //     this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        //     Offsets_obj.numAxesPerStream[i]);
+
+        // // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
+        // cudaMemcpyAsync(
+        //     Imgs_CPU_Pinned->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
+        //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+        //     Offsets_obj.gpuImgs_streamBytes[i],
+        //     cudaMemcpyDeviceToHost,
+        //     streams[Offsets_obj.stream_ID[i]]);
+    }
 }
 
 void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
@@ -385,33 +474,33 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // PrintMemoryAvailable();
 
     // Initilize the back projection object
-    InitilizeBackProjection(AxesOffset, nAxesToProcess);
+    // InitilizeBackProjection(AxesOffset, nAxesToProcess);
 
-    // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
-    // if (this->VolumeToCASVolumeFlag == true)
+    // // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
+    // // if (this->VolumeToCASVolumeFlag == true)
+    // // {
+    // //     // Run the volume to CAS volume function
+    // //     VolumeToCASVolume();
+    // // }
+
+    // // Copy the CAS volume to the corresponding GPU array
+    // this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+    // // this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
+
+    // // Check the error flags to see if we had any issues during the initilization
+    // if (this->ErrorFlag == 1 ||
+    //     this->d_CASVolume->GetErrorFlag() == 1 ||
+    //     this->d_CASImgs->GetErrorFlag() == 1 ||
+    //     this->d_Imgs->GetErrorFlag() == 1 ||
+    //     this->d_CoordAxes->GetErrorFlag() == 1 ||
+    //     this->d_KB_Table->GetErrorFlag() == 1)
     // {
-    //     // Run the volume to CAS volume function
-    //     VolumeToCASVolume();
+    //     std::cerr << "Error during intilization." << '\n';
+    //     return; // Don't run the kernel and return
     // }
 
-    // Copy the CAS volume to the corresponding GPU array
-    this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
-    // this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
-
-    // Check the error flags to see if we had any issues during the initilization
-    if (this->ErrorFlag == 1 ||
-        this->d_CASVolume->GetErrorFlag() == 1 ||
-        this->d_CASImgs->GetErrorFlag() == 1 ||
-        this->d_Imgs->GetErrorFlag() == 1 ||
-        this->d_CoordAxes->GetErrorFlag() == 1 ||
-        this->d_KB_Table->GetErrorFlag() == 1)
-    {
-        std::cerr << "Error during intilization." << '\n';
-        return; // Don't run the kernel and return
-    }
-
-    // Run the back projection CUDA kernel
-    this->BackProject_obj->Execute();
+    // // Run the back projection CUDA kernel
+    // this->BackProject_obj->Execute();
 }
 
 void gpuGridder::FreeMemory()
