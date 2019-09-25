@@ -33,8 +33,8 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // How many coordinate axes would fit in the remaining free GPU memory?
     int EstimatedMaxAxes = (mem_free - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
 
-    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 60% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.8);
+    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
 
     return EstimatedMaxAxes;
 }
@@ -279,14 +279,13 @@ void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
     // Pass the float pointers to the forward projection object
     this->BackProject_obj->SetPinnedCoordinateAxes(this->h_CoordAxes);
 
-
     this->BackProject_obj->SetPinnedImages(this->h_Imgs);
 
     // Set the CASImgs pointer if it was previously allocated (i.e. this is optional)
     // if (this->h_CASImgs != nullptr)
     // {
-   
-        this->BackProject_obj->SetPinnedCASImages(this->h_CASImgs);
+
+    this->BackProject_obj->SetPinnedCASImages(this->h_CASImgs);
     // }
 
     // Calculate the block size for running the CUDA kernels
@@ -315,13 +314,6 @@ void gpuGridder::InitilizeBackProjection(int AxesOffset, int nAxesToProcess)
     this->BackProject_obj->SetNumberOfAxes(nAxesToProcess);     // Number of axes to process
 }
 
-void gpuGridder::ForwardProject()
-{
-    // Run the forward projection on all the coordinate axes with no offset
-    ForwardProject(0, this->GetNumAxes());
-
-    return;
-}
 
 void gpuGridder::PrintMemoryAvailable()
 {
@@ -344,6 +336,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
         this->GPUArraysAllocatedFlag = true;
     }
+
+    // PrintMemoryAvailable();
 
     // Initilize the forward projection object
     InitilizeForwardProjection(AxesOffset, nAxesToProcess);
@@ -375,14 +369,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     this->ForwardProject_obj->Execute();
 }
 
-void gpuGridder::BackProject()
-{
-    // Run the back projection on all the coordinate axes with no offset
-    BackProject(0, this->GetNumAxes());
-
-    return;
-}
-
 void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
@@ -395,6 +381,8 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 
         this->GPUArraysAllocatedFlag = true;
     }
+
+    // PrintMemoryAvailable();
 
     // Initilize the back projection object
     InitilizeBackProjection(AxesOffset, nAxesToProcess);
@@ -432,12 +420,12 @@ void gpuGridder::FreeMemory()
     std::cout << "gpuGridder FreeMemory()" << '\n';
 
     // Free the GPU memory
-    this->d_Imgs->DeallocateGPUArray();
-    this->d_CASImgs->DeallocateGPUArray();
-    this->d_KB_Table->DeallocateGPUArray();
-    this->d_CASVolume->DeallocateGPUArray();
-    this->d_CoordAxes->DeallocateGPUArray();
-    this->d_CASImgsComplex->DeallocateGPUArray();
+    // this->d_Imgs->DeallocateGPUArray();
+    // this->d_CASImgs->DeallocateGPUArray();
+    // this->d_KB_Table->DeallocateGPUArray();
+    // this->d_CASVolume->DeallocateGPUArray();
+    // this->d_CoordAxes->DeallocateGPUArray();
+    // this->d_CASImgsComplex->DeallocateGPUArray();
 
     // Reset the GPU
     cudaSetDevice(this->GPU_Device);

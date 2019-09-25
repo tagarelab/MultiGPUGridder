@@ -38,6 +38,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     }
 
+    // Set the mask radius parameter
+    if (!strcmp("SetMaskRadius", cmd))
+    {
+        MultiGPUGridderObj->SetMaskRadius((float)mxGetScalar(prhs[2]));
+    }
+
     // Set the pointer to the CAS volume
     if (!strcmp("SetCASVolume", cmd))
     {

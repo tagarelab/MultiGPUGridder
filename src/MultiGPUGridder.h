@@ -4,6 +4,7 @@
 #include "AbstractGridder.h"
 #include "gpuGridder.h"
 
+#include <thread> // For multi-threading on the CPU
 
 class MultiGPUGridder : public AbstractGridder
 {

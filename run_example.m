@@ -21,7 +21,7 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 64;
+VolumeSize = 128;
 interpFactor = 2;
 n1_axes = 50;
 n2_axes = 50;
@@ -67,7 +67,7 @@ for i = 1:5
     gridder.coordAxes = single(coordAxes(:));
 
     tic
-    gridder.ForwardProject()
+    gridder.forwardProject();
     toc
     
        [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);

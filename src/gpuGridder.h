@@ -53,15 +53,11 @@ public:
     // Allocate needed GPU memory
     void Allocate();
 
-    // Run the forward projection kernel
-    void ForwardProject();
-
     // Run forward projection on some subset of the coordinate axes
     void ForwardProject(int AxesOffset, int nAxesToProcess);
 
     // Run the back projection and return the volume
     void BackProject(int AxesOffset, int nAxesToProcess);
-    void BackProject();
 
     // Setter functions
     int SetNumStreams(int nStreams) { this->nStreams = nStreams; }

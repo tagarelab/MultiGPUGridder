@@ -83,6 +83,9 @@ void MultiGPUGridder::ForwardProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginng
     // To select the subset of axes to process
 
+    // Create array of CPU threads with one CPU thread for each GPU
+    std::thread *CPUThreads = new std::thread[Num_GPUs];
+
     // Plan which GPU will process which coordinate axes
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
 
@@ -94,7 +97,14 @@ void MultiGPUGridder::ForwardProject()
             gpuGridder_vec[i]->SetNumAxes(AxesPlan_obj.NumAxesPerGPU[i]);
             gpuGridder_vec[i]->Allocate();
         }
+
         this->ProjectInitializedFlag = true;
+    }
+
+    // Update the mask radius parameter
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->SetMaskRadius(this->maskRadius);
     }
 
     // Convert the volume to CAS volume using the first GPU
@@ -112,9 +122,23 @@ void MultiGPUGridder::ForwardProject()
     // Synchronize all of the GPUs
     GPU_Sync(); // needed?
 
+    // for (int i = 0; i < Num_GPUs; i++)
+    // {
+    //     gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+    // }
+
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // Single thread version: gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // std::cout << "std::thread ForwardProject " << i << '\n';
+        // gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+    }
+
+    // Join CPU threads together
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs
@@ -129,6 +153,9 @@ void MultiGPUGridder::BackProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginng
     // To select the subset of axes to process
 
+    // Create array of CPU threads with one CPU thread for each GPU
+    std::thread *CPUThreads = new std::thread[Num_GPUs];
+
     // Plan which GPU will process which coordinate axes
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
 
@@ -160,9 +187,16 @@ void MultiGPUGridder::BackProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
     }
 
+    // Join CPU threads together
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        CPUThreads[i].join();
+    }
+    
     // Synchronize all of the GPUs
     GPU_Sync();
 
@@ -182,7 +216,6 @@ void MultiGPUGridder::GPU_Sync()
         cudaDeviceSynchronize();
     }
 }
-
 
 void MultiGPUGridder::SumCASVolumes()
 {
@@ -206,7 +239,6 @@ void MultiGPUGridder::SumCASVolumes()
         for (int i = 0; i < this->h_CASVolume->length(); i++)
         {
             SummedVolume[i] = SummedVolume[i] + tempVolume[i];
-
         }
     }
 
@@ -288,7 +320,6 @@ void MultiGPUGridder::SumPlaneDensity()
     // Release the temporary memory
     delete[] SummedVolume;
 }
-
 
 void MultiGPUGridder::FreeMemory()
 {
