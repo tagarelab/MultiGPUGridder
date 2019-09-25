@@ -23,6 +23,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         Volume;
         Images;                 
         MaskRadius;
+        KBPreComp;
+        
     end
     
     methods
@@ -70,6 +72,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the PlaneDensity array
             this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
            
+            % Create the Kaiser Bessel pre-compensation array
+            % After backprojection, the inverse FFT volume is divided by this array
+            InterpVolSize = this.VolumeSize * int32(this.interpFactor);
+            this.KBPreComp = single(zeros(repmat(128, 1, 3)));  
+           
+            preComp=getPreComp(InterpVolSize,this.kerHWidth);
+            preComp=preComp';
+            this.KBPreComp=reshape(kron(preComp,kron(preComp,preComp)),...
+                         InterpVolSize,InterpVolSize,InterpVolSize);
+
 
         end        
         %% Deconstructor - Delete the C++ class instance 
@@ -94,7 +106,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
             [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
-           
+            [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
+          
            
             % Set the optional arrays
             if ~isempty(this.CASImages)
@@ -177,8 +190,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
             
             % Normalize by the plane density
-            this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
-            this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+%             this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
+%             this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
 
         end   
         %% setVolume - Set the volume

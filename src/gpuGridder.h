@@ -104,6 +104,11 @@ public:
     float *GetImgsPtr_Device() { return this->d_Imgs->GetPointer(); }
     float *GetCoordAxesPtr_Device() { return this->d_CoordAxes->GetPointer(); }
     float *GetKBTablePtr_Device() { return this->d_KB_Table->GetPointer(); }
+    float *GetCASVolumePtr();
+    float *GetPlaneDensityPtr();
+    void CopyCASVolumeToHost();
+    void CopyVolumeToHost();
+    void CopyPlaneDensityToHost();
 
     // A structure for holding all of the pointer offset values when running the forward projection kernel
     struct Offsets
@@ -124,6 +129,9 @@ public:
 
     // Convert projection images to CAS images by running a forward FFT
     void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
+
+    // Reconstruct the volume by converting the CASVolume to Volume
+    void ReconstructVolume();
 
 private:
     // Initilize pointers for allocating memory on the GPU

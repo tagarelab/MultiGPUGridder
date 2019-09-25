@@ -3,6 +3,7 @@
 
 #include "AbstractGridder.h"
 #include "gpuGridder.h"
+#include "AddVolumeFilter.h"
 
 #include <thread> // For multi-threading on the CPU
 
@@ -31,7 +32,7 @@ public:
 			cudaSetDevice(GPU_Device);
 
 			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
-			cudaDeviceReset(); 
+			cudaDeviceReset();
 
 			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, GPU_Device);
 
@@ -47,7 +48,6 @@ public:
 
 		// Set the flag to false
 		this->ProjectInitializedFlag = false;
-
 	}
 
 	// Deconstructor
@@ -55,7 +55,7 @@ public:
 	{
 		FreeMemory();
 	}
-	
+
 	// Set the number of CUDA streams to use with each GPU
 	void SetNumStreams(int nStreams);
 
@@ -69,18 +69,23 @@ public:
 	void SumPlaneDensity();
 	void SumVolumes();
 	void SumCASVolumes();
-	
+
+	// Sum the CAS volumes on the GPU devices to the given device after running the back projection
+	void AddCASVolumes(int GPU_Device);
+
+	// Sum the plane densities on the GPU devices to the given device after running the back projection
+	void AddPlaneDensities(int GPU_Device);
+
 private:
-
 	// Plan which GPU will process which coordinate axes
-    struct CoordinateAxesPlan
-    {
-        // Vector to hold the number of axes to assign for each GPU
-        std::vector<int> NumAxesPerGPU;
+	struct CoordinateAxesPlan
+	{
+		// Vector to hold the number of axes to assign for each GPU
+		std::vector<int> NumAxesPerGPU;
 
-        // Offset index of the starting coordinate axes for each GPU
-        int *coordAxesOffset;
-    };
+		// Offset index of the starting coordinate axes for each GPU
+		int *coordAxesOffset;
+	};
 
 	// Function to assign the coordinate axes to each GPU
 	CoordinateAxesPlan PlanCoordinateAxes();
@@ -100,9 +105,8 @@ private:
 	// Free all of the allocated memory
 	void FreeMemory();
 
-	
-    // Flag for remembering if this is the first time running the forward projection
-    bool ProjectInitializedFlag;
+	// Flag for remembering if this is the first time running the forward projection
+	bool ProjectInitializedFlag;
 };
 
 #endif
