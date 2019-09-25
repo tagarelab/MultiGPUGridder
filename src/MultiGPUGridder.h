@@ -28,6 +28,10 @@ public:
 		for (int i = 0; i < Num_GPUs; i++)
 		{
 			int GPU_Device = GPU_Devices[i];
+			cudaSetDevice(GPU_Device);
+
+			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
+			cudaDeviceReset(); 
 
 			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, GPU_Device);
 
