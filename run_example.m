@@ -23,8 +23,8 @@ end
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 50;
-n2_axes = 50;
+n1_axes = 25;
+n2_axes = 40;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
 pause(0.5)

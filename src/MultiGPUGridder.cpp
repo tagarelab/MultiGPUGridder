@@ -193,14 +193,14 @@ void MultiGPUGridder::BackProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        // CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
     }
 
     // Join CPU threads together
     for (int i = 0; i < Num_GPUs; i++)
     {
-        // CPUThreads[i].join();
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs

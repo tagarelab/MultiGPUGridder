@@ -40,6 +40,7 @@ public:
         // Set default values
         this->VolumeToCASVolumeFlag = false;
         this->GPUArraysAllocatedFlag = false;
+        this->RunFFTOnDevice = false;
         this->nStreams = 1;
         this->MaxAxesToAllocate = 0;
 
@@ -50,6 +51,9 @@ public:
         {
             std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
         }
+
+        // Create a new gpuFFT object for running the forward and inverse FFT
+        this->gpuFFT_obj = new gpuFFT();
     };
 
     // Deconstructor
@@ -106,6 +110,9 @@ public:
         int num_offsets;
     };
 
+    // Convert projection images to CAS images by running a forward FFT
+    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
+
 private:
     // Initilize pointers for allocating memory on the GPU
     MemoryStructGPU<cufftComplex> *d_CASImgsComplex; // For forward / inverse FFT
@@ -132,6 +139,9 @@ private:
     // Flag to run / not run the volume to CAS volume
     bool VolumeToCASVolumeFlag;
 
+    // Flag to run the forward and inverse FFT on the GPU
+    bool RunFFTOnDevice;
+
     // Initilization functions
     void InitilizeGPUArrays();
     void InitilizeCUDAStreams();
@@ -145,8 +155,10 @@ private:
     // Free all of the allocated memory
     void FreeMemory();
 
-protected:
+    // gpuFFT object for running forward and inverse FFT
+    gpuFFT *gpuFFT_obj;
 
+protected:
     // Plan the pointer offset values for running the CUDA kernels
     Offsets PlanOffsetValues(int coordAxesOffset, int nAxes);
 };

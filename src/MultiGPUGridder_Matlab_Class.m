@@ -145,14 +145,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
 
             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-            this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
+%             this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
 
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);
             
             
             % Run the inverse FFT on the CAS images
-            this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+%             this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
             
             ProjectionImages = this.Images;
             
