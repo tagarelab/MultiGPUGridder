@@ -46,7 +46,7 @@ set(SOURCE_Files
 		gpuGridder.cpp
 
 		gpuForwardProject.h
-		gpuForwardProjectKernel.cu
+		gpuForwardProject.cu
 
 		gpuBackProject.h
 		gpuBackProject.cu

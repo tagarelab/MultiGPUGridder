@@ -401,7 +401,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             continue;
         }
 
-        std::cout << "GPU: " << this->GPU_Device << " stream " << Offsets_obj.stream_ID[i]
+        std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
                   << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
@@ -428,15 +428,15 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             &streams[Offsets_obj.stream_ID[i]]);
 
         // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
-        // if (this->CASImgs_CPU_Pinned != NULL)
-        // {
-        cudaMemcpyAsync(
-            this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
-            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            Offsets_obj.gpuCASImgs_streamBytes[i],
-            cudaMemcpyDeviceToHost,
-            streams[Offsets_obj.stream_ID[i]]);
-        // }
+        if (this->h_CASImgs != NULL)
+        {
+            cudaMemcpyAsync(
+                this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
+                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                Offsets_obj.gpuCASImgs_streamBytes[i],
+                cudaMemcpyDeviceToHost,
+                streams[Offsets_obj.stream_ID[i]]);
+        }
 
         // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
         // this->gpuFFT_obj->CASImgsToImgs(
@@ -463,44 +463,107 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
 
-    // Have the GPU arrays been allocated?
-    if (this->GPUArraysAllocatedFlag == false)
+    // For compactness define the CASImgSize, CASVolSize, and ImgSize here
+    int ImgSize = this->d_Imgs->GetSize(0);
+    int CASImgSize = this->d_CASImgs->GetSize(0);
+    int CASVolSize = this->d_CASVolume->GetSize(0);
+
+    // Plan the pointer offset values
+    gpuGridder::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
+
+    // Copy the CAS volume to the corresponding GPU array
+    this->d_CASVolume->Reset();
+    this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+
+    // Define CUDA kernel dimensions
+    int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
+    int blockSize = 4;
+
+    for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
-        Allocate();
+        if (Offsets_obj.numAxesPerStream[i] < 1)
+        {
+            continue;
+        }
 
-        this->GPUArraysAllocatedFlag = true;
+        std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
+                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+
+        // Copy the section of gpuCoordAxes which this stream will process on the current GPU
+        cudaMemcpyAsync(
+            this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
+            this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
+            Offsets_obj.coord_Axes_CPU_streamBytes[i],
+            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
+
+        bool UseExsistingCASImages = true;
+
+        if (UseExsistingCASImages == true)
+        {
+            // Copy the CASImages from the pinned CPU array and use instead of the images array
+            cudaMemcpyAsync(
+                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
+                Offsets_obj.gpuCASImgs_streamBytes[i],
+                cudaMemcpyHostToDevice,
+                streams[Offsets_obj.stream_ID[i]]);
+        }
+        else
+        {
+            // Copy the section of images to the GPU
+            // cudaMemcpyAsync(
+            // 	this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            // 	Imgs_CPU_Pinned->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
+            // 	Offsets_obj.gpuImgs_streamBytes[i],
+            // 	cudaMemcpyHostToDevice,
+            // 	streams[Offsets_obj.stream_ID[i]]);
+
+            // // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
+            // this->gpuFFT_obj->ImgsToCASImgs(
+            // 	streams[Offsets_obj.stream_ID[i]],
+            // 	this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            // 	this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            // 	this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            // 	Offsets_obj.numAxesPerStream[i]);
+        }
+
+        // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
+        // if (CASImgs_CPU_Pinned != NULL)
+        // {
+        // 	cudaMemcpyAsync(
+        // 		CASImgs_CPU_Pinned->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
+        // 		this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        // 		Offsets_obj.gpuCASImgs_streamBytes[i],
+        // 		cudaMemcpyDeviceToHost,
+        // 		streams[Offsets_obj.stream_ID[i]]);
+        // }
+
+        // cudaDeviceSynchronize();
+
+        // Run the back projection kernel
+        gpuBackProject::RunKernel(
+            this->d_CASVolume->GetPointer(),
+            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            this->d_KB_Table->GetPointer(),
+            this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
+            this->d_PlaneDensity->GetPointer(),
+            this->kerHWidth,
+            Offsets_obj.numAxesPerStream[i],
+            gridSize,
+            blockSize,
+            CASVolSize,
+            CASImgSize,
+            this->maskRadius,
+            this->d_KB_Table->GetSize(0),
+            &streams[Offsets_obj.stream_ID[i]]);
+
+        // float *test = new float[this->d_PlaneDensity->length()];
+        // for (int i = 0; i < this->d_PlaneDensity->length(); i++)
+        // {
+        //     test[i] = 12;
+        // }
+        // this->d_PlaneDensity->CopyToGPU(test, this->d_PlaneDensity->bytes());
     }
-
-    // PrintMemoryAvailable();
-
-    // Initilize the back projection object
-    // InitilizeBackProjection(AxesOffset, nAxesToProcess);
-
-    // // Do we need to run Volume to CASVolume? (Can skip if using multiple GPUs for example)
-    // // if (this->VolumeToCASVolumeFlag == true)
-    // // {
-    // //     // Run the volume to CAS volume function
-    // //     VolumeToCASVolume();
-    // // }
-
-    // // Copy the CAS volume to the corresponding GPU array
-    // this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
-    // // this->d_CASImgs->CopyToGPU(this->CASimgs->GetPointer(), this->CASimgs->bytes());
-
-    // // Check the error flags to see if we had any issues during the initilization
-    // if (this->ErrorFlag == 1 ||
-    //     this->d_CASVolume->GetErrorFlag() == 1 ||
-    //     this->d_CASImgs->GetErrorFlag() == 1 ||
-    //     this->d_Imgs->GetErrorFlag() == 1 ||
-    //     this->d_CoordAxes->GetErrorFlag() == 1 ||
-    //     this->d_KB_Table->GetErrorFlag() == 1)
-    // {
-    //     std::cerr << "Error during intilization." << '\n';
-    //     return; // Don't run the kernel and return
-    // }
-
-    // // Run the back projection CUDA kernel
-    // this->BackProject_obj->Execute();
 }
 
 void gpuGridder::FreeMemory()

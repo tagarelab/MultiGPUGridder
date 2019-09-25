@@ -170,6 +170,12 @@ void MultiGPUGridder::BackProject()
         this->ProjectInitializedFlag = true;
     }
 
+    // Update the mask radius parameter
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->SetMaskRadius(this->maskRadius);
+    }
+
     // Convert the volume to CAS volume using the first GPU
     // The CASVolume is shared amoung all the objects since CASVolume is a static member in the AbstractGridder class
     // cudaSetDevice(this->GPU_Devices[0]);
@@ -187,16 +193,16 @@ void MultiGPUGridder::BackProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        // gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
     }
 
     // Join CPU threads together
     for (int i = 0; i < Num_GPUs; i++)
     {
-        CPUThreads[i].join();
+        // CPUThreads[i].join();
     }
-    
+
     // Synchronize all of the GPUs
     GPU_Sync();
 
@@ -303,6 +309,8 @@ void MultiGPUGridder::SumPlaneDensity()
     {
         // Get the volume from the current GPU
         float *tempVolume = gpuGridder_vec[i]->GetPlaneDensityFromDevice();
+
+        std::cout << "this->h_PlaneDensity->CopyArray(SummedVolume):" << '\n';
 
         // Add the volumes together
         for (int i = 0; i < this->h_PlaneDensity->length(); i++)
