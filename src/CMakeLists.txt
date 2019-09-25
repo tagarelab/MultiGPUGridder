@@ -16,7 +16,7 @@ include_directories(${CUDA_INCLUDE_DIRS})
 
 option(WITH_NVPROF    "Enable NVidia profiler bindings (requires CUDA)" FALSE)
 option(WITH_MATLAB    "Compile the Matlab mex wrapper  (requires MATLAB)" TRUE)
-option(WITH_PYTHON    "Compile the Python wrapper  (requires PYTHON)" TRUE)
+option(WITH_PYTHON    "Compile the Python wrapper  (requires PYTHON)" FALSE)
 option(WITH_CUFFT     "Include the CUDA CUFFT library (required for Windows)" False)
 option(WITH_WINDOWS  "Using a Windows PC" False)
 
@@ -69,7 +69,7 @@ target_link_libraries( gridderLib ${CUDA_LIBRARIES})
 # Compile with -fPIC flag on
 # set_property(TARGET gridderLib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries( gridderLib ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})
+#target_link_libraries( gridderLib ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})
 
 
 if(WITH_CUFFT)
@@ -78,14 +78,31 @@ endif()
 
 if(WITH_MATLAB)
 	find_package(Matlab)
-	matlab_add_mex(NAME mexDeleteGridder SRC mexDeleteGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-	matlab_add_mex(NAME mexCreateGridder SRC mexCreateGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-	matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-	matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-	matlab_add_mex(NAME mexForwardProject SRC mexForwardProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-	matlab_add_mex(NAME mexBackProject SRC mexBackProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
 
-	message(STATUS "Matlab library located")
+
+	if(NOT WITH_WINDOWS)
+		find_package(Matlab)
+		matlab_add_mex(NAME mexCreateGridder SRC mexCreateGridder.cpp LINK_TO gridderLib)
+		matlab_add_mex(NAME mexDeleteGridder SRC mexDeleteGridder.cpp LINK_TO gridderLib)
+		matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp LINK_TO gridderLib)
+		matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp LINK_TO gridderLib)	
+		matlab_add_mex(NAME mexForwardProject SRC mexMultiGPUForwardProject.cpp LINK_TO gridderLib)	
+		matlab_add_mex(NAME mexBackProject SRC mexMultiGPUBackProject.cpp LINK_TO gridderLib)	
+
+		message(STATUS "Matlab library located")
+	endif()
+
+
+	if(WITH_WINDOWS)
+		matlab_add_mex(NAME mexDeleteGridder SRC mexDeleteGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexCreateGridder SRC mexCreateGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexForwardProject SRC mexMultiGPUForwardProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexBackProject SRC mexMultiGPUBackProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+
+		message(STATUS "Matlab library located")
+	endif()
 endif()
 
 
