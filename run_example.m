@@ -23,7 +23,7 @@ end
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 25;
+n1_axes = 40;
 n2_axes = 40;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -91,7 +91,7 @@ for i = 1
 % gridder.Images(1:32,1:32,:) = 0;
 gridder.Volume(:,:,:) = 0;
 gridder.CASVolume(:,:,:) = 0;
-% gridder.CASImages(1:128,1:120,:) = 0;
+% gridder.CASImages(:,:,:) = 0;
 tic
 gridder.backProject()
 toc

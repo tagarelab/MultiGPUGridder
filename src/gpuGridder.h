@@ -7,6 +7,18 @@
 #include "MemoryStruct.h"
 #include "MemoryStructGPU.h"
 
+#include "CropVolumeFilter.h"
+#include "CASToComplexFilter.h"
+#include "FFTShift2DFilter.h"
+#include "FFTShift3DFilter.h"
+#include "PadVolumeFilter.h"
+#include "ComplexToCASFilter.h"
+#include "DivideVolumeFilter.h"
+#include "RealToComplexFilter.h"
+#include "ComplexToRealFilter.h"
+#include "MultiplyVolumeFilter.h"
+#include "DivideScalarFilter.h"
+
 #include <cstdlib>
 #include <stdio.h>
 #include <vector>
@@ -40,7 +52,7 @@ public:
         // Set default values
         this->VolumeToCASVolumeFlag = false;
         this->GPUArraysAllocatedFlag = false;
-        this->RunFFTOnDevice = false;
+        this->RunFFTOnDevice = true;
         this->nStreams = 1;
         this->MaxAxesToAllocate = 0;
 
@@ -157,6 +169,15 @@ private:
 
     // gpuFFT object for running forward and inverse FFT
     gpuFFT *gpuFFT_obj;
+
+    cufftHandle inverseFFTPlan;
+
+    bool inverseFFTPlannedFlag;
+
+    cufftHandle forwardFFTPlan;
+
+    bool forwardFFTPlannedFlag;
+
 
 protected:
     // Plan the pointer offset values for running the CUDA kernels

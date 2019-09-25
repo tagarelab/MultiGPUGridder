@@ -56,6 +56,46 @@ set(SOURCE_Files
 		
 		MultiGPUGridder.h
 		MultiGPUGridder.cpp
+
+
+		AbstractFilter.h
+		AbstractFilter.cu
+
+		PadVolumeFilter.h
+		PadVolumeFilter.cu
+
+		AddVolumeFilter.h
+		AddVolumeFilter.cu
+		
+		CropVolumeFilter.h
+		CropVolumeFilter.cu
+
+		CASToComplexFilter.h
+		CASToComplexFilter.cu
+
+		FFTShift2DFilter.h
+		FFTShift2DFilter.cu
+
+		FFTShift3DFilter.h
+		FFTShift3DFilter.cu
+
+		ComplexToCASFilter.h
+		ComplexToCASFilter.cu
+
+		DivideVolumeFilter.h
+		DivideVolumeFilter.cu
+
+		RealToComplexFilter.h
+		RealToComplexFilter.cu
+		
+		ComplexToRealFilter.h
+		ComplexToRealFilter.cu
+
+		DivideScalarFilter.h
+		DivideScalarFilter.cu
+		
+		MultiplyVolumeFilter.h
+		MultiplyVolumeFilter.cu
   )
 
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})

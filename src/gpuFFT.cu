@@ -254,7 +254,7 @@ __global__ void ComplexToReal(cufftComplex *ComplexImg, float *RealImg, int imgS
     }
 }
 
-__global__ void RealToComplexKernel(float *RealImg, cufftComplex *ComplexImg, int imgSize, int nSlices)
+__global__ void RealToComplexKernel2(float *RealImg, cufftComplex *ComplexImg, int imgSize, int nSlices)
 {
     // CUDA kernel for converting a real image to a complex type
 
@@ -574,7 +574,7 @@ void gpuFFT::RealToComplex(float *d_Real, cufftComplex *d_Complex, int imgSize, 
     dim3 dimGrid(gridSize, gridSize, 1);
     dim3 dimBlock(blockSize, blockSize, 1);
 
-    RealToComplexKernel<<<dimGrid, dimBlock>>>(d_Real, d_Complex, imgSize, nSlices);
+    RealToComplexKernel2<<<dimGrid, dimBlock>>>(d_Real, d_Complex, imgSize, nSlices);
 
     return;
 }

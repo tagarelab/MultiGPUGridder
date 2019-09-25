@@ -132,6 +132,10 @@ void gpuGridder::InitilizeGPUArrays()
         this->d_CASImgs = new MemoryStructGPU<float>(this->h_CASImgs->GetDim(), this->h_CASImgs->GetSize(), this->GPU_Device);
         this->d_CASImgs->AllocateGPUArray();
         // this->d_CASImgs->CopyToGPUAsyc(this->h_CASImgs->GetPointer(), this->h_CASImgs->bytes());
+
+        // Allocate the complex CAS images array
+        this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->h_CASImgs->GetDim(), this->h_CASImgs->GetSize(), this->GPU_Device);
+        this->d_CASImgsComplex->AllocateGPUArray();
     }
     else
     {
@@ -144,11 +148,11 @@ void gpuGridder::InitilizeGPUArrays()
         this->d_CASImgs = new MemoryStructGPU<float>(3, size, this->GPU_Device);
         this->d_CASImgs->AllocateGPUArray();
         delete[] size;
-    }
 
-    // Allocate the complex CAS images array
-    this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->h_Imgs->GetDim(), this->d_CASImgs->GetSize(), this->GPU_Device);
-    this->d_CASImgsComplex->AllocateGPUArray();
+        // Allocate the complex CAS images array
+        this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(this->h_CASImgs->GetDim(), size, this->GPU_Device);
+        this->d_CASImgsComplex->AllocateGPUArray();
+    }
 
     // Limit the number of axes to allocate to be MaxAxesToAllocate
     int *imgs_size = new int[3];
@@ -475,9 +479,11 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // Plan the pointer offset values
     gpuGridder::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
 
-    // Copy the CAS volume to the corresponding GPU array
     this->d_CASVolume->Reset();
-    this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+    this->d_CASImgs->Reset();
+
+    // Copy the CAS volume to the corresponding GPU array
+    // this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
 
     // Define CUDA kernel dimensions
     int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
@@ -514,20 +520,22 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         {
             // Copy the section of images to the GPU
             cudaMemcpyAsync(
-            	this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-            	this->h_Imgs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
-            	Offsets_obj.gpuImgs_streamBytes[i],
-            	cudaMemcpyHostToDevice,
-            	streams[Offsets_obj.stream_ID[i]]);
+                this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                this->h_Imgs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
+                Offsets_obj.gpuImgs_streamBytes[i],
+                cudaMemcpyHostToDevice,
+                streams[Offsets_obj.stream_ID[i]]);
 
             // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
-            this->gpuFFT_obj->ImgsToCASImgs(
-            	streams[Offsets_obj.stream_ID[i]],
-            	this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            	this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-            	this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            	Offsets_obj.numAxesPerStream[i]);
+            this->ImgsToCASImgs(
+                streams[Offsets_obj.stream_ID[i]],
+                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                Offsets_obj.numAxesPerStream[i]);
         }
+
+        cudaDeviceSynchronize();
 
         // Run the back projection kernel
         gpuBackProject::RunKernel(
@@ -547,7 +555,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
             &streams[Offsets_obj.stream_ID[i]]);
     }
 }
-
 
 void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs)
 {
@@ -573,16 +580,17 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
     PadFilter->SetInputSize(ImgSize);
     PadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
     PadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
+    PadFilter->SetPaddingZ(0);
     PadFilter->SetNumberOfSlices(numImgs);
     PadFilter->Update(&stream);
 
-    // Convert the CASImgs to complex cufft type
-    CASToComplexFilter *CASFilter = new CASToComplexFilter();
-    CASFilter->SetCASVolume(CASImgs);
-    CASFilter->SetComplexOutput(CASImgsComplex);
-    CASFilter->SetVolumeSize(CASImgSize);
-    CASFilter->SetNumberOfSlices(numImgs);
-    CASFilter->Update(&stream);
+    // Convert the images to complex cufft type
+    RealToComplexFilter *RealFilter = new RealToComplexFilter();
+    RealFilter->SetRealInput(CASImgs);
+    RealFilter->SetComplexOutput(CASImgsComplex);
+    RealFilter->SetVolumeSize(CASImgSize);
+    RealFilter->SetNumberOfSlices(numImgs);
+    RealFilter->Update(&stream);
 
     // Run FFTShift on each 2D slice
     FFTShift2DFilter *FFTShiftFilter = new FFTShift2DFilter();
@@ -600,7 +608,6 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
     // FFT on each 2D slice has similar computation speed as cufftPlanMany
     for (int i = 0; i < numImgs; i++)
     {
-
         cufftExecC2C(this->forwardFFTPlan,
                      (cufftComplex *)&CASImgsComplex[i * CASImgSize * CASImgSize],
                      (cufftComplex *)&CASImgsComplex[i * CASImgSize * CASImgSize],
