@@ -12,7 +12,7 @@ class MultiGPUGridder : public AbstractGridder
 
 public:
 	// Constructor
-	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice, int NormalizeByDensity) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
 	{
 		std::cout << "RunFFTOnDevice: " << RunFFTOnDevice << '\n';
 
@@ -36,7 +36,7 @@ public:
 			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
 			cudaDeviceReset();
 
-			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, RunFFTOnDevice, GPU_Device);
+			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, RunFFTOnDevice, NormalizeByDensity, GPU_Device);
 
 			// Save the new object to the vector of gpuGridder objects
 			gpuGridder_vec.push_back(gpuGridder_obj);
@@ -52,6 +52,8 @@ public:
 		this->ProjectInitializedFlag = false;
 
 		this->RunFFTOnDevice = RunFFTOnDevice;
+
+		this->NormalizeByDensity = NormalizeByDensity;
 	}
 
 	// Deconstructor
@@ -114,6 +116,9 @@ private:
 
 	// Flag to determine whether we are running the FFT on the GPU or not
 	int RunFFTOnDevice;
+
+	// Flag to normalize the back projected volume by the plane density
+	int NormalizeByDensity;
 };
 
 #endif

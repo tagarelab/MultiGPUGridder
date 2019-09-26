@@ -65,7 +65,8 @@ for i = 1:5
     coordAxes = coordAxes(:,P);
 
 %     gridder.coordAxes = single(coordAxes(:));
-
+gridder.resetVolume();
+gridder.resetVolume();
 gridder.setVolume(single(MRI_volume));
     tic
     images = gridder.forwardProject(coordAxes);

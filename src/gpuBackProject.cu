@@ -115,7 +115,11 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *densityVolu
 		atomicAdd((float *)vol + vk * volSize * volSize + vj * volSize + vi, (float)cumSumAllAxes);
 
 		/* Add the plane density to the density volume (for normalizing the CASVolume later) */
-		atomicAdd((float *)densityVolume + vk * volSize * volSize + vj * volSize + vi, (float)cumSumDensity);
+		// Normalizing the volume by the plane density is optional so only copy if a pointer was supplied
+		if (densityVolume != NULL)
+		{
+			atomicAdd((float *)densityVolume + vk * volSize * volSize + vj * volSize + vi, (float)cumSumDensity);
+		}
 
 	} //If vi,vj,vk
 }

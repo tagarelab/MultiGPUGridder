@@ -7,6 +7,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
         RunFFTOnGPU = true;        
         
+        % Flag to normalize the volume using the plane density 
+        NormalizeByDensity = false;
+        
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
@@ -51,9 +54,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
             gridder_Varargin{4} = int32(length(this.GPUs));
             gridder_Varargin{5} = int32(this.GPUs);
             gridder_Varargin{6} = int32(this.RunFFTOnGPU);
+            gridder_Varargin{7} = int32(this.NormalizeByDensity);
             
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(gridder_Varargin{1:6});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
                        
             % Initilize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
@@ -66,19 +70,23 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the Volume array
             this.Volume = single(zeros(repmat(this.VolumeSize, 1, 3)));  
             
-            
-            % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
-            if (this.RunFFTOnGPU == false)
-                
+        
+                            
                 % Create the CASVolume array
                 this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));                 
-                     
+                    
+                
+            % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
+            if (this.RunFFTOnGPU == false)
+ 
                 % Create the CASImages array
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
                 this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
-
-                % Create the PlaneDensity array
-                this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+                
+                if (this.NormalizeByDensity == true)
+                    % Create the PlaneDensity array
+                    this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+                end
            
             end
             
@@ -90,9 +98,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             preComp=getPreComp(InterpVolSize,this.kerHWidth);
             preComp=preComp';
             this.KBPreComp=single(reshape(kron(preComp,kron(preComp,preComp)),...
-                         InterpVolSize,InterpVolSize,InterpVolSize));
-                     
-
+                         InterpVolSize,InterpVolSize,InterpVolSize));                    
 
         end        
         %% Deconstructor - Delete the C++ class instance 
@@ -212,7 +218,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
 
                 % Normalize by the plane density
-                this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
+                if (this.NormalizeByDensity == true)
+                    this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
+                end
+                
                 this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
             end
 

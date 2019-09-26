@@ -36,20 +36,17 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
 
     // How many coordinate axes would fit in the remaining free GPU memory?
 
-    
     int EstimatedMaxAxes;
 
     if (this->RunFFTOnDevice == 1)
     {
         // If running the FFT on the device we need to allocate intermediate arrays
-        EstimatedMaxAxes = 
-        (mem_free - Bytes_for_Volume - Bytes_for_Padded_Volume - Bytes_for_Padded_Volume_Complex - Bytes_for_Plane_Density) 
-        / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
+        EstimatedMaxAxes =
+            (mem_free - Bytes_for_Volume - Bytes_for_Padded_Volume - Bytes_for_Padded_Volume_Complex - Bytes_for_Plane_Density) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
     }
     else
     {
-        EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density)
-        / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
+        EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
     }
 
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
@@ -67,7 +64,10 @@ float *gpuGridder::GetCASVolumePtr()
 float *gpuGridder::GetPlaneDensityPtr()
 {
     // Return the pointer to the plane density volume (needed for adding the volumes from all GPUs together for the volume reconstruction)
-    return this->d_PlaneDensity->GetPointer();
+    if (this->d_PlaneDensity != NULL)
+    {
+        return this->d_PlaneDensity->GetPointer();
+    }
 }
 
 void gpuGridder::CopyVolumeToHost()
@@ -85,7 +85,10 @@ void gpuGridder::CopyCASVolumeToHost()
 void gpuGridder::CopyPlaneDensityToHost()
 {
     // Copy the plane density volume from the GPU to pinned CPU memory
-    this->d_PlaneDensity->CopyFromGPU(this->h_PlaneDensity->GetPointer(), this->h_PlaneDensity->bytes());
+    if (this->d_PlaneDensity != NULL)
+    {
+        this->d_PlaneDensity->CopyFromGPU(this->h_PlaneDensity->GetPointer(), this->h_PlaneDensity->bytes());
+    }
 }
 
 float *gpuGridder::GetVolumeFromDevice()
@@ -106,10 +109,16 @@ float *gpuGridder::GetCASVolumeFromDevice()
 
 float *gpuGridder::GetPlaneDensityFromDevice()
 {
-    float *PlaneDensity = new float[this->d_PlaneDensity->length()];
-    this->d_PlaneDensity->CopyFromGPU(PlaneDensity, this->d_PlaneDensity->bytes());
-
-    return PlaneDensity;
+    if (this->d_PlaneDensity != NULL)
+    {
+        float *PlaneDensity = new float[this->d_PlaneDensity->length()];
+        this->d_PlaneDensity->CopyFromGPU(PlaneDensity, this->d_PlaneDensity->bytes());
+        return PlaneDensity;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 void gpuGridder::VolumeToCASVolume()
@@ -134,6 +143,9 @@ void gpuGridder::VolumeToCASVolume()
     this->d_Volume->Reset();
     this->d_CASVolume->Reset();
     this->d_PaddedVolume->Reset();
+
+    // Copy the volume to the corresponding GPU array
+    this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
 
     // STEP 1: Pad the input volume with zeros
     PadVolumeFilter *PadFilter = new PadVolumeFilter();
@@ -272,8 +284,15 @@ void gpuGridder::InitilizeGPUArrays()
     }
 
     // Allocate the plane density array (for the back projection)
-    this->d_PlaneDensity = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
-    this->d_PlaneDensity->AllocateGPUArray();
+    if (this->NormalizeByDensity == 1)
+    {
+        this->d_PlaneDensity = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
+        this->d_PlaneDensity->AllocateGPUArray();
+    }
+    else
+    {
+        this->d_PlaneDensity = NULL;
+    }
 
     // Allocate the CAS volume
     this->d_CASVolume = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
@@ -496,11 +515,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     // Convert and copy the volume to CAS volume if we are running the FFT on the device
     if (this->RunFFTOnDevice == 1)
     {
-        this->d_CASVolume->Reset();
-
-        // Copy the volume to the corresponding GPU array
-        this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
-
         // Run the volume to CAS volume function
         VolumeToCASVolume();
     }
@@ -652,33 +666,30 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // this->d_CASImgsComplex->CopyToGPU(test, this->d_CASImgsComplex->bytes());
 
     // Reset the CAS volume on the device to all zeros before the back projection
-    // this->d_CASVolume->Reset(); // needed?
+    this->d_CASVolume->Reset(); // needed?
+    this->d_CASImgs->Reset();
+    this->d_Imgs->Reset();
+    this->d_CoordAxes->Reset();
+    if (this->d_PlaneDensity != NULL)
+    {
+        this->d_PlaneDensity->Reset();
+    }
 
     // Convert and copy the volume to CAS volume if we are running the FFT on the device
-    if (this->RunFFTOnDevice == 1)
-    {
-        this->d_CASVolume->Reset();
+    // if (this->RunFFTOnDevice == 1)
+    // {
+    //     // Run the volume to CAS volume function
+    //     VolumeToCASVolume();
+    // }
+    // else
+    // {
+    //     this->d_CASVolume->Reset();
 
-        // Copy the volume to the corresponding GPU array
-        this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
+    //     // Copy the CAS volume to the corresponding GPU array
+    //     this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+    // }
 
-        // Run the volume to CAS volume function
-        VolumeToCASVolume();
-    }
-    else
-    {
-        this->d_CASVolume->Reset();
-
-        // Copy the CAS volume to the corresponding GPU array
-        this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
-    }
-
-    // this->d_CASImgs->Reset();
-    // this->d_Imgs->Reset();
-    // this->d_CoordAxes->Reset();
-    // this->d_PlaneDensity->Reset();
-
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
 
     // Define CUDA kernel dimensions
     int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
@@ -748,13 +759,25 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
                 Offsets_obj.numAxesPerStream[i]);
         }
 
+        // Are we going to normalize the volume using the plane density?
+        float *PlaneDensity;
+        if (this->NormalizeByDensity == 1)
+        {
+            PlaneDensity = this->d_PlaneDensity->GetPointer();
+        }
+        else
+        {
+            // Pass a NULL pointer to the kernel
+            PlaneDensity = NULL;
+        }
+        
         // Run the back projection kernel
         gpuBackProject::RunKernel(
             this->d_CASVolume->GetPointer(),
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             this->d_KB_Table->GetPointer(),
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
-            this->d_PlaneDensity->GetPointer(),
+            PlaneDensity,
             this->kerHWidth,
             Offsets_obj.numAxesPerStream[i],
             gridSize,
@@ -989,13 +1012,15 @@ void gpuGridder::ReconstructVolume()
 
     // Divide the CASVolume by the plane density to normalize
     // gpuFFT::DivideVolumes(d_CAS_Volume, d_PlaneDensity, CASVolumeSize);
-
-    DivideVolumeFilter *DivideFilter = new DivideVolumeFilter();
-    DivideFilter->SetVolumeSize(CASVolumeSize);
-    // DivideFilter->SetNumberOfSlices(CASVolumeSize);
-    DivideFilter->SetVolumeOne(this->d_CASVolume->GetPointer());
-    DivideFilter->SetVolumeTwo(this->d_PlaneDensity->GetPointer());
-    DivideFilter->Update();
+    if (this->NormalizeByDensity == 1)
+    {
+        DivideVolumeFilter *DivideFilter = new DivideVolumeFilter();
+        DivideFilter->SetVolumeSize(CASVolumeSize);
+        // DivideFilter->SetNumberOfSlices(CASVolumeSize);
+        DivideFilter->SetVolumeOne(this->d_CASVolume->GetPointer());
+        DivideFilter->SetVolumeTwo(this->d_PlaneDensity->GetPointer());
+        DivideFilter->Update();
+    }
 
     // gpuFFT::CropVolume(this->d_CASVolume->GetPointer(), d_CASVolume_Cropped, CASVolumeSize, CroppedCASVolumeSize);
 
@@ -1063,7 +1088,7 @@ void gpuGridder::ReconstructVolume()
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize;
+    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;// * CroppedCASVolumeSize;
     // gpuFFT::ComplexToCroppedNormalizedVol(d_CASVolume_Cropped_Complex, d_Volume->GetPointer(), CroppedCASVolumeSize, VolumeSize, normalizationFactor);
 
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();

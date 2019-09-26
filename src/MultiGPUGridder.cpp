@@ -207,13 +207,16 @@ void MultiGPUGridder::BackProject()
 
         // We have to combine the output from each GPU in the frequency domain and not spatial domain
         int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
-                
+
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
         AddCASVolumes(GPU_For_Reconstruction);
         // CPUThreads[0] = std::thread(&MultiGPUGridder::AddCASVolumes, this, GPU_For_Reconstruction);
 
-        // Add the plane densities from all the GPUs to the first GPU (for reconstructing the volume)
-        AddPlaneDensities(GPU_For_Reconstruction);
+        if (this->NormalizeByDensity == 1)
+        {
+            // Add the plane densities from all the GPUs to the first GPU (for reconstructing the volume)
+            AddPlaneDensities(GPU_For_Reconstruction);
+        }
 
         // Reconstruct the volume using the GPU_For_Reconstruction GPU
         gpuGridder_vec[GPU_For_Reconstruction]->ReconstructVolume();
@@ -226,8 +229,11 @@ void MultiGPUGridder::BackProject()
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
 
-        // Combine the plane density arrays from each GPU and copy back to the host
-        SumPlaneDensity();
+        if (this->NormalizeByDensity == 1)
+        {
+            // Combine the plane density arrays from each GPU and copy back to the host
+            SumPlaneDensity();
+        }
     }
 }
 
