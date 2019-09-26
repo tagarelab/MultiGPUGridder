@@ -55,6 +55,7 @@ public:
         this->RunFFTOnDevice = true;
         this->nStreams = 1;
         this->MaxAxesToAllocate = 0;
+        this->VolumeSize = VolumeSize;
 
         // Set the GPU device
         SetGPU(GPU_Device);
@@ -136,13 +137,16 @@ public:
 private:
     // Initilize pointers for allocating memory on the GPU
     MemoryStructGPU<cufftComplex> *d_CASImgsComplex; // For forward / inverse FFT
+    MemoryStructGPU<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
     MemoryStructGPU<float> *d_CASVolume;
+    MemoryStructGPU<float> *d_PaddedVolume;    
     MemoryStructGPU<float> *d_CASImgs;
     MemoryStructGPU<float> *d_Imgs;     // Output images
     MemoryStructGPU<float> *d_KB_Table; // Kaiser bessel lookup table
     MemoryStructGPU<float> *d_CoordAxes;
     MemoryStructGPU<float> *d_PlaneDensity;
     MemoryStructGPU<float> *d_Volume;
+    
 
     // Kernel launching parameters
     int gridSize;
@@ -150,6 +154,7 @@ private:
     int GPU_Device; // Which GPU to use?
     int nStreams;   // Streams to use on this GPU
 
+    int VolumeSize;
     // CUDA streams to use for forward / back projection
     cudaStream_t *streams;
 

@@ -98,12 +98,122 @@ void gpuGridder::VolumeToCASVolume()
     cudaSetDevice(this->GPU_Device);
 
     // Convert the volume to CAS volume
-    gpuFFT::VolumeToCAS(
-        this->h_Volume->GetPointer(),
-        this->h_Volume->GetSize(0),
-        this->h_CASVolume->GetPointer(),
-        this->interpFactor,
-        this->extraPadding);
+    // gpuFFT::VolumeToCAS(
+    //     this->h_Volume->GetPointer(),
+    //     this->h_Volume->GetSize(0),
+    //     this->h_CASVolume->GetPointer(),
+    //     this->interpFactor,
+    //     this->extraPadding);
+
+    // Convert a GPU volume to CAS volume
+    // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
+    // Step 1: Pad the input volume with zeros and convert to cufftComplex type
+    // Step 2: fftshift
+    // Step 3: Take discrete Fourier transform using cuFFT
+    // Step 4: fftshift
+    // Step 5: Convert to CAS volume using CUDA kernel
+    // Step 6: Apply extra zero padding
+
+    // Note: d_CAS_Vol has size of d_Vol * interpFactor + extraPadding * 2
+    // Note: d_CASVol_Interp has size of d_Vol * interpFactor
+
+    std::cout << "GPUVolumeToCAS: " << '\n';
+
+    // Example: input size = 128; interpFactor = 2 -> paddedVolSize = 256
+    int PaddedVolumeSize = this->VolumeSize * this->interpFactor;
+
+    // Example: input size = 128; interpFactor = 2; extra padding = 3; -> paddedVolSize_Extra = 262
+    int PaddedVolumeSize_Extra = PaddedVolumeSize + this->extraPadding * 2;
+
+    // Allocate memory for the intermediate steps
+    // float *d_CASVol_Interp;
+    // cufftComplex *d_complex_array;
+
+    // CAS Volume interpolated using interpFactor
+    // cudaError_t status = cudaMalloc(&d_CASVol_Interp, sizeof(float) * pow(inputVolSize * interpFactor, 3));
+    // std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+
+    // status = cudaMalloc(&d_complex_array, sizeof(cufftComplex) * paddedVolSize * paddedVolSize * paddedVolSize);
+    // std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+
+    // STEP 1: Pad the input volume with zeros
+    // gpuFFT::PadVolume(d_Vol, d_PaddedVolume, inputVolSize, paddedVolSize);
+
+    PadVolumeFilter *PadFilter = new PadVolumeFilter();
+    PadFilter->SetInput(this->d_Volume->GetPointer());
+    PadFilter->SetOutput(this->d_PaddedVolume->GetPointer());
+    PadFilter->SetInputSize(this->VolumeSize);
+    PadFilter->SetPaddingX((PaddedVolumeSize - this->VolumeSize) / 2);
+    PadFilter->SetPaddingY((PaddedVolumeSize - this->VolumeSize) / 2);
+    PadFilter->SetPaddingZ((PaddedVolumeSize - this->VolumeSize) / 2);
+    // PadFilter->SetNumberOfSlices(numImgs);
+    PadFilter->Update();
+    // cudaDeviceSynchronize();
+
+    // Convert the d_CASVol_Interp to complex type (need cufftComplex type for the forward FFT)
+    // gpuFFT::RealToComplex(d_PaddedVolume, d_PaddedVolumeComplex, paddedVolSize, paddedVolSize);
+
+    RealToComplexFilter *RealToComplex = new RealToComplexFilter();
+    RealToComplex->SetRealInput(this->d_PaddedVolume->GetPointer());
+    RealToComplex->SetComplexOutput(this->d_PaddedVolumeComplex->GetPointer());
+    RealToComplex->SetVolumeSize(PaddedVolumeSize);
+    // CASFilter->SetNumberOfSlices(CroppedCASVolumeSize);
+    RealToComplex->Update();
+
+    // STEP 2: Apply an in place 3D FFT Shift
+    // gpuFFT::cufftShift_3D(d_PaddedVolumeComplex, paddedVolSize, paddedVolSize);
+    FFTShift3DFilter *FFTShiftFilter = new FFTShift3DFilter();
+    FFTShiftFilter->SetInput(this->d_PaddedVolumeComplex->GetPointer());
+    FFTShiftFilter->SetVolumeSize(PaddedVolumeSize);
+    FFTShiftFilter->Update();
+
+    // STEP 3: Execute the forward FFT on the 3D array
+    // gpuFFT::FowardFFT(d_PaddedVolumeComplex, PaddedVolumeSize);
+
+    // Plan the forward FFT
+    cufftHandle forwardFFTPlan;
+    cufftPlan3d(&forwardFFTPlan, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, CUFFT_C2C);
+    cufftExecC2C(
+        forwardFFTPlan,
+        (cufftComplex *)this->d_PaddedVolumeComplex->GetPointer(),
+        (cufftComplex *)this->d_PaddedVolumeComplex->GetPointer(),
+        CUFFT_FORWARD);
+
+    // Free the plan
+    cufftDestroy(forwardFFTPlan);
+
+    // cudaDeviceSynchronize();
+    // STEP 4: Apply a second in place 3D FFT Shift
+    // gpuFFT::cufftShift_3D(d_PaddedVolumeComplex, paddedVolSize, paddedVolSize);
+
+    FFTShiftFilter->SetInput(this->d_PaddedVolumeComplex->GetPointer());
+    FFTShiftFilter->SetVolumeSize(PaddedVolumeSize);
+    FFTShiftFilter->Update();
+
+    // STEP 5: Convert the complex result of the forward FFT to a CAS img type
+    // gpuFFT::ComplexImgsToCAS(d_PaddedVolumeComplex, d_PaddedVolume, paddedVolSize, paddedVolSize);
+
+    ComplexToCASFilter *CASFilter = new ComplexToCASFilter();
+    CASFilter->SetComplexInput(this->d_PaddedVolumeComplex->GetPointer());
+    CASFilter->SetCASVolumeOutput(this->d_PaddedVolume->GetPointer());
+    CASFilter->SetVolumeSize(PaddedVolumeSize);
+    // CASFilter->SetNumberOfSlices(CroppedCASVolumeSize);
+    CASFilter->Update();
+
+    // STEP 6: Pad the result with the additional padding
+    // gpuFFT::PadVolume(d_PaddedVolume, d_CAS_Vol, paddedVolSize, paddedVolSize_Extra);
+    // PadVolumeFilter *PadFilter = new PadVolumeFilter();
+    PadFilter->SetInput(this->d_PaddedVolume->GetPointer());
+    PadFilter->SetOutput(this->d_CASVolume->GetPointer());
+    PadFilter->SetInputSize(PaddedVolumeSize);
+    PadFilter->SetPaddingX((PaddedVolumeSize_Extra - PaddedVolumeSize) / 2);
+    PadFilter->SetPaddingY((PaddedVolumeSize_Extra - PaddedVolumeSize) / 2);
+    PadFilter->SetPaddingZ((PaddedVolumeSize_Extra - PaddedVolumeSize) / 2);
+    // PadFilter->SetNumberOfSlices(numImgs);
+    PadFilter->Update();
+    cudaDeviceSynchronize();
+
+    // Free the temporary memory allocated
 }
 
 void gpuGridder::CopyCASVolumeToGPUAsyc()
@@ -143,9 +253,21 @@ void gpuGridder::InitilizeGPUArrays()
         return;
     }
 
+    int PaddedVolumeSize = this->VolumeSize * this->interpFactor;
+
     // Allocate the volume
     this->d_Volume = new MemoryStructGPU<float>(this->h_Volume->GetDim(), this->h_Volume->GetSize(), this->GPU_Device);
     this->d_Volume->AllocateGPUArray();
+
+    // Allocate padded volume (used for converting the volume to CAS volume)
+    this->d_PaddedVolume = new MemoryStructGPU<float>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
+    this->d_PaddedVolume->AllocateGPUArray();
+
+    this->d_PaddedVolumeComplex = new MemoryStructGPU<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
+    this->d_PaddedVolumeComplex->AllocateGPUArray();
+
+    // status = cudaMalloc(&d_complex_array, sizeof(cufftComplex) * paddedVolSize * paddedVolSize * paddedVolSize);
+    // std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
 
     // Allocate the CAS volume
     this->d_CASVolume = new MemoryStructGPU<float>(this->h_CASVolume->GetDim(), this->h_CASVolume->GetSize(), this->GPU_Device);
@@ -393,12 +515,17 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     // Convert the volume to CAS volume if we are running the FFT on the device
     if (this->RunFFTOnDevice == true)
     {
+        // Copy the volume to the corresponding GPU array
+        this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
+
         // Run the volume to CAS volume function
         VolumeToCASVolume();
     }
-
-    // Copy the CAS volume to the corresponding GPU array
-    this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+    else
+    {
+        // Copy the CAS volume to the corresponding GPU array
+        this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+    }
 
     // Check the error flags to see if we had any issues during the initilization
     if (this->ErrorFlag == 1 ||
@@ -511,7 +638,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 
     // Plan the pointer offset values
     gpuGridder::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
-
 
     // cufftComplex *test = new cufftComplex[this->d_CASImgsComplex->length()];
 
