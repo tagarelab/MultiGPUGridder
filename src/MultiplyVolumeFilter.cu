@@ -31,7 +31,7 @@ void MultiplyVolumeFilter::UpdateFilter(cufftComplex *Input, float *Output, cuda
     // Add two GPU arrays (of dimensions 3) together
     // Equation: VolumeOne = VolumeOne + VolumeTwo
 
-    std::cout << "MultiplyVolumeFilter()..." << '\n';
+    // std::cout << "MultiplyVolumeFilter()..." << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

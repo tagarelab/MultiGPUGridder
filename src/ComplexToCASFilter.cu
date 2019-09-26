@@ -29,7 +29,7 @@ void ComplexToCASFilter::UpdateFilter(cufftComplex *Input, float *Output, cudaSt
 {
     // Convert a cufftComplex array to CAS array
 
-    std::cout << "ComplexToCASFilter()" << '\n';
+    // std::cout << "ComplexToCASFilter()" << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)
@@ -59,11 +59,11 @@ void ComplexToCASFilter::UpdateFilter(cufftComplex *Input, float *Output, cudaSt
     dim3 dimGrid(Grid, Grid, 1);
     dim3 dimBlock(32, 32, 1); // i.e. 32*32 threads
 
-    std::cout << "ComplexToCASFilter()..." << '\n';
-    std::cout << "VolumeSize: " << VolumeSize << '\n';
-    std::cout << "NumberSlices: " << NumberSlices << '\n';
-    std::cout << "this->nSlices: " << this->nSlices << '\n';
-    std::cout << "Grid: " << Grid << '\n';
+    // std::cout << "ComplexToCASFilter()..." << '\n';
+    // std::cout << "VolumeSize: " << VolumeSize << '\n';
+    // std::cout << "NumberSlices: " << NumberSlices << '\n';
+    // std::cout << "this->nSlices: " << this->nSlices << '\n';
+    // std::cout << "Grid: " << Grid << '\n';
 
     // Use the CUDA stream if one was provided
     if (stream != NULL)

@@ -101,7 +101,7 @@ void FFTShift3DFilter::UpdateFilter(cufftComplex *Input, cudaStream_t *stream)
 {
     // Apply a 3D FFT shift to an array
 
-    std::cout << "FFTShift3DFilter()" << '\n';
+    // std::cout << "FFTShift3DFilter()" << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

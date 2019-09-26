@@ -31,7 +31,7 @@ void AddVolumeFilter::UpdateFilter(float* Input, float* Output, cudaStream_t *st
     // Add two GPU arrays (of dimensions 3) together
     // Equation: VolumeOne = VolumeOne + VolumeTwo
 
-    std::cout << "AddVolumeFilter()..." << '\n';
+    // std::cout << "AddVolumeFilter()..." << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

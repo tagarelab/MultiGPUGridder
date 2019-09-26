@@ -84,7 +84,7 @@ void CASToComplexFilter::UpdateFilter(float *Input, cufftComplex *Output, cudaSt
 {
     // Convert a CAS array to cufftComplex type
 
-    std::cout << "CASToComplexFilter()" << '\n';
+    // std::cout << "CASToComplexFilter()" << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

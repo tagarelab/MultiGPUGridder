@@ -67,14 +67,14 @@ void PadVolumeFilter::UpdateFilter(float *Input, float *Output, cudaStream_t *st
     dim3 dimGrid(Grid, Grid, 1);
     dim3 dimBlock(32, 32, 1); // i.e. 32*32 threads
 
-    std::cout << "PadVolumeFilter()..." << '\n';
-    std::cout << "InputSizeX: " << InputSizeX << '\n';
-    std::cout << "InputSizeY: " << InputSizeY << '\n';
-    std::cout << "InputSizeZ: " << InputSizeZ << '\n';
-    std::cout << "OutputSizeX: " << OutputSizeX << '\n';
-    std::cout << "OutputSizeY: " << OutputSizeY << '\n';
-    std::cout << "OutputSizeZ: " << OutputSizeZ << '\n';
-    std::cout << "Grid: " << Grid << '\n';
+    // std::cout << "PadVolumeFilter()..." << '\n';
+    // std::cout << "InputSizeX: " << InputSizeX << '\n';
+    // std::cout << "InputSizeY: " << InputSizeY << '\n';
+    // std::cout << "InputSizeZ: " << InputSizeZ << '\n';
+    // std::cout << "OutputSizeX: " << OutputSizeX << '\n';
+    // std::cout << "OutputSizeY: " << OutputSizeY << '\n';
+    // std::cout << "OutputSizeZ: " << OutputSizeZ << '\n';
+    // std::cout << "Grid: " << Grid << '\n';
 
 
 

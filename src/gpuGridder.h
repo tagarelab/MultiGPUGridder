@@ -57,6 +57,10 @@ public:
         this->MaxAxesToAllocate = 0;
         this->VolumeSize = VolumeSize;
 
+        this->inverseFFTImagesFlag = false;
+        this->forwardFFTVolumePlannedFlag = false;
+        this->forwardFFTImagesFlag = false;
+
         // Set the GPU device
         SetGPU(GPU_Device);
 
@@ -136,17 +140,16 @@ public:
 
 private:
     // Initilize pointers for allocating memory on the GPU
-    MemoryStructGPU<cufftComplex> *d_CASImgsComplex; // For forward / inverse FFT
+    MemoryStructGPU<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
     MemoryStructGPU<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
     MemoryStructGPU<float> *d_CASVolume;
-    MemoryStructGPU<float> *d_PaddedVolume;    
+    MemoryStructGPU<float> *d_PaddedVolume;
     MemoryStructGPU<float> *d_CASImgs;
     MemoryStructGPU<float> *d_Imgs;     // Output images
     MemoryStructGPU<float> *d_KB_Table; // Kaiser bessel lookup table
     MemoryStructGPU<float> *d_CoordAxes;
     MemoryStructGPU<float> *d_PlaneDensity;
     MemoryStructGPU<float> *d_Volume;
-    
 
     // Kernel launching parameters
     int gridSize;
@@ -183,16 +186,22 @@ private:
     // gpuFFT object for running forward and inverse FFT
     gpuFFT *gpuFFT_obj;
 
-    cufftHandle inverseFFTPlan;
+    // For converting the volume to CAS volume
+    bool forwardFFTVolumePlannedFlag;
+    cufftHandle forwardFFTVolume;
 
-    bool inverseFFTPlannedFlag;
+    // For converting images to CAS images
+    bool forwardFFTImagesFlag;
+    cufftHandle forwardFFTImages;
 
-    cufftHandle forwardFFTPlan;
-
-    bool forwardFFTPlannedFlag;
-
+    // For converting CAS images to images
+    bool inverseFFTImagesFlag;
+    cufftHandle inverseFFTImages;
 
 protected:
     // Plan the pointer offset values for running the CUDA kernels
     Offsets PlanOffsetValues(int coordAxesOffset, int nAxes);
+
+    // Convert CAS images to images using an inverse FFT
+    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
 };

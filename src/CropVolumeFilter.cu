@@ -43,7 +43,7 @@ void CropVolumeFilter::UpdateFilter(float *Input, float *Output, cudaStream_t *s
     // Pad a GPU allocated array (of dimensions 3) with zeros
     // Note: Output volume is larger than the input volume
 
-    std::cout << "CropVolumeFilter..." << '\n';
+    // std::cout << "CropVolumeFilter..." << '\n';
     // Check the input parameters
     if (this->InputSizeX <= 0 || this->InputSizeY <= 0 || this->InputSizeZ <= 0)
     {
@@ -69,14 +69,14 @@ void CropVolumeFilter::UpdateFilter(float *Input, float *Output, cudaStream_t *s
     dim3 dimGrid(Grid, Grid, 1);
     dim3 dimBlock(32, 32, 1); // i.e. 32*32 threads
 
-    std::cout << "CropVolumeFilter()..." << '\n';
-    std::cout << "InputSizeX: " << InputSizeX << '\n';
-    std::cout << "InputSizeY: " << InputSizeY << '\n';
-    std::cout << "InputSizeZ: " << InputSizeZ << '\n';
-    std::cout << "OutputSizeX: " << OutputSizeX << '\n';
-    std::cout << "OutputSizeY: " << OutputSizeY << '\n';
-    std::cout << "OutputSizeZ: " << OutputSizeZ << '\n';
-    std::cout << "Grid: " << Grid << '\n';
+    // std::cout << "CropVolumeFilter()..." << '\n';
+    // std::cout << "InputSizeX: " << InputSizeX << '\n';
+    // std::cout << "InputSizeY: " << InputSizeY << '\n';
+    // std::cout << "InputSizeZ: " << InputSizeZ << '\n';
+    // std::cout << "OutputSizeX: " << OutputSizeX << '\n';
+    // std::cout << "OutputSizeY: " << OutputSizeY << '\n';
+    // std::cout << "OutputSizeZ: " << OutputSizeZ << '\n';
+    // std::cout << "Grid: " << Grid << '\n';
 
     // Use the CUDA stream if one was provided
     if (stream != NULL)

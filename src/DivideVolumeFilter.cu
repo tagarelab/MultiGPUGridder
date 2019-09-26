@@ -37,7 +37,7 @@ void DivideVolumeFilter::UpdateFilter(float* Input, float* Output, cudaStream_t 
     // Add two GPU arrays (of dimensions 3) together
     // Equation: VolumeOne = VolumeOne + VolumeTwo
 
-    std::cout << "DivideVolumeFilter()..." << '\n';
+    // std::cout << "DivideVolumeFilter()..." << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

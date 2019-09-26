@@ -29,7 +29,7 @@ void RealToComplexFilter::UpdateFilter(float *Input, cufftComplex *Output, cudaS
 {
     // Convert a cufftComplex array to CAS array
 
-    std::cout << "RealToComplexFilter()" << '\n';
+    // std::cout << "RealToComplexFilter()" << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

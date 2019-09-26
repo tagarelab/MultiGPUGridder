@@ -21,7 +21,7 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 128;
+VolumeSize = 64;
 interpFactor = 2;
 n1_axes = 40;
 n2_axes = 40;
@@ -54,7 +54,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1
+for i = 1:2
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:125,1:125,1:125) = 0;
@@ -69,11 +69,14 @@ for i = 1
     tic
     gridder.forwardProject();
     toc
-
+    easyMontage(gridder.Images(:,:,:), 1)
+  
     
-       [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
-      CASImgsTest = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
-    easyMontage(CASImgsTest,1)
+
+%     
+%        [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
+%       CASImgsTest = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
+%     easyMontage(CASImgsTest,1)
     
     
     
@@ -82,7 +85,7 @@ for i = 1
 %     easyMontage(gridder.Images(:,:,1:10), 1)
 %     pause(0.1)
 end
-% return
+return
 
 
 % Run the back projection

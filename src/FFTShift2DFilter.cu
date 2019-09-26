@@ -63,7 +63,7 @@ void FFTShift2DFilter::UpdateFilter(cufftComplex *Input, cudaStream_t *stream)
 {
     // Apply a 2D FFT shift to an array
 
-    std::cout << "FFTShift2DFilter()" << '\n';
+    // std::cout << "FFTShift2DFilter()" << '\n';
 
     // Check the input parameters
     if (this->ImageSize <= 0)
