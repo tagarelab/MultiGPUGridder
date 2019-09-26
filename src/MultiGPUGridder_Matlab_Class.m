@@ -3,7 +3,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
     properties (SetAccess = public, Hidden = false)
         
         objectHandle; % Handle to the underlying C++ class instance
-
+        
+        % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
+        RunFFTOnGPU = true;        
+        
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
@@ -47,9 +50,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
             gridder_Varargin{3} = single(varargin{3});
             gridder_Varargin{4} = int32(length(this.GPUs));
             gridder_Varargin{5} = int32(this.GPUs);
+            gridder_Varargin{6} = int32(this.RunFFTOnGPU);
             
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(gridder_Varargin{1:5});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:6});           
                        
             % Initilize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
@@ -62,20 +66,26 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the Volume array
             this.Volume = single(zeros(repmat(this.VolumeSize, 1, 3)));  
             
-            % Create the CASVolume array
-            this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+            
+            % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
+            if (this.RunFFTOnGPU == false)
+                
+                % Create the CASVolume array
+                this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));                 
                      
-            % Create the CASImages array
-            CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
-            this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
-    
-            % Create the PlaneDensity array
-            this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+                % Create the CASImages array
+                CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
+                this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
+
+                % Create the PlaneDensity array
+                this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
            
+            end
+            
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
             InterpVolSize = this.VolumeSize * int32(this.interpFactor);
-            this.KBPreComp = single(zeros(repmat(128, 1, 3)));  
+%             this.KBPreComp = single(zeros(repmat(128, 1, 3)));  
            
             preComp=getPreComp(InterpVolSize,this.kerHWidth);
             preComp=preComp';
@@ -93,25 +103,29 @@ classdef MultiGPUGridder_Matlab_Class < handle
         %% SetVariables - Set the variables of the C++ class instance 
         function Set(this)
             
-            if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.CASVolume) || isempty(this.Images) ...
+            if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.Images) ...
                 || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreams))
                 error("Error: Required array is missing in Set() function.")             
             end                    
             
             [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
-            [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));
-            [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));                           
-            [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));  
+            [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));                                 
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
             [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
-            [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
+            
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
 %             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
           
            
             % Set the optional arrays
+            if ~isempty(this.PlaneDensity)
+                [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
+            end
+            if ~isempty(this.CASVolume)
+                [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));       
+            end
             if ~isempty(this.CASImages)
                 [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));
             end
@@ -156,16 +170,20 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     return
                 end
             end
-
-%             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-%             this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
-
+        
+            if (this.RunFFTOnGPU == false)
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+                this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
+            end
+            
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);
             
             
             % Run the inverse FFT on the CAS images
-%             this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+            if (this.RunFFTOnGPU == false)
+                this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+            end
             
             ProjectionImages = this.Images;
             
@@ -188,12 +206,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUBackProject(this.objectHandle);
             
-            % Convert the CASVolume to Volume
-%             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-            
-            % Normalize by the plane density
-%             this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
-%             this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+            if (this.RunFFTOnGPU == false)
+                % Convert the CASVolume to Volume
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+
+                % Normalize by the plane density
+                this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
+                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+            end
 
         end   
         %% setVolume - Set the volume

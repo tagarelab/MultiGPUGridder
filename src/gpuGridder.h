@@ -47,12 +47,11 @@ class gpuGridder : public AbstractGridder
 
 public:
     // Constructor
-    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int RunFFTOnDevice, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
     {
         // Set default values
         this->VolumeToCASVolumeFlag = false;
         this->GPUArraysAllocatedFlag = false;
-        this->RunFFTOnDevice = true;
         this->nStreams = 1;
         this->MaxAxesToAllocate = 0;
         this->VolumeSize = VolumeSize;
@@ -60,6 +59,8 @@ public:
         this->inverseFFTImagesFlag = false;
         this->forwardFFTVolumePlannedFlag = false;
         this->forwardFFTImagesFlag = false;
+
+        this->RunFFTOnDevice = RunFFTOnDevice;
 
         // Set the GPU device
         SetGPU(GPU_Device);
@@ -168,7 +169,7 @@ private:
     bool VolumeToCASVolumeFlag;
 
     // Flag to run the forward and inverse FFT on the GPU
-    bool RunFFTOnDevice;
+    int RunFFTOnDevice;
 
     // Initilization functions
     void InitilizeGPUArrays();

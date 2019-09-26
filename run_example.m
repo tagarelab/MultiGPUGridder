@@ -21,7 +21,7 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 256;
+VolumeSize = 64;
 interpFactor = 2;
 n1_axes = 40;
 n2_axes = 40;

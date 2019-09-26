@@ -12,8 +12,10 @@ class MultiGPUGridder : public AbstractGridder
 
 public:
 	// Constructor
-	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
 	{
+		std::cout << "RunFFTOnDevice: " << RunFFTOnDevice << '\n';
+
 		// Check the input parameters: Number of GPUs
 		// Check how many GPUs there are on the computer
 		int numGPUDetected;
@@ -34,7 +36,7 @@ public:
 			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
 			cudaDeviceReset();
 
-			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, GPU_Device);
+			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, RunFFTOnDevice, GPU_Device);
 
 			// Save the new object to the vector of gpuGridder objects
 			gpuGridder_vec.push_back(gpuGridder_obj);
@@ -48,6 +50,8 @@ public:
 
 		// Set the flag to false
 		this->ProjectInitializedFlag = false;
+
+		this->RunFFTOnDevice = RunFFTOnDevice;
 	}
 
 	// Deconstructor
@@ -107,6 +111,9 @@ private:
 
 	// Flag for remembering if this is the first time running the forward projection
 	bool ProjectInitializedFlag;
+
+	// Flag to determine whether we are running the FFT on the GPU or not
+	int RunFFTOnDevice;
 };
 
 #endif
