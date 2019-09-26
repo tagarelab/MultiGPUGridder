@@ -5,7 +5,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = false;        
+        RunFFTOnGPU = true;        
         
         % Int 32 type variables        
         VolumeSize;        
@@ -112,8 +112,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
             [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
-            [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
-            
+            [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams));             
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
           
@@ -166,6 +165,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     this.coordAxes = single(varargin{2});
                     this.MaskRadius = single(varargin{3});                    
                 else
+                    disp('forwardProject(): Unknown input')
                     return
                 end
             end
@@ -184,7 +184,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
             end
             
-            ProjectionImages = this.Images;
+            ProjectionImages = this.Images;           
             
         end         
         %% BackProject - Run the back projection function
@@ -192,14 +192,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
             if ~isempty(varargin) > 0
                 % A new set of images to back project was passed
-                this.Images = varargin{1};
+                this.Images = single(varargin{1});
                 
-                % Run the forward FFT and convert the images to CAS images
-                [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                this.CASImages = CASImgsFromImgs(this.Images, interpBox, []);
- 
+                if (this.RunFFTOnGPU == false)
+                    % Run the forward FFT and convert the images to CAS images
+                    [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+                    this.CASImages = CASImgsFromImgs(this.Images, interpBox, []);
+                end
+                
                 % A new set of coordinate axes to use with the back projection was passed
-                this.coordAxes = varargin{2};
+                this.coordAxes = single(varargin{2});
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed
@@ -218,20 +220,20 @@ classdef MultiGPUGridder_Matlab_Class < handle
         %% setVolume - Set the volume
         function setVolume(this, varargin)
             % The new volume will be copied to the GPUs during this.Set()
-           this.Volume = varargin{1}; 
+           this.Volume = single(varargin{1}); 
         end
         %% resetVolume - Reset the volume
         function resetVolume(this)
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
-           this.Volume = 0 * this.Volume; 
+           this.Volume = single(0 * this.Volume); 
         end
         %% reconstructVol - Get the reconstructed volume
         function Volume = reconstructVol(this, varargin)
-            Volume = this.Volume;         
+            Volume = single(this.Volume);         
         end   
         %% getVol - Get the current volume
         function Volume = getVol(this)
-           Volume = this.Volume; 
+           Volume = single(this.Volume); 
         end
     end
 end

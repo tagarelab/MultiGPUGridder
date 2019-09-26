@@ -27,11 +27,30 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     int Bytes_per_Img = Img_Length * sizeof(float);
     int Bytes_per_CASImg = CASImg_Length * sizeof(float);
     int Bytes_per_ComplexCASImg = CASImg_Length * sizeof(cufftComplex);
+    int Bytes_for_Volume = pow(VolumeSize, 3) * sizeof(float);
+    int Bytes_for_Padded_Volume = pow((VolumeSize * interpFactor), 3) * sizeof(float);
+    int Bytes_for_Padded_Volume_Complex = Bytes_for_Padded_Volume * 2;
     int Bytes_for_CASVolume = pow((VolumeSize * interpFactor + this->extraPadding * 2), 3) * sizeof(float);
+    int Bytes_for_Plane_Density = Bytes_for_CASVolume;
     int Bytes_for_CoordAxes = 9 * sizeof(float); // 9 elements per axes
 
     // How many coordinate axes would fit in the remaining free GPU memory?
-    int EstimatedMaxAxes = (mem_free - Bytes_for_CASVolume) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
+
+    
+    int EstimatedMaxAxes;
+
+    if (this->RunFFTOnDevice == 1)
+    {
+        // If running the FFT on the device we need to allocate intermediate arrays
+        EstimatedMaxAxes = 
+        (mem_free - Bytes_for_Volume - Bytes_for_Padded_Volume - Bytes_for_Padded_Volume_Complex - Bytes_for_Plane_Density) 
+        / (Bytes_per_Img + Bytes_per_CASImg + Bytes_per_ComplexCASImg + Bytes_for_CoordAxes);
+    }
+    else
+    {
+        EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density)
+        / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
+    }
 
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
     EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
@@ -112,6 +131,7 @@ void gpuGridder::VolumeToCASVolume()
     // Example: input size = 128; interpFactor = 2; extra padding = 3; -> paddedVolSize_Extra = 262
     int PaddedVolumeSize_Extra = PaddedVolumeSize + this->extraPadding * 2;
 
+    this->d_Volume->Reset();
     this->d_CASVolume->Reset();
     this->d_PaddedVolume->Reset();
 
@@ -212,10 +232,6 @@ void gpuGridder::InitilizeGPUArrays()
         this->ErrorFlag = 1;
         return;
     }
-
-    // this->MaxAxesToAllocate = 2000; // TEST TEST
-
-    std::cout << "this->MaxAxesToAllocate: " << this->MaxAxesToAllocate << '\n';
 
     int PaddedVolumeSize = this->VolumeSize * this->interpFactor;
     int CASVolumeSize = this->VolumeSize * this->interpFactor + this->extraPadding * 2;
@@ -460,7 +476,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     if (this->GPUArraysAllocatedFlag == false)
     {
         Allocate();
-        PrintMemoryAvailable();
+        // PrintMemoryAvailable();
 
         this->GPUArraysAllocatedFlag = true;
     }
@@ -477,21 +493,21 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
     // this->d_CASImgs->Reset();
 
-    // Convert the volume to CAS volume if we are running the FFT on the device
+    // Convert and copy the volume to CAS volume if we are running the FFT on the device
     if (this->RunFFTOnDevice == 1)
     {
-        // this->d_CASVolume->Reset();
+        this->d_CASVolume->Reset();
 
         // Copy the volume to the corresponding GPU array
         this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
 
         // Run the volume to CAS volume function
         VolumeToCASVolume();
-
-        // cudaDeviceSynchronize();
     }
     else
     {
+        this->d_CASVolume->Reset();
+
         // Copy the CAS volume to the corresponding GPU array
         this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
     }
@@ -531,7 +547,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             continue;
         }
         // cudaDeviceSynchronize();
-        PrintMemoryAvailable();
+        // PrintMemoryAvailable();
 
         cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
@@ -545,8 +561,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             Offsets_obj.gpuImgs_streamBytes[i],
             streams[Offsets_obj.stream_ID[i]]);
 
-        std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
-                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+        // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
+        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
@@ -554,8 +570,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
             cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
-
-        std::cout << "Running FP kernel" << '\n';
 
         // Run the forward projection kernel
         gpuForwardProject::RunKernel(
@@ -638,18 +652,33 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // this->d_CASImgsComplex->CopyToGPU(test, this->d_CASImgsComplex->bytes());
 
     // Reset the CAS volume on the device to all zeros before the back projection
-    this->d_CASVolume->Reset();
+    // this->d_CASVolume->Reset(); // needed?
+
+    // Convert and copy the volume to CAS volume if we are running the FFT on the device
+    if (this->RunFFTOnDevice == 1)
+    {
+        this->d_CASVolume->Reset();
+
+        // Copy the volume to the corresponding GPU array
+        this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
+
+        // Run the volume to CAS volume function
+        VolumeToCASVolume();
+    }
+    else
+    {
+        this->d_CASVolume->Reset();
+
+        // Copy the CAS volume to the corresponding GPU array
+        this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+    }
 
     // this->d_CASImgs->Reset();
-
     // this->d_Imgs->Reset();
     // this->d_CoordAxes->Reset();
     // this->d_PlaneDensity->Reset();
 
     // cudaDeviceSynchronize();
-
-    // Copy the CAS volume to the corresponding GPU array
-    // this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
 
     // Define CUDA kernel dimensions
     int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
@@ -662,7 +691,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
             continue;
         }
 
-        std::cout << "BP cudaMemsetAsync" << '\n';
         cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
@@ -672,7 +700,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         // std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
-        std::cout << "BP d_CoordAxes" << '\n';
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
@@ -682,8 +709,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 
         if (this->RunFFTOnDevice == 0)
         {
-            std::cout << "BP d_CASImgs" << '\n';
-
             // Copy the CASImages from the pinned CPU array and use instead of the images array
             cudaMemcpyAsync(
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
@@ -722,8 +747,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 Offsets_obj.numAxesPerStream[i]);
         }
-
-        std::cout << "BP RunKernel" << '\n';
 
         // Run the back projection kernel
         gpuBackProject::RunKernel(
@@ -839,7 +862,6 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
     // Has the forward FFT been planned? If not create one now
     if (this->forwardFFTImagesFlag == false)
     {
-        std::cout << "gpuFFT::ImgsToCASImgs(): Planning forward FFT" << '\n';
         cufftPlan2d(&this->forwardFFTImages, CASImgSize, CASImgSize, CUFFT_C2C);
 
         this->forwardFFTImagesFlag = true;
@@ -912,33 +934,6 @@ void gpuGridder::FreeMemory()
 
 void gpuGridder::ReconstructVolume()
 {
-    // Convert the CAS volume on this GPU to to volume
-
-    std::cout << "gpuGridder::ReconstructVolume()" << '\n';
-
-    int CASVolumeSize = this->d_CASVolume->GetSize(0);
-    int CASImgSize = this->d_CASImgs->GetSize(0);
-    int ImgSize = this->d_Imgs->GetSize(0);
-
-    // First, copy the Kaiser Bessel precompensation filter to the GPU
-    // Size is volume times interp factor
-    int *KB_PreComp_size = new int[3];
-    KB_PreComp_size[0] = this->h_Volume->GetSize(0) * this->interpFactor;
-    KB_PreComp_size[1] = this->h_Volume->GetSize(1) * this->interpFactor;
-    KB_PreComp_size[2] = this->h_Volume->GetSize(2) * this->interpFactor;
-
-    // cudaDeviceSynchronize(); // test
-
-    MemoryStructGPU<float> *d_KBPreComp = new MemoryStructGPU<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
-    d_KBPreComp->AllocateGPUArray();
-
-    std::cout << "   d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer(), d_KBPreComp->bytes());" << '\n';
-
-    d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer(), d_KBPreComp->bytes());
-
-    // cudaDeviceSynchronize(); // test
-
-    delete[] KB_PreComp_size;
     // Convert a GPU CAS volume to volume
     // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
     // Step 1: Pad the input volume with zeros and convert to cufftComplex type
@@ -951,6 +946,23 @@ void gpuGridder::ReconstructVolume()
     // Note: d_CAS_Vol has size of d_Vol * interpFactor + extraPadding * 2
     // Note: d_CASVol_Interp has size of d_Vol * interpFactor
 
+    int CASVolumeSize = this->d_CASVolume->GetSize(0);
+    int CASImgSize = this->d_CASImgs->GetSize(0);
+    int ImgSize = this->d_Imgs->GetSize(0);
+
+    // First, copy the Kaiser Bessel precompensation filter to the GPU
+    // Size is volume times interp factor
+    int *KB_PreComp_size = new int[3];
+    KB_PreComp_size[0] = this->h_Volume->GetSize(0) * this->interpFactor;
+    KB_PreComp_size[1] = this->h_Volume->GetSize(1) * this->interpFactor;
+    KB_PreComp_size[2] = this->h_Volume->GetSize(2) * this->interpFactor;
+
+    MemoryStructGPU<float> *d_KBPreComp = new MemoryStructGPU<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
+    d_KBPreComp->AllocateGPUArray();
+    d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer(), d_KBPreComp->bytes());
+
+    delete[] KB_PreComp_size;
+
     int CroppedCASVolumeSize = CASVolumeSize - extraPadding * 2;
     int VolumeSize = (CASVolumeSize - extraPadding * 2) / interpFactor;
 
@@ -959,13 +971,6 @@ void gpuGridder::ReconstructVolume()
         std::cerr << "Error GPU_CASVolumeToVolume(): VolumeSize must be a positive integer value. " << VolumeSize << " was calculated." << '\n';
         return;
     }
-
-    std::cout << "GPU_CASVolumeToVolume: " << '\n';
-    std::cout << "VolumeSize: " << VolumeSize << '\n';
-    std::cout << "CASVolumeSize: " << CASVolumeSize << '\n';
-    std::cout << "CroppedCASVolumeSize: " << CroppedCASVolumeSize << '\n';
-    std::cout << "interpFactor: " << interpFactor << '\n';
-    std::cout << "extraPadding: " << extraPadding << '\n';
 
     // Allocate GPU memory for CAS volume without the extra padding
     float *d_CASVolume_Cropped;

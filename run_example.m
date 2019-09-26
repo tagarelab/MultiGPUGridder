@@ -21,10 +21,10 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 64;
+VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 40;
-n2_axes = 40;
+n1_axes = 13;
+n2_axes = 10;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
 pause(0.5)
@@ -54,22 +54,23 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1:2
+for i = 1:5
     
 %     gridder.Volume = single(MRI_volume) ;
-%     gridder.Volume(1:125,1:125,1:125) = 0;
+%     gridder.Volume(1:50,1:125,1:125) = 10;
 %     gridder.resetVolume()
 
     cols = size(coordAxes,2);
     P = randperm(cols);
     coordAxes = coordAxes(:,P);
 
-    gridder.coordAxes = single(coordAxes(:));
+%     gridder.coordAxes = single(coordAxes(:));
 
+gridder.setVolume(single(MRI_volume));
     tic
-    gridder.forwardProject();
+    images = gridder.forwardProject(coordAxes);
     toc
-    easyMontage(gridder.Images(:,:,:), 1)
+    easyMontage(images(:,:,:), 1)
 %    easyMontage(gridder.Images(:,:,1:5), 1)
     
 
@@ -83,26 +84,39 @@ for i = 1:2
     % Check for missing sections
     % Should check the CUDA return flags as well
 %     easyMontage(gridder.Images(:,:,1:10), 1)
-%     pause(0.1)
+    pause(0.1)
 end
+
 
 
 
 % Run the back projection
 
 for i = 1:2
+    
+    
+%     cols = size(coordAxes,2);
+%     P = randperm(cols);
+%     coordAxes = coordAxes(:,P);
+
+    
 % gridder.resetVolume()
 % gridder.Images(1:32,1:32,:) = 0;
-gridder.Volume(:,:,:) = 0;
-gridder.CASVolume(:,:,:) = 0;
+% gridder.Volume(:,:,:) = 0;
+% gridder.CASVolume(:,:,:) = 0;
 % gridder.CASImages(:,:,:) = 0;
+
+gridder.resetVolume();
+gridder.resetVolume();
 tic
-gridder.backProject()
+gridder.backProject(gridder.Images, coordAxes)
 toc
+
+vol=gridder.getVol();
 
 disp("Plotting...")
 % easyMontage(gridder.CASImages(:,:,:), 1)
-easyMontage(gridder.Volume, 2)
+easyMontage(vol, 2)
 end
 
 max(gridder.PlaneDensity(:))
