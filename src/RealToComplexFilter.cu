@@ -21,6 +21,7 @@ __global__ void RealToComplexKernel(float *RealImg, cufftComplex *ComplexImg, in
         int ndx = i + j * imgSize + k * imgSize * imgSize;
 
         ComplexImg[ndx].x = RealImg[ndx];
+        ComplexImg[ndx].y = 0;
     }
 }
 

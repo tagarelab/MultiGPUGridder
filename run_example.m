@@ -21,7 +21,7 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 64;
+VolumeSize = 128;
 interpFactor = 2;
 n1_axes = 40;
 n2_axes = 40;
@@ -69,6 +69,7 @@ for i = 1
     tic
     gridder.forwardProject();
     toc
+
     
        [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
       CASImgsTest = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
@@ -86,7 +87,7 @@ end
 
 % Run the back projection
 
-for i = 1
+for i = 1:2
 % gridder.resetVolume()
 % gridder.Images(1:32,1:32,:) = 0;
 gridder.Volume(:,:,:) = 0;

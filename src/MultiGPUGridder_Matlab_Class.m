@@ -7,7 +7,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0, 1, 2, 3]);
+        GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
         nStreams = 16;
         
@@ -81,6 +81,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             preComp=preComp';
             this.KBPreComp=reshape(kron(preComp,kron(preComp,preComp)),...
                          InterpVolSize,InterpVolSize,InterpVolSize);
+                     
+                      this.KBPreComp = ones(size( this.KBPreComp)); % TEST
 
 
         end        
@@ -106,7 +108,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
             [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
-            [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
+%             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
           
            
             % Set the optional arrays
@@ -155,15 +157,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 end
             end
 
-            [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-            this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
+%             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+%             this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
 
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);
             
             
             % Run the inverse FFT on the CAS images
-            this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+%             this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
             
             ProjectionImages = this.Images;
             
@@ -187,7 +189,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             mexMultiGPUBackProject(this.objectHandle);
             
             % Convert the CASVolume to Volume
-            [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+%             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
             
             % Normalize by the plane density
 %             this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
