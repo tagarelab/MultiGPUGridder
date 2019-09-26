@@ -5,7 +5,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = true;        
+        RunFFTOnGPU = false;        
         
         % Int 32 type variables        
         VolumeSize;        
@@ -85,14 +85,13 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
             InterpVolSize = this.VolumeSize * int32(this.interpFactor);
-%             this.KBPreComp = single(zeros(repmat(128, 1, 3)));  
+            this.KBPreComp = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3)));  
            
             preComp=getPreComp(InterpVolSize,this.kerHWidth);
             preComp=preComp';
-            this.KBPreComp=reshape(kron(preComp,kron(preComp,preComp)),...
-                         InterpVolSize,InterpVolSize,InterpVolSize);
+            this.KBPreComp=single(reshape(kron(preComp,kron(preComp,preComp)),...
+                         InterpVolSize,InterpVolSize,InterpVolSize));
                      
-                      this.KBPreComp = ones(size( this.KBPreComp)); % TEST
 
 
         end        
@@ -116,7 +115,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams)); 
             
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
-%             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
+            [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
           
            
             % Set the optional arrays
