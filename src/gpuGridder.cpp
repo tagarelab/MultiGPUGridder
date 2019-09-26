@@ -213,7 +213,7 @@ void gpuGridder::InitilizeGPUArrays()
         return;
     }
 
-    this->MaxAxesToAllocate = 2000; // TEST TEST
+    // this->MaxAxesToAllocate = 2000; // TEST TEST
 
     std::cout << "this->MaxAxesToAllocate: " << this->MaxAxesToAllocate << '\n';
 
@@ -452,12 +452,13 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
     {
         Allocate();
+        PrintMemoryAvailable();
 
         this->GPUArraysAllocatedFlag = true;
     }
@@ -472,21 +473,20 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
     // this->d_CASImgsComplex->CopyToGPU(test, this->d_CASImgsComplex->bytes());
 
-    this->d_CASVolume->Reset();
-    this->d_CASImgs->Reset();
-
-    PrintMemoryAvailable();
+    // this->d_CASImgs->Reset();
 
     // Convert the volume to CAS volume if we are running the FFT on the device
     if (this->RunFFTOnDevice == true)
     {
+        // this->d_CASVolume->Reset();
+
         // Copy the volume to the corresponding GPU array
         this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
 
         // Run the volume to CAS volume function
         VolumeToCASVolume();
 
-        cudaDeviceSynchronize();
+        // cudaDeviceSynchronize();
     }
     else
     {
@@ -529,24 +529,25 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             continue;
         }
         // cudaDeviceSynchronize();
+        PrintMemoryAvailable();
 
-        // cudaMemsetAsync(
-        //     this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-        //     0,
-        //     Offsets_obj.gpuCASImgs_streamBytes[i],
-        //     streams[Offsets_obj.stream_ID[i]]);
+        cudaMemsetAsync(
+            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            0,
+            Offsets_obj.gpuCASImgs_streamBytes[i],
+            streams[Offsets_obj.stream_ID[i]]);
 
-        // cudaMemsetAsync(
-        //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-        //     0,
-        //     Offsets_obj.gpuImgs_streamBytes[i],
-        //     streams[Offsets_obj.stream_ID[i]]);
+        cudaMemsetAsync(
+            this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            0,
+            Offsets_obj.gpuImgs_streamBytes[i],
+            streams[Offsets_obj.stream_ID[i]]);
 
-        // cudaMemsetAsync(
-        //     this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-        //     0,
-        //     2 * Offsets_obj.gpuCASImgs_streamBytes[i],
-        //     streams[Offsets_obj.stream_ID[i]]);
+        cudaMemsetAsync(
+            this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            0,
+            2 * Offsets_obj.gpuCASImgs_streamBytes[i],
+            streams[Offsets_obj.stream_ID[i]]);
 
         std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
                   << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
@@ -632,14 +633,18 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // }
 
     // this->d_CASImgsComplex->CopyToGPU(test, this->d_CASImgsComplex->bytes());
-
+    
+    // Reset the CAS volume on the device to all zeros before the back projection
     this->d_CASVolume->Reset();
-    this->d_CASImgs->Reset();
+
+
+    // this->d_CASImgs->Reset();
+
     // this->d_Imgs->Reset();
     // this->d_CoordAxes->Reset();
     // this->d_PlaneDensity->Reset();
 
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 
     // Copy the CAS volume to the corresponding GPU array
     // this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
@@ -654,6 +659,12 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         {
             continue;
         }
+
+        cudaMemsetAsync(
+            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            0,
+            Offsets_obj.gpuCASImgs_streamBytes[i],
+            streams[Offsets_obj.stream_ID[i]]);
 
         // std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
@@ -677,6 +688,18 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         }
         else
         {
+            cudaMemsetAsync(
+                this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                0,
+                Offsets_obj.gpuImgs_streamBytes[i],
+                streams[Offsets_obj.stream_ID[i]]);
+
+            cudaMemsetAsync(
+                this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                0,
+                2 * Offsets_obj.gpuCASImgs_streamBytes[i],
+                streams[Offsets_obj.stream_ID[i]]);
+
             // Copy the section of images to the GPU
             cudaMemcpyAsync(
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
@@ -712,7 +735,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
             &streams[Offsets_obj.stream_ID[i]]);
     }
 
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 }
 
 void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs)

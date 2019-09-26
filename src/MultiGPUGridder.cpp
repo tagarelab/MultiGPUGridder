@@ -131,14 +131,14 @@ void MultiGPUGridder::ForwardProject()
     {
         // Single thread version: gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
         // std::cout << "std::thread ForwardProject " << i << '\n';
-        gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        // CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
     }
 
     // Join CPU threads together
     for (int i = 0; i < Num_GPUs; i++)
     {
-        // CPUThreads[i].join();
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs
@@ -181,14 +181,14 @@ void MultiGPUGridder::BackProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        // CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
     }
 
     // Join CPU threads together
     for (int i = 0; i < Num_GPUs; i++)
     {
-        // CPUThreads[i].join();
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs

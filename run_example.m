@@ -21,7 +21,7 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 64;
+VolumeSize = 256;
 interpFactor = 2;
 n1_axes = 40;
 n2_axes = 40;
@@ -70,10 +70,10 @@ for i = 1:2
     gridder.forwardProject();
     toc
     easyMontage(gridder.Images(:,:,:), 1)
-  
+%    easyMontage(gridder.Images(:,:,1:5), 1)
     
 
-%     
+    
 %        [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
 %       CASImgsTest = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
 %     easyMontage(CASImgsTest,1)
@@ -85,7 +85,7 @@ for i = 1:2
 %     easyMontage(gridder.Images(:,:,1:10), 1)
 %     pause(0.1)
 end
-return
+
 
 
 % Run the back projection
