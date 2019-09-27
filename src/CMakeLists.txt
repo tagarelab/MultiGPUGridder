@@ -87,6 +87,10 @@ if(WITH_MATLAB)
 		matlab_add_mex(NAME mexGetVariables SRC Mex/mexGetVariables.cpp LINK_TO MultiGPUGridder)	
 		matlab_add_mex(NAME mexMultiGPUForwardProject SRC Mex/mexMultiGPUForwardProject.cpp LINK_TO MultiGPUGridder)	
 		matlab_add_mex(NAME mexMultiGPUBackProject SRC Mex/mexMultiGPUBackProject.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUGetVolume SRC Mex/mexMultiGPUGetVolume.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC Mex/mexMultiGPUReconstructVolume.cpp LINK_TO MultiGPUGridder)	
+
+		
 
 		message(STATUS "Matlab library located")
 	endif()
@@ -98,6 +102,8 @@ if(WITH_MATLAB)
 		matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
 		matlab_add_mex(NAME mexMultiGPUForwardProject SRC mexMultiGPUForwardProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
 		matlab_add_mex(NAME mexMultiGPUBackProject SRC mexMultiGPUBackProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+		matlab_add_mex(NAME mexMultiGPUGetVolume SRC mexMultiGPUGetVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC mexMultiGPUReconstructVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
 
 		message(STATUS "Matlab library located")
 	endif()

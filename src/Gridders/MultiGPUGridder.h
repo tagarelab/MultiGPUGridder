@@ -71,6 +71,12 @@ public:
 	// Run the back projection kernel on each gpuGridder object
 	void BackProject();
 
+	// Combine the CAS volumes on all the GPUs and convert to volume
+	void CASVolumeToVolume();
+
+	// Convert CAS volume to volume and normalize by the plane density
+	void ReconstructVolume();
+
 	// Get the volumes from each GPU, sum them together, and copy the result back to the host memory
 	void SumPlaneDensity();
 	void SumVolumes();

@@ -69,7 +69,6 @@ public:
         {
             std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
         }
-
     };
 
     // Deconstructor
@@ -137,6 +136,12 @@ public:
     // Reconstruct the volume by converting the CASVolume to Volume
     void ReconstructVolume();
 
+    // Convert the CASVolume to volume
+    void CASVolumeToVolume();
+
+    // Calculate the plane density by running the back projection kernel with CASimages equal to one
+    void CalculatePlaneDensity(int AxesOffset, int nAxesToProcess);
+
 private:
     // Initilize pointers for allocating memory on the GPU
     MemoryStructGPU<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
@@ -170,7 +175,7 @@ private:
     int RunFFTOnDevice;
 
     // Flag to normalize the back projected volume by the plane density
-	int NormalizeByDensity;
+    int NormalizeByDensity;
 
     // Initilization functions
     void InitilizeGPUArrays();

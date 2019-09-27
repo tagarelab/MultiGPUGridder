@@ -1,7 +1,7 @@
 #include "gpuBackProject.h"
 #include <math.h> /* round, floor, ceil, trunc */
 
-__global__ void gpuBackProjectKernel(float *vol, int volSize, float *densityVolume, float *img, int imgSize,
+__global__ void gpuBackProjectKernel(float *vol, int volSize, float *img, int imgSize,
 									 float *axes, int nAxes, float maskRadius,
 									 const float *ker, int kerSize, float kerHWidth)
 
@@ -17,7 +17,7 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *densityVolu
 	float *nx, *ny, r, *nz;
 	float kerCenter = ((float)kerSize - 1) / 2;
 	float kerScale = kerCenter / kerHWidth;
-	float w, cumSum, cumSumAllAxes, cumDensity, cumSumDensity;
+	float w, cumSum, cumSumAllAxes;
 
 	__shared__ float locKer[1000];
 
@@ -50,7 +50,6 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *densityVolu
 	if ((vi < volSize) && (vj < volSize) && (vk < volSize) && (r <= maskRadius))
 	{
 		cumSumAllAxes = 0;
-		cumSumDensity = 0;
 
 		for (axesIndex = 0; axesIndex < nAxes; axesIndex++)
 		{
@@ -72,7 +71,6 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *densityVolu
 				img_ptr = img + axesIndex * imgSize * imgSize;
 
 				cumSum = 0;
-				cumDensity = 0;
 				for (j1 = imgj - convW; j1 <= imgj + convW; j1++)
 					for (i1 = imgi - convW; i1 <= imgi + convW; i1++)
 					{
@@ -101,26 +99,16 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *densityVolu
 						if (j1 * imgSize + i1 < imgSize * imgSize && j1 * imgSize + i1 >= 0)
 						{
 							cumSum += (*(img_ptr + j1 * imgSize + i1)) * w;
-							cumDensity += w;
 						}
 
 					} //for i1
 					  //  atomicAdd((float *)vol+vk*volSize*volSize+vj*volSize+vi,(float)cumSum);
 				cumSumAllAxes += cumSum;
-				cumSumDensity += cumDensity;
 			} // If f_imgk
 		}	 // for axesIndex
 
 		/* Add the accumulated All axes sum to the volume */
 		atomicAdd((float *)vol + vk * volSize * volSize + vj * volSize + vi, (float)cumSumAllAxes);
-
-		/* Add the plane density to the density volume (for normalizing the CASVolume later) */
-		// Normalizing the volume by the plane density is optional so only copy if a pointer was supplied
-		if (densityVolume != NULL)
-		{
-			atomicAdd((float *)densityVolume + vk * volSize * volSize + vj * volSize + vi, (float)cumSumDensity);
-		}
-
 	} //If vi,vj,vk
 }
 
@@ -129,7 +117,6 @@ void gpuBackProject::RunKernel(
 	float *d_CASImgs,
 	float *d_KB_Table,
 	float *d_CoordAxes,
-	float *d_PlaneDensity,
 	float kerHWidth,
 	int nAxes,
 	int GridSize,
@@ -149,13 +136,13 @@ void gpuBackProject::RunKernel(
 	if (stream != NULL)
 	{
 		gpuBackProjectKernel<<<dimGrid, dimBlock, 0, *stream>>>(
-			d_CASVolume, CASVolSize, d_PlaneDensity, d_CASImgs, CASImgSize, d_CoordAxes,
+			d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
 			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
 	}
 	else
 	{
 		gpuBackProjectKernel<<<dimGrid, dimBlock>>>(
-			d_CASVolume, CASVolSize, d_PlaneDensity, d_CASImgs, CASImgSize, d_CoordAxes,
+			d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
 			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
 	}
 
