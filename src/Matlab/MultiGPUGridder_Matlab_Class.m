@@ -77,11 +77,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Volume = single(zeros(repmat(this.VolumeSize, 1, 3)));  
             
         
-                            
-                % Create the CASVolume array
-                this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));                 
-                    
-                
             % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
             if (this.RunFFTOnGPU == false)
  
@@ -93,6 +88,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     % Create the PlaneDensity array
                     this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
                 end
+                
+                                            
+                % Create the CASVolume array
+                this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));                                    
+                
            
             end
             

@@ -32,14 +32,15 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     int *ArraySize = new int[1];
     ArraySize[0] = 1;
 
-    this->h_Imgs = new MemoryStruct<float>(1, ArraySize);
-    this->h_Volume = new MemoryStruct<float>(1, ArraySize);
-    this->h_CoordAxes = new MemoryStruct<float>(1, ArraySize);
-    this->h_KB_Table = new MemoryStruct<float>(1, ArraySize);
-    this->h_KBPreComp = new MemoryStruct<float>(1, ArraySize);
-    this->h_CASVolume = new MemoryStruct<float>(1, ArraySize);    // Optional inputs
-    this->h_CASImgs = new MemoryStruct<float>(1, ArraySize);      // Optional inputs
-    this->h_PlaneDensity = new MemoryStruct<float>(1, ArraySize); // Optional inputs
+    // Set the initialization flags to false
+    this->ImgsInitialized = false;
+    this->VolumeInitialized = false;
+    this->CASImgsInitialized = false;
+    this->KB_TableInitialized = false;
+    this->KBPreCompInitialized = false;
+    this->CASVolumeInitialized = false;
+    this->CoordAxesInitialized = false;
+    this->PlaneDensityInitialized = false;
 }
 
 AbstractGridder::~AbstractGridder()
@@ -53,11 +54,13 @@ AbstractGridder::~AbstractGridder()
 void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySize)
 {
     // Set the keiser bessel vector
-    if (this->h_KB_Table->IsInitialized() == false)
+    if (this->KB_TableInitialized == false)
     {
         this->h_KB_Table = new MemoryStruct<float>(1, ArraySize);
         this->h_KB_Table->CopyPointer(ker_bessel_Vector);
         this->h_KB_Table->PinArray();
+
+        this->KB_TableInitialized = true;
     }
     else
     {
@@ -69,11 +72,13 @@ void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySiz
 void AbstractGridder::SetVolume(float *Volume, int *ArraySize)
 {
     // First save the given pointer
-    if (this->h_Volume->IsInitialized() == false)
+    if (this->VolumeInitialized == false)
     {
         this->h_Volume = new MemoryStruct<float>(3, ArraySize);
         this->h_Volume->CopyPointer(Volume);
         this->h_Volume->PinArray();
+
+        this->VolumeInitialized = true;
     }
     else
     {
@@ -85,11 +90,13 @@ void AbstractGridder::SetVolume(float *Volume, int *ArraySize)
 void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
 {
     // Set the CAS volume (an optional input to the gridder)
-    if (this->h_CASVolume->IsInitialized() == false)
+    if (this->CASVolumeInitialized == false)
     {
         this->h_CASVolume = new MemoryStruct<float>(3, ArraySize);
         this->h_CASVolume->CopyPointer(CASVolume);
         this->h_CASVolume->PinArray();
+
+        this->CASVolumeInitialized = true;
     }
     else
     {
@@ -101,11 +108,13 @@ void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
 void AbstractGridder::SetPlaneDensity(float *PlaneDensity, int *ArraySize)
 {
     // Set the plane density array (optional)
-    if (this->h_PlaneDensity->IsInitialized() == false)
+    if (this->PlaneDensityInitialized == false)
     {
         this->h_PlaneDensity = new MemoryStruct<float>(3, ArraySize);
         this->h_PlaneDensity->CopyPointer(PlaneDensity);
         this->h_PlaneDensity->PinArray();
+
+        this->PlaneDensityInitialized = true;
     }
     else
     {
@@ -117,11 +126,13 @@ void AbstractGridder::SetPlaneDensity(float *PlaneDensity, int *ArraySize)
 void AbstractGridder::SetKBPreCompArray(float *KBPreCompArray, int *ArraySize)
 {
     // Set the Kaiser Bessel precompentation array (currently set using Matlab's getPreComp() function)
-    if (this->h_KBPreComp->IsInitialized() == false)
+    if (this->KBPreCompInitialized == false)
     {
         this->h_KBPreComp = new MemoryStruct<float>(3, ArraySize);
         this->h_KBPreComp->CopyPointer(KBPreCompArray);
         this->h_KBPreComp->PinArray();
+
+        this->KBPreCompInitialized = true;
     }
     else
     {
@@ -133,11 +144,13 @@ void AbstractGridder::SetKBPreCompArray(float *KBPreCompArray, int *ArraySize)
 void AbstractGridder::SetImages(float *imgs, int *ArraySize)
 {
     // Set the images array
-    if (this->h_Imgs->IsInitialized() == false)
+    if (this->ImgsInitialized == false)
     {
         this->h_Imgs = new MemoryStruct<float>(3, ArraySize);
         this->h_Imgs->CopyPointer(imgs);
         this->h_Imgs->PinArray();
+
+        this->ImgsInitialized = true;
     }
     else
     {
@@ -149,11 +162,13 @@ void AbstractGridder::SetImages(float *imgs, int *ArraySize)
 void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
 {
     // Set the CAS images array
-    if (this->h_CASImgs->IsInitialized() == false)
+    if (this->CASImgsInitialized == false)
     {
         this->h_CASImgs = new MemoryStruct<float>(3, ArraySize);
         this->h_CASImgs->CopyPointer(CASimgs);
         this->h_CASImgs->PinArray();
+
+        this->CASImgsInitialized = true;
     }
     else
     {
@@ -165,11 +180,13 @@ void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
 void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
 {
     // Set the coordinate axes pointer
-    if (this->h_CoordAxes->IsInitialized() == false)
+    if (this->CoordAxesInitialized == false)
     {
         this->h_CoordAxes = new MemoryStruct<float>(1, ArraySize);
         this->h_CoordAxes->CopyPointer(coordAxes);
         this->h_CoordAxes->PinArray();
+
+        this->CoordAxesInitialized = true;
     }
     else
     {

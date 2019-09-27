@@ -23,7 +23,6 @@ public:
     // Reset the volume to all zeros
     void ResetVolume() { this->h_Volume->Reset(); };
 
-
     // Setter functions
     void SetVolume(float *h_Volume, int *VolumeSize);
     void SetKerBesselVector(float *h_KB_Table, int *ArraySize);
@@ -64,9 +63,6 @@ protected:
     static MemoryStruct<float> *h_CASImgs;      // Optional inputs
     static MemoryStruct<float> *h_PlaneDensity; // Optional inputs
 
-
-
-
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;
 
@@ -103,4 +99,15 @@ protected:
 
     // Free all of the allocated memory
     void FreeMemory(){};
+
+private:
+    // Flags to see if the host arrays have been initialized already
+    bool ImgsInitialized;
+    bool VolumeInitialized;
+    bool CASImgsInitialized;
+    bool KB_TableInitialized;
+    bool KBPreCompInitialized;
+    bool CASVolumeInitialized;
+    bool CoordAxesInitialized;
+    bool PlaneDensityInitialized;
 };

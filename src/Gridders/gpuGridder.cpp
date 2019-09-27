@@ -428,21 +428,19 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes)
             Offsets_obj.gpuImgs_Offset.push_back(numAxesGPU_Batch * ImgSize * ImgSize);
             Offsets_obj.gpuCoordAxes_Stream_Offset.push_back(numAxesGPU_Batch * 9);
 
-            // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)
-            if (this->h_CASImgs != NULL)
-            {
-                // Have to use unsigned long long since the array may be longer than the max value int32 can represent
-                // imgSize is the size of the zero padded projection images
-                unsigned long long *CASImgs_Offset = new unsigned long long[3];
-                CASImgs_Offset[0] = (unsigned long long)(CASImgSize);
-                CASImgs_Offset[1] = (unsigned long long)(CASImgSize);
-                CASImgs_Offset[2] = (unsigned long long)(processed_nAxes + coordAxesOffset);
+            // Optionally: Copy the resulting CAS images back to the host pinned memory (CPU)        
+            // Have to use unsigned long long since the array may be longer than the max value int32 can represent
+            // imgSize is the size of the zero padded projection images
+            unsigned long long *CASImgs_Offset = new unsigned long long[3];
+            CASImgs_Offset[0] = (unsigned long long)(CASImgSize);
+            CASImgs_Offset[1] = (unsigned long long)(CASImgSize);
+            CASImgs_Offset[2] = (unsigned long long)(processed_nAxes + coordAxesOffset);
 
-                Offsets_obj.CASImgs_CPU_Offset.push_back(CASImgs_Offset[0] * CASImgs_Offset[1] * CASImgs_Offset[2]);
+            Offsets_obj.CASImgs_CPU_Offset.push_back(CASImgs_Offset[0] * CASImgs_Offset[1] * CASImgs_Offset[2]);
 
-                // How many bytes are the output images?
-                Offsets_obj.gpuCASImgs_streamBytes.push_back(CASImgSize * CASImgSize * Offsets_obj.numAxesPerStream.back() * sizeof(float));
-            }
+            // How many bytes are the output images?
+            Offsets_obj.gpuCASImgs_streamBytes.push_back(CASImgSize * CASImgSize * Offsets_obj.numAxesPerStream.back() * sizeof(float));
+            
 
             // Have to use unsigned long long since the array may be longer than the max value int32 can represent
             // imgSize is the size of the zero padded projection images
@@ -500,17 +498,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         this->GPUArraysAllocatedFlag = true;
     }
 
-    // cufftComplex *test = new cufftComplex[this->d_CASImgsComplex->length()];
-
-    // for (int i = 0; i < this->d_CASImgsComplex->length(); i++)
-    // {
-    //     test[i].x = 0;
-    //     test[i].y = 0;
-    // }
-
-    // this->d_CASImgsComplex->CopyToGPU(test, this->d_CASImgsComplex->bytes());
-
-    // this->d_CASImgs->Reset();
 
     // Convert and copy the volume to CAS volume if we are running the FFT on the device
     if (this->RunFFTOnDevice == 1)
@@ -560,9 +547,11 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         {
             continue;
         }
-        // cudaDeviceSynchronize();
-        // PrintMemoryAvailable();
 
+        // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
+        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+
+        // PrintMemoryAvailable();
         cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
@@ -575,8 +564,6 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             Offsets_obj.gpuImgs_streamBytes[i],
             streams[Offsets_obj.stream_ID[i]]);
 
-        // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
-        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
