@@ -224,7 +224,6 @@ void MultiGPUGridder::ReconstructVolume()
     // First calculate the plane density on each GPU
     // Then combine the CASVolume and plane density arrays and convert to volume
 
-
     // Plan which GPU will process which coordinate axes
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
 
@@ -268,11 +267,8 @@ void MultiGPUGridder::ReconstructVolume()
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
 
-        if (this->NormalizeByDensity == 1)
-        {
-            // Combine the plane density arrays from each GPU and copy back to the host
-            SumPlaneDensity();
-        }
+        // Combine the plane density arrays from each GPU and copy back to the host
+        SumPlaneDensity();
     }
 }
 

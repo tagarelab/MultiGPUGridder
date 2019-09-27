@@ -46,7 +46,7 @@ class gpuGridder : public AbstractGridder
 
 public:
     // Constructor
-    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int RunFFTOnDevice, int NormalizeByDensity, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int RunFFTOnDevice, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
     {
         // Set default values
         this->VolumeToCASVolumeFlag = false;
@@ -60,7 +60,6 @@ public:
         this->forwardFFTImagesFlag = false;
 
         this->RunFFTOnDevice = RunFFTOnDevice;
-        this->NormalizeByDensity = NormalizeByDensity;
 
         // Set the GPU device
         SetGPU(GPU_Device);
@@ -173,9 +172,6 @@ private:
 
     // Flag to run the forward and inverse FFT on the GPU
     int RunFFTOnDevice;
-
-    // Flag to normalize the back projected volume by the plane density
-    int NormalizeByDensity;
 
     // Initilization functions
     void InitilizeGPUArrays();

@@ -283,15 +283,8 @@ void gpuGridder::InitilizeGPUArrays()
     }
 
     // Allocate the plane density array (for the back projection)
-    if (this->NormalizeByDensity == 1)
-    {
-        this->d_PlaneDensity = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
-        this->d_PlaneDensity->AllocateGPUArray();
-    }
-    else
-    {
-        this->d_PlaneDensity = NULL;
-    }
+    this->d_PlaneDensity = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
+    this->d_PlaneDensity->AllocateGPUArray();
 
     // Allocate the CAS volume
     this->d_CASVolume = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
@@ -727,7 +720,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 Offsets_obj.numAxesPerStream[i]);
         }
-      
+
         // Run the back projection kernel
         gpuBackProject::RunKernel(
             this->d_CASVolume->GetPointer(),
@@ -815,7 +808,6 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             this->d_KB_Table->GetSize(0),
             &streams[Offsets_obj.stream_ID[i]]);
     }
-
 }
 
 void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs)
@@ -1135,7 +1127,7 @@ void gpuGridder::ReconstructVolume()
     DivideFilter->SetVolumeSize(CASVolumeSize);
     DivideFilter->SetVolumeOne(this->d_CASVolume->GetPointer());
     DivideFilter->SetVolumeTwo(this->d_PlaneDensity->GetPointer());
-    DivideFilter->Update();    
+    DivideFilter->Update();
 
     // Remove the extraPadding from the CAS volume
     CropVolumeFilter *CropFilter = new CropVolumeFilter();

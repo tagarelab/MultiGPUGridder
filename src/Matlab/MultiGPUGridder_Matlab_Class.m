@@ -7,9 +7,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
         RunFFTOnGPU = true;        
         
-        % Flag to normalize the volume using the plane density 
-        NormalizeByDensity = false;
-        
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
@@ -61,10 +58,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             gridder_Varargin{4} = int32(length(this.GPUs));
             gridder_Varargin{5} = int32(this.GPUs);
             gridder_Varargin{6} = int32(this.RunFFTOnGPU);
-            gridder_Varargin{7} = int32(this.NormalizeByDensity);
-            
+
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:6});           
                        
             % Initilize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
@@ -84,12 +80,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
                 this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
                 
-                if (this.NormalizeByDensity == true)
-                    % Create the PlaneDensity array
-                    this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
-                end
-                
-                                            
+                % Create the PlaneDensity array
+                this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+                                                            
                 % Create the CASVolume array
                 this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));                                    
                 
@@ -219,18 +212,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUBackProject(this.objectHandle);
             
-            if (this.RunFFTOnGPU == false)
-                % Convert the CASVolume to Volume
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-
-                % Normalize by the plane density
-                if (this.NormalizeByDensity == true)
-                    this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
-                end
-                
-                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
-            end
-
         end   
         %% setVolume - Set the volume
         function setVolume(this, varargin)
@@ -242,12 +223,35 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = single(0 * this.Volume); 
         end
-        %% reconstructVol - Get the reconstructed volume
+        %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)
+            
+            mexMultiGPUReconstructVolume(this.objectHandle);
+            
+            if (this.RunFFTOnGPU == false)
+                % Convert the CASVolume to Volume
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+
+                % Normalize by the plane density               
+                this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
+
+                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+            end
+
             Volume = single(this.Volume);         
         end   
-        %% getVol - Get the current volume
+        %% getVol - Convert the CAS Volume to Volume
         function Volume = getVol(this)
+            
+           mexMultiGPUGetVolume(this.objectHandle);
+           
+            if (this.RunFFTOnGPU == false)
+                % Convert the CASVolume to Volume
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+
+                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+            end
+
            Volume = single(this.Volume); 
         end
     end
