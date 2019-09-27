@@ -42,9 +42,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % (2) nCoordAxes
             % (3) interpFactor        
             
-            addpath('./utils')
-            addpath('../../bin') % The compiled mex file is stored in the bin folder
-
+            % Add the paths of the compiled Mex files and the util folder relative to this file
+            mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
+            addpath(fullfile(mfilepath,'./utils'));
+            addpath(fullfile(mfilepath,'../../bin'));
+ 
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
