@@ -38,73 +38,73 @@ endif()
 #find_package(Matlab)
 
 set(SOURCE_Files 
-		AbstractGridder.h
-		AbstractGridder.cpp
+
+    Structs/MemoryStruct.h
+
+    Structs/MemoryStructGPU.h
+
+	Gridders/AbstractGridder.h
+	Gridders/AbstractGridder.cpp
+
+	Gridders/gpuGridder.h
+	Gridders/gpuGridder.cpp
+
+	Gridders/MultiGPUGridder.h
+	Gridders/MultiGPUGridder.cpp
 
 
-		gpuGridder.h
-		gpuGridder.cpp
+	Projection/gpuForwardProject.h
+	Projection/gpuForwardProject.cu
 
-		gpuForwardProject.h
-		gpuForwardProject.cu
+	Projection/gpuBackProject.h
+	Projection/gpuBackProject.cu
 
-		gpuBackProject.h
-		gpuBackProject.cu
+	Filters/AbstractFilter.h
+	Filters/AbstractFilter.cu
 
-		gpuFFT.h
-		gpuFFT.cu
-		
-		MultiGPUGridder.h
-		MultiGPUGridder.cpp
+	Filters/PadVolumeFilter.h
+	Filters/PadVolumeFilter.cu
 
+	Filters/AddVolumeFilter.h
+	Filters/AddVolumeFilter.cu
 
-		AbstractFilter.h
-		AbstractFilter.cu
+	Filters/CropVolumeFilter.h
+	Filters/CropVolumeFilter.cu
 
-		PadVolumeFilter.h
-		PadVolumeFilter.cu
+	Filters/CASToComplexFilter.h
+	Filters/CASToComplexFilter.cu
 
-		AddVolumeFilter.h
-		AddVolumeFilter.cu
-		
-		CropVolumeFilter.h
-		CropVolumeFilter.cu
+	Filters/FFTShift2DFilter.h
+	Filters/FFTShift2DFilter.cu
 
-		CASToComplexFilter.h
-		CASToComplexFilter.cu
+	Filters/FFTShift3DFilter.h
+	Filters/FFTShift3DFilter.cu
 
-		FFTShift2DFilter.h
-		FFTShift2DFilter.cu
+	Filters/ComplexToCASFilter.h
+	Filters/ComplexToCASFilter.cu
 
-		FFTShift3DFilter.h
-		FFTShift3DFilter.cu
+	Filters/DivideVolumeFilter.h
+	Filters/DivideVolumeFilter.cu
 
-		ComplexToCASFilter.h
-		ComplexToCASFilter.cu
+	Filters/RealToComplexFilter.h
+	Filters/RealToComplexFilter.cu
 
-		DivideVolumeFilter.h
-		DivideVolumeFilter.cu
+	Filters/ComplexToRealFilter.h
+	Filters/ComplexToRealFilter.cu
 
-		RealToComplexFilter.h
-		RealToComplexFilter.cu
-		
-		ComplexToRealFilter.h
-		ComplexToRealFilter.cu
+	Filters/DivideScalarFilter.h
+	Filters/DivideScalarFilter.cu
 
-		DivideScalarFilter.h
-		DivideScalarFilter.cu
-		
-		MultiplyVolumeFilter.h
-		MultiplyVolumeFilter.cu
+	Filters/MultiplyVolumeFilter.h
+	Filters/MultiplyVolumeFilter.cu
   )
+
+add_library(gridderLib SHARED ${SOURCE_Files}  )
+target_include_directories(gridderLib PUBLIC Filters Gridders Projection Structs)
 
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})
 
-add_library(gridderLib SHARED ${SOURCE_Files}  )
-
-
 target_link_libraries( gridderLib ${CUDA_LIBRARIES})
-
 
 # Compile with -fPIC flag on
 # set_property(TARGET gridderLib PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -122,12 +122,12 @@ if(WITH_MATLAB)
 
 	if(NOT WITH_WINDOWS)
 		find_package(Matlab)
-		matlab_add_mex(NAME mexCreateGridder SRC mexCreateGridder.cpp LINK_TO gridderLib)
-		matlab_add_mex(NAME mexDeleteGridder SRC mexDeleteGridder.cpp LINK_TO gridderLib)
-		matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp LINK_TO gridderLib)
-		matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp LINK_TO gridderLib)	
-		matlab_add_mex(NAME mexForwardProject SRC mexMultiGPUForwardProject.cpp LINK_TO gridderLib)	
-		matlab_add_mex(NAME mexBackProject SRC mexMultiGPUBackProject.cpp LINK_TO gridderLib)	
+		matlab_add_mex(NAME mexCreateGridder SRC Mex/mexCreateGridder.cpp LINK_TO gridderLib)
+		matlab_add_mex(NAME mexDeleteGridder SRC Mex/mexDeleteGridder.cpp LINK_TO gridderLib)
+		matlab_add_mex(NAME mexSetVariables SRC Mex/mexSetVariables.cpp LINK_TO gridderLib)
+		matlab_add_mex(NAME mexGetVariables SRC Mex/mexGetVariables.cpp LINK_TO gridderLib)	
+		matlab_add_mex(NAME mexForwardProject SRC Mex/mexMultiGPUForwardProject.cpp LINK_TO gridderLib)	
+		matlab_add_mex(NAME mexBackProject SRC Mex/mexMultiGPUBackProject.cpp LINK_TO gridderLib)	
 
 		message(STATUS "Matlab library located")
 	endif()

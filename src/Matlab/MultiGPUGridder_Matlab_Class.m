@@ -20,6 +20,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Single type variables        
         interpFactor;
         kerHWidth = 2;        
+        kerTblSize = 501;
         extraPadding = 3;    
         KBTable;
         PlaneDensity;
@@ -40,6 +41,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % (1) VolumeSize
             % (2) nCoordAxes
             % (3) interpFactor        
+            
+            addpath('./utils')
+            addpath('../../bin') % The compiled mex file is stored in the bin folder
+
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
@@ -64,9 +69,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
             
             % Load the Kaiser Bessel lookup table
-            KB_Vector = load("KB_Vector.mat");
-            this.KBTable = single(KB_Vector.KB_Vector);
-            
+            this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize)); 
+
             % Create the Volume array
             this.Volume = single(zeros(repmat(this.VolumeSize, 1, 3)));  
             

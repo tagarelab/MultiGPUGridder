@@ -8,13 +8,13 @@ clear all
 rehash;      % cause all .m files to be reparsed when invoked again
 
 
-addpath('./src')
+% addpath('./src')
 addpath('./utils')
-addpath('./bin') % The compiled mex file is stored in the bin folder
+% addpath('./bin') % The compiled mex file is stored in the bin folder
 
-addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
-addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
-addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
+% addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
+% addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
+% addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
 
 disp("Resetting devices...")
 for i = 1:4

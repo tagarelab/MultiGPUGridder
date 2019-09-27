@@ -1,7 +1,6 @@
 #pragma once
 
 #include "AbstractGridder.h"
-#include "gpuFFT.h"
 #include "gpuForwardProject.h"
 #include "gpuBackProject.h"
 #include "MemoryStruct.h"
@@ -71,8 +70,6 @@ public:
             std::cerr << "Failed to initilize gpuGridder. Please check the GPU device number." << '\n';
         }
 
-        // Create a new gpuFFT object for running the forward and inverse FFT
-        this->gpuFFT_obj = new gpuFFT();
     };
 
     // Deconstructor
@@ -187,9 +184,6 @@ private:
 
     // Free all of the allocated memory
     void FreeMemory();
-
-    // gpuFFT object for running forward and inverse FFT
-    gpuFFT *gpuFFT_obj;
 
     // For converting the volume to CAS volume
     bool forwardFFTVolumePlannedFlag;
