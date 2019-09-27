@@ -755,12 +755,18 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
     // Reset the CAS volume on the device to all zeros before the back projection
     this->d_Imgs->Reset();
     this->d_CASImgs->Reset();
-    this->d_CASVolume->Reset(); // needed?
     this->d_CoordAxes->Reset();
-    if (this->d_PlaneDensity != NULL)
+    this->d_PlaneDensity->Reset();
+
+    // Set the CAS images to a value of all ones
+    float *CASImgsOnes = new float[this->d_CASImgs->length()];
+    for (int i = 0; i < this->d_CASImgs->length(); i++)
     {
-        this->d_PlaneDensity->Reset();
+        CASImgsOnes[i] = 1;
     }
+    this->d_CASImgs->CopyToGPU(CASImgsOnes, this->d_CASImgs->bytes());
+
+    delete[] CASImgsOnes;
 
     cudaDeviceSynchronize();
 
@@ -777,13 +783,6 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
 
         // std::cout << "GPU: " << this->GPU_Device << " plane density stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
-
-        // Set the CAS images to a value of all ones
-        cudaMemsetAsync(
-            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            1,
-            Offsets_obj.gpuCASImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]);
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
@@ -1056,7 +1055,7 @@ void gpuGridder::CASVolumeToVolume()
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;
+    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize;
 
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
     ComplexToReal->SetComplexInput(d_CASVolume_Cropped_Complex);
