@@ -191,22 +191,23 @@ void MultiGPUGridder::CASVolumeToVolume()
 
     if (this->RunFFTOnDevice == 1)
     {
+        // We have to combine the output from each GPU in the frequency domain and not spatial domain
+        int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
+
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        cudaSetDevice(0); // Set the current device to the first GPU
+        cudaSetDevice(GPU_For_Reconstruction);
         for (int i = 0; i < this->Num_GPUs; i++)
         {
             // The first GPU can now access GPU device number i
             cudaDeviceEnablePeerAccess(i, 0);
         }
 
-        // We have to combine the output from each GPU in the frequency domain and not spatial domain
-        int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
-
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
         AddCASVolumes(GPU_For_Reconstruction);
 
         // Reconstruct the volume using the GPU_For_Reconstruction GPU
+        cudaSetDevice(GPU_For_Reconstruction);
         gpuGridder_vec[GPU_For_Reconstruction]->CASVolumeToVolume();
         gpuGridder_vec[GPU_For_Reconstruction]->CopyVolumeToHost();
     }
@@ -238,17 +239,17 @@ void MultiGPUGridder::ReconstructVolume()
 
     if (this->RunFFTOnDevice == 1)
     {
+        // We have to combine the output from each GPU in the frequency domain and not spatial domain
+        int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
+
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        cudaSetDevice(0); // Set the current device to the first GPU
+        cudaSetDevice(GPU_For_Reconstruction); // Set the current device to the first GPU
         for (int i = 0; i < this->Num_GPUs; i++)
         {
             // The first GPU can now access GPU device number i
             cudaDeviceEnablePeerAccess(i, 0);
         }
-
-        // We have to combine the output from each GPU in the frequency domain and not spatial domain
-        int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
 
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
         AddCASVolumes(GPU_For_Reconstruction);

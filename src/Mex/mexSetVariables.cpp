@@ -35,7 +35,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         // Pointer to the volume array and the dimensions of the array
         MultiGPUGridderObj->SetCoordAxes((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
-
     }
 
     // Set the mask radius parameter
@@ -56,7 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         MultiGPUGridderObj->SetMaxAxesToAllocate((int)mxGetScalar(prhs[2]));
     }
-    
+
     // Set the number of CUDA streams to use with each GPU
     if (!strcmp("SetNumberStreams", cmd))
     {
@@ -90,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // Pointer to the volume array and the dimensions of the array
         MultiGPUGridderObj->SetKBPreCompArray((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
-    
+
     // Set the GPUS to use
     if (!strcmp("SetGPUs", cmd))
     {

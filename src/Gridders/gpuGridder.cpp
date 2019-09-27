@@ -632,6 +632,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     this->d_CASImgs->Reset();
     this->d_CASVolume->Reset(); // needed?
     this->d_CoordAxes->Reset();
+    this->d_Volume->Reset();
     if (this->d_PlaneDensity != NULL)
     {
         this->d_PlaneDensity->Reset();
@@ -1055,7 +1056,7 @@ void gpuGridder::CASVolumeToVolume()
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize;
+    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;
 
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
     ComplexToReal->SetComplexInput(d_CASVolume_Cropped_Complex);
@@ -1172,7 +1173,7 @@ void gpuGridder::ReconstructVolume()
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;
+    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize;
 
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
     ComplexToReal->SetComplexInput(d_CASVolume_Cropped_Complex);

@@ -12,7 +12,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         NumAxes;
         GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 1;
+        nStreams = 10;
         
         % Single type variables        
         interpFactor;
@@ -181,8 +181,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
-            mexMultiGPUForwardProject(this.objectHandle);
-            
+            mexMultiGPUForwardProject(this.objectHandle);            
             
             % Run the inverse FFT on the CAS images
             if (this.RunFFTOnGPU == false)
@@ -196,8 +195,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function backProject(this, varargin)
 
             if ~isempty(varargin) > 0
+                
                 % A new set of images to back project was passed
-                this.Images = single(varargin{1});
+                this.Images(:,:,:) = single(varargin{1});
                 
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
@@ -206,7 +206,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed
-                this.coordAxes = single(varargin{2});
+                tempAxes = single(varargin{2}); % Seems needed to get matlab to actually copy the data (see copy-on-write)
+                this.coordAxes(:) = tempAxes(:);
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed
