@@ -8,103 +8,115 @@ message(STATUS "C++11 support has been enabled by default.")
 
 # Options within the CMake GUI to ask the user
 option(WITH_MATLAB   "Compile the Matlab mex wrapper  (requires MATLAB)" TRUE)
-option(WITH_WINDOWS  "Using a Windows PC" False)
+
 
 # Create the project using C++ and CUDA
 project(MultiGPUGridder LANGUAGES CXX CUDA)
 
 find_package(CUDA 10.0 REQUIRED)
 
-if(WITH_WINDOWS)
+if(WIN32)
+	message(STATUS "Windows OS detected.")
+
 	find_package(CUDA REQUIRED)
 	list(APPEND CUDA_DEV_LIBRARIES
 				${CUDA_cufft_LIBRARY})
 endif()
 
+include_directories(${CUDA_INCLUDE_DIRS})
+set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})
+
+
+
 # Create a variable with all the source file names
 set(SOURCE_Files 
 
-    Structs/MemoryStruct.h
-    Structs/MemoryStructGPU.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Structs/MemoryStruct.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Structs/MemoryStructGPU.h
 
-	Gridders/AbstractGridder.h
-	Gridders/AbstractGridder.cpp
-	Gridders/gpuGridder.h
-	Gridders/gpuGridder.cpp
-	Gridders/MultiGPUGridder.h
-	Gridders/MultiGPUGridder.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/AbstractGridder.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/AbstractGridder.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/gpuGridder.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/gpuGridder.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/MultiGPUGridder.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/MultiGPUGridder.cpp
 
-	Projection/gpuForwardProject.h
-	Projection/gpuForwardProject.cu
-	Projection/gpuBackProject.h
-	Projection/gpuBackProject.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Projection/gpuForwardProject.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Projection/gpuForwardProject.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Projection/gpuBackProject.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Projection/gpuBackProject.cu
 
-	Filters/AbstractFilter.h
-	Filters/AbstractFilter.cu
-	Filters/PadVolumeFilter.h
-	Filters/PadVolumeFilter.cu
-	Filters/AddVolumeFilter.h
-	Filters/AddVolumeFilter.cu
-	Filters/CropVolumeFilter.h
-	Filters/CropVolumeFilter.cu
-	Filters/CASToComplexFilter.h
-	Filters/CASToComplexFilter.cu
-	Filters/FFTShift2DFilter.h
-	Filters/FFTShift2DFilter.cu
-	Filters/FFTShift3DFilter.h
-	Filters/FFTShift3DFilter.cu
-	Filters/ComplexToCASFilter.h
-	Filters/ComplexToCASFilter.cu
-	Filters/DivideVolumeFilter.h
-	Filters/DivideVolumeFilter.cu
-	Filters/RealToComplexFilter.h
-	Filters/RealToComplexFilter.cu
-	Filters/ComplexToRealFilter.h
-	Filters/ComplexToRealFilter.cu
-	Filters/DivideScalarFilter.h
-	Filters/DivideScalarFilter.cu
-	Filters/MultiplyVolumeFilter.h
-	Filters/MultiplyVolumeFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/AbstractFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/AbstractFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/PadVolumeFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/PadVolumeFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/AddVolumeFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/AddVolumeFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/CropVolumeFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/CropVolumeFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/CASToComplexFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/CASToComplexFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/FFTShift2DFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/FFTShift2DFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/FFTShift3DFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/FFTShift3DFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/ComplexToCASFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/ComplexToCASFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/DivideVolumeFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/DivideVolumeFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/RealToComplexFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/RealToComplexFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/ComplexToRealFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/ComplexToRealFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/DivideScalarFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/DivideScalarFilter.cu
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/MultiplyVolumeFilter.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Filters/MultiplyVolumeFilter.cu
   )
 
 add_library(MultiGPUGridder SHARED ${SOURCE_Files}  )
-target_include_directories(MultiGPUGridder PUBLIC Filters Gridders Projection Structs)
-
 # Link the CUDA libraries and header files to the project
-include_directories(${CUDA_INCLUDE_DIRS})
-set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})
 target_link_libraries( MultiGPUGridder ${CUDA_LIBRARIES})
 
+# Include all the header files
+target_include_directories(MultiGPUGridder PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
 
 if(WITH_MATLAB)
 	find_package(Matlab)
 
-	if(NOT WITH_WINDOWS)
+	if(NOT WIN32)
 		find_package(Matlab)
-		matlab_add_mex(NAME mexCreateGridder SRC Mex/mexCreateGridder.cpp LINK_TO MultiGPUGridder)
-		matlab_add_mex(NAME mexDeleteGridder SRC Mex/mexDeleteGridder.cpp LINK_TO MultiGPUGridder)
-		matlab_add_mex(NAME mexSetVariables SRC Mex/mexSetVariables.cpp LINK_TO MultiGPUGridder)
-		matlab_add_mex(NAME mexGetVariables SRC Mex/mexGetVariables.cpp LINK_TO MultiGPUGridder)	
-		matlab_add_mex(NAME mexMultiGPUForwardProject SRC Mex/mexMultiGPUForwardProject.cpp LINK_TO MultiGPUGridder)	
-		matlab_add_mex(NAME mexMultiGPUBackProject SRC Mex/mexMultiGPUBackProject.cpp LINK_TO MultiGPUGridder)	
-		matlab_add_mex(NAME mexMultiGPUGetVolume SRC Mex/mexMultiGPUGetVolume.cpp LINK_TO MultiGPUGridder)	
-		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC Mex/mexMultiGPUReconstructVolume.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexCreateGridder SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexCreateGridder.cpp LINK_TO MultiGPUGridder)
+		matlab_add_mex(NAME mexDeleteGridder SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexDeleteGridder.cpp LINK_TO MultiGPUGridder)
+		matlab_add_mex(NAME mexSetVariables SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexSetVariables.cpp LINK_TO MultiGPUGridder)
+		matlab_add_mex(NAME mexGetVariables SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexGetVariables.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUForwardProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUForwardProject.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUBackProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUBackProject.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUGetVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUGetVolume.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUReconstructVolume.cpp LINK_TO MultiGPUGridder)	
+		message(STATUS "Matlab library located")
+	endif()
 
-		
+	if(WIN32)
+		matlab_add_mex(NAME mexDeleteGridder SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexDeleteGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexCreateGridder SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexCreateGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexSetVariables SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexSetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexGetVariables SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexGetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexMultiGPUForwardProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUForwardProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
+		matlab_add_mex(NAME mexMultiGPUBackProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUBackProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+		matlab_add_mex(NAME mexMultiGPUGetVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUGetVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUReconstructVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
 
 		message(STATUS "Matlab library located")
 	endif()
 
-	if(WITH_WINDOWS)
-		matlab_add_mex(NAME mexDeleteGridder SRC mexDeleteGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-		matlab_add_mex(NAME mexCreateGridder SRC mexCreateGridder.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-		matlab_add_mex(NAME mexSetVariables SRC mexSetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-		matlab_add_mex(NAME mexGetVariables SRC mexGetVariables.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-		matlab_add_mex(NAME mexMultiGPUForwardProject SRC mexMultiGPUForwardProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})
-		matlab_add_mex(NAME mexMultiGPUBackProject SRC mexMultiGPUBackProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
-		matlab_add_mex(NAME mexMultiGPUGetVolume SRC mexMultiGPUGetVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
-		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC mexMultiGPUReconstructVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+	target_include_directories(mexDeleteGridder PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexCreateGridder PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexSetVariables PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexGetVariables PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexMultiGPUForwardProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexMultiGPUBackProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexMultiGPUGetVolume PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexMultiGPUReconstructVolume PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
 
-		message(STATUS "Matlab library located")
-	endif()
 endif()

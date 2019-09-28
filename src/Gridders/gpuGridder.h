@@ -62,7 +62,7 @@ public:
         this->RunFFTOnDevice = RunFFTOnDevice;
 
         // Set the GPU device
-        SetGPU(GPU_Device);
+        this->SetGPU(GPU_Device);
 
         if (this->ErrorFlag == 1)
         {

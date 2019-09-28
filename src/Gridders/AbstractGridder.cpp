@@ -48,7 +48,7 @@ AbstractGridder::~AbstractGridder()
     // Deconstructor for the abstract gridder class
 
     // Free all of the allocated memory
-    FreeMemory();
+    this->FreeMemory();
 }
 
 void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySize)
