@@ -1,5 +1,21 @@
-#ifndef MULTI_GPU_GRIDDER_H // Only define the header once
-#define MULTI_GPU_GRIDDER_H
+#pragma once
+
+/**
+ * @class   MultiGPUGridder
+ * @brief   A class for gridding on multiple GPUs
+ *
+ *
+ * This class is used for forward and back projection of a volume on a multiple NVIDIA GPUs. The MultiGPUGridder 
+ * inherits from the AbstractClass which is used for setting and getting the host (i.e. CPU) memory pointers to the 
+ * volume, coordinate axes vector, etc, and for setting various parameters such as the interpolation factor.
+ *
+ * The MultiGPUGridder creates a gpuGridder object for each GPU. The gpuGridder then does the processing for forward and 
+ * back projection on the GPU it is assigned to. The MultiGPUGridder class simply calculates which coordinate axes each GPU
+ * will process. 
+ * 
+ * After the back projection is completed on all GPUs, the MultiGPUGridder class will combine the results from all the GPUs to the 
+ * first GPU for reconstructing the final volume.
+ * */
 
 #include "AbstractGridder.h"
 #include "gpuGridder.h"
@@ -11,7 +27,9 @@ class MultiGPUGridder : public AbstractGridder
 {
 
 public:
-	// Constructor
+	/// MultiGPUGridder constructor. The GPU_Devices array is a vector of Num_GPUs size which contains the NVIDIA device number for the GPUs to use which
+	/// ranges from 0 to the number of GPUs minus 1 on the current computer. RunFFTOnDevice is a flag to either run the forward and inverse Fourier transforms
+	/// on the GPUs (value of 1) or to run them on the host (value of 0) such as within Matlab or Python. 
 	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
 	{
 		std::cout << "RunFFTOnDevice: " << RunFFTOnDevice << '\n';
@@ -52,7 +70,6 @@ public:
 		this->ProjectInitializedFlag = false;
 
 		this->RunFFTOnDevice = RunFFTOnDevice;
-
 	}
 
 	// Deconstructor
@@ -61,30 +78,35 @@ public:
 		FreeMemory();
 	}
 
-	// Set the number of CUDA streams to use with each GPU
+	/// Set the number of CUDA streams to use with each GPU
 	void SetNumStreams(int nStreams);
 
-	// Run the forward projection kernel on each gpuGridder object
+	/// Run the forward projection kernel on each gpuGridder object
 	void ForwardProject();
 
-	// Run the back projection kernel on each gpuGridder object
+	/// Run the back projection kernel on each gpuGridder object
 	void BackProject();
 
-	// Combine the CAS volumes on all the GPUs and convert to volume
+	/// Combine the CAS volumes on all the GPUs (the result from the back projection) and convert to volume using the first GPU and gpuGridder.
 	void CASVolumeToVolume();
 
-	// Convert CAS volume to volume and normalize by the plane density
+	/// Combine the CAS volumes on all the GPUs (the result from the back projection) and convert to volume using the first GPU and gpuGridder
+	/// and normalizing by the plane density array.
 	void ReconstructVolume();
 
-	// Get the volumes from each GPU, sum them together, and copy the result back to the host memory
+	/// Get the plane density arrays from each gpuGridder, sum them together, and copy the result back to the host memory.
 	void SumPlaneDensity();
+
+	/// Get the volume arrays from each gpuGridder, sum them together, and copy the result back to the host memory.
 	void SumVolumes();
+
+	/// Get the CAS volume arrays from each gpuGridder, sum them together, and copy the result back to the host memory.
 	void SumCASVolumes();
 
-	// Sum the CAS volumes on the GPU devices to the given device after running the back projection
+	/// Sum the CAS volumes from each gpuGridder to the given device after running the back projection
 	void AddCASVolumes(int GPU_Device);
 
-	// Sum the plane densities on the GPU devices to the given device after running the back projection
+	/// Sum the plane densities on the GPU devices to the given device after running the back projection
 	void AddPlaneDensities(int GPU_Device);
 
 private:
@@ -121,7 +143,4 @@ private:
 
 	// Flag to determine whether we are running the FFT on the GPU or not
 	int RunFFTOnDevice;
-
 };
-
-#endif

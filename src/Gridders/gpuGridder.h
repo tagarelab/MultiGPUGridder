@@ -1,5 +1,27 @@
 #pragma once
 
+/**
+ * @class   gpuGridder
+ * @brief   A class for gridding on the GPU
+ *
+ *
+ * This class is used for forward and back projection of a volume on a single NVIDIA GPU. The gpuGridder 
+ * inherits from the AbstractClass which is used for setting and getting the host (i.e. CPU) memory pointers to the 
+ * volume, coordinate axes vector, etc, and for setting various parameters such as the interpolation factor.
+ * 
+ * The gpuGridder estimates the number of coordinate axes which the GPU has available memory for. The GPU memory has
+ * type MemoryStructGPU which remembers various required information about the GPU array.
+ * 
+ * The ForwardProject and BackProject functions both take the same inputs: AxesOffset and nAxesToProcess which represent
+ * the offset (in number of coordinate axes) of the host (i.e. CPU) coordinate axes array to start the forward or back projection
+ * on. The nAxesToProcess represents how many coordinate axes this gridder should process. For example, if the host memory has
+ * 1,000 coordinate axes and we wanted the gpuGridder to process axes 500 to 700, then simply set the AxesOffset to 500 and the 
+ * nAxesToProcess to 200.
+ * 
+ * The gpuGridder also provides functions for executing the forward and inverse Fourier transforms on the GPU (see the CASVolumeToVolume and
+ * ImgsToCASImgs functions).
+ * */
+
 #include "AbstractGridder.h"
 #include "gpuForwardProject.h"
 #include "gpuBackProject.h"
@@ -45,7 +67,7 @@ class gpuGridder : public AbstractGridder
 {
 
 public:
-    // Constructor
+    // / gpuGridder Constructor. Set RunFFTOnDevice to 1 for true and 0 for false. GPU_Device is the NVIDIA GPU device number and starts at 0.
     gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int RunFFTOnDevice, int GPU_Device) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
     {
         // Set default values
@@ -73,46 +95,51 @@ public:
     // Deconstructor
     ~gpuGridder() { FreeMemory(); };
 
-    // Convert the volume to a CAS volume
-    void VolumeToCASVolume();
-
-    // Copy the CAS volume to the GPU asynchronously
-    void CopyCASVolumeToGPUAsyc();
-
-    // Allocate needed GPU memory
+    /// Allocate required GPU memory
     void Allocate();
 
-    // Run forward projection on some subset of the coordinate axes
+    /// Run forward projection on some subset of the coordinate axes. AxesOffset is the number of coordinate axes from the beginning of the
+    /// host array (starting at 0) while the nAxesToProcess is the number of coordinate axes to process. For example, if the host memory has
+    /// 1,000 coordinate axes, and we wanted the to process axes 500 to 700 then simply set the AxesOffset to 500 and the nAxesToProcess to 200.
     void ForwardProject(int AxesOffset, int nAxesToProcess);
 
-    // Run the back projection and return the volume
+    /// Run back projection on some subset of the coordinate axes. AxesOffset is the number of coordinate axes from the beginning of the
+    /// host array (starting at 0) while the nAxesToProcess is the number of coordinate axes to process. For example, if the host memory has
+    /// 1,000 coordinate axes, and we wanted the to process axes 500 to 700 then simply set the AxesOffset to 500 and the nAxesToProcess to 200.
     void BackProject(int AxesOffset, int nAxesToProcess);
 
-    // Setter functions
+    /// Set the number of CUDA streams to use for the forward and back projection kernels.
     void SetNumStreams(int nStreams) { this->nStreams = nStreams; }
+
+    /// Set the GPU device number starting at 0. For example, if a computer has 4 GPUs the GPU_Device number could be 0, 1, 2, or 3 and determines
+    /// which GPU to use for processing.
     void SetGPU(int GPU_Device);
 
-    // Getter functions
-    cudaStream_t *GetStreamsPtr() { return this->streams; }
+    /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
     float *GetVolumeFromDevice();
+
+    /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
     float *GetCASVolumeFromDevice();
+
+    /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
     float *GetPlaneDensityFromDevice();
-    int GetGPUDevice() { return this->GPU_Device; }
-    int GetNumStreams() { return this->nStreams; }
-    int GetGridSize() { return this->gridSize; }
-    int GetBlockSize() { return this->blockSize; }
-    float *GetCASVolumePtr_Device() { return this->d_CASVolume->GetPointer(); }
-    float *GetCASImgsPtr_Device() { return this->d_CASImgs->GetPointer(); }
-    float *GetImgsPtr_Device() { return this->d_Imgs->GetPointer(); }
-    float *GetCoordAxesPtr_Device() { return this->d_CoordAxes->GetPointer(); }
-    float *GetKBTablePtr_Device() { return this->d_KB_Table->GetPointer(); }
+    
+    /// Get the pointer to the volume array on the GPU.
     float *GetCASVolumePtr();
+    
+    /// Get the pointer to the plane density array on the GPU.
     float *GetPlaneDensityPtr();
-    void CopyCASVolumeToHost();
+
+    /// Copy the volume array from the GPU back to the pinned host (i.e. CPU) memory. This is used to return the output of the back projection.
     void CopyVolumeToHost();
+
+    /// Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if running the Fourier transform on the CPU (such as within Matlab or Python).
+    void CopyCASVolumeToHost();
+    
+    /// Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if running the Fourier transform on the CPU (such as within Matlab or Python).
     void CopyPlaneDensityToHost();
 
-    // A structure for holding all of the pointer offset values when running the forward projection kernel
+    /// A structure for holding all of the pointer offset values when running the forward and back projection kernels.
     struct Offsets
     {
         std::vector<int> numAxesPerStream;
@@ -129,16 +156,18 @@ public:
         int num_offsets;
     };
 
-    // Convert projection images to CAS images by running a forward FFT
+    /// Convert projection images to CAS images by running a forward FFT
     void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
 
-    // Reconstruct the volume by converting the CASVolume to Volume
+    /// Reconstruct the volume by converting the CASVolume to Volume and running an inverse FFT. This volume is normalized by the plane density array and the 
+    /// Kaiser Bessel pre-compensation array.
     void ReconstructVolume();
 
-    // Convert the CASVolume to volume
+    /// Convert the CASVolume to volume by running an inverse FFT. This function does not normalize using the plane density.
     void CASVolumeToVolume();
 
-    // Calculate the plane density by running the back projection kernel with CASimages equal to one
+    /// Calculate the plane density by running the back projection kernel with the CASimages array equal to one. The plane density
+    /// is needed for normalizing the volume during reconstruction.
     void CalculatePlaneDensity(int AxesOffset, int nAxesToProcess);
 
 private:
@@ -155,8 +184,8 @@ private:
     MemoryStructGPU<float> *d_Volume;
 
     // Kernel launching parameters
-    int gridSize;
-    int blockSize;
+    // int gridSize;
+    // int blockSize;
     int GPU_Device; // Which GPU to use?
     int nStreams;   // Streams to use on this GPU
 
@@ -197,6 +226,9 @@ private:
     // For converting CAS images to images
     bool inverseFFTImagesFlag;
     cufftHandle inverseFFTImages;
+
+    // Convert the volume to a CAS volume
+    void VolumeToCASVolume();
 
 protected:
     // Plan the pointer offset values for running the CUDA kernels

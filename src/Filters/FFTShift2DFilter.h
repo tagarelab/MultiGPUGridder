@@ -1,5 +1,17 @@
 #pragma once
 
+/**
+ * @class   FFTShift2DFilter
+ * @brief   A filter for 2D FFT shift on a GPU array.
+ *
+ * FFTShift2DFilter inherits from the AbstractFilter class.
+ * 
+ * The FFTShift2DFilter runs a 2D FFT shift by iterating over each 2D slice of a 3D array.
+ * 
+ * In order to set which GPU the filter should be run on, please use the cudaDeviceSet() function before calling the Update function.
+ * 
+ * */
+
 #include "AbstractFilter.h"
 
 class FFTShift2DFilter : public AbstractFilter
@@ -11,7 +23,6 @@ private:
     int nSlices;
 
 public:
-
     // Constructor
     FFTShift2DFilter() : AbstractFilter()
     {
@@ -20,17 +31,16 @@ public:
         this->nSlices = 0;
     }
 
-    // Deconstructor
-    // ~FFTShift2DFilter();
-
+    /// Set the input array
     void SetInput(cufftComplex *Input) { this->Input = Input; }
 
+    /// Set the size of the image
     void SetImageSize(int ImageSize) { this->ImageSize = ImageSize; }
 
+    /// Set the number of 2D images in the array
     void SetNumberOfSlices(int nSlices) { this->nSlices = nSlices; }
 
-    void UpdateFilter(cufftComplex *Input, cudaStream_t *stream);
-
+    /// Update the filter
     void Update(cudaStream_t *stream = NULL)
     {
         // Are we using the device pointers?
@@ -38,14 +48,14 @@ public:
         {
             UpdateFilter(this->Input, stream);
         }
-        // else if (this->d_input_struct != NULL) // Are we using structs for the pointers?
-        // {
-        //     UpdateFilter(this->d_input_struct->GetPointer(), this->d_output_struct->GetPointer());
-        // }
         else
         {
             std::cerr << "FFTShift2DFilter(): No valid inputs found." << '\n';
             return;
         }
     }
+
+private:
+    /// Run the CUDA kernel
+    void UpdateFilter(cufftComplex *Input, cudaStream_t *stream);
 };

@@ -1,5 +1,18 @@
 #pragma once
 
+/**
+ * @class   AbstractFilter
+ * @brief   An interface class for GPU filters.
+ *
+ * AbstractFilter is the parent class for all the GPU filters which apply some calculation to a GPU array.
+ * 
+ * Host arrays can also be passed to AbstractFilter for filtering using the GPU. AbstractFilter will allocated GPU memory
+ * and then copy the host array to the GPU as needed.
+ * 
+ * In order to set which GPU the filter should be run on, please use the cudaDeviceSet() function before calling the Update function.
+ * 
+ * */
+
 #include "MemoryStruct.h"
 #include "MemoryStructGPU.h"
 

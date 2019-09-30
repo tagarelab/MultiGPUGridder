@@ -207,12 +207,6 @@ void gpuGridder::VolumeToCASVolume()
     PadFilter->Update();
 }
 
-void gpuGridder::CopyCASVolumeToGPUAsyc()
-{
-    // Copy the CAS volume to the GPU asynchronously
-    this->d_CASVolume->CopyToGPUAsyc(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
-}
-
 void gpuGridder::SetGPU(int GPU_Device)
 {
     // Set which GPU to use
@@ -654,10 +648,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 
     cudaDeviceSynchronize();
 
-    // Define CUDA kernel dimensions
-    int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
-    int blockSize = 4;
-
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
         if (Offsets_obj.numAxesPerStream[i] < 1)
@@ -730,8 +720,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->kerHWidth,
             Offsets_obj.numAxesPerStream[i],
-            gridSize,
-            blockSize,
             CASVolSize,
             CASImgSize,
             this->maskRadius,
@@ -771,10 +759,6 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
 
     cudaDeviceSynchronize();
 
-    // Define CUDA kernel dimensions
-    int gridSize = ceil(this->d_CASVolume->GetSize(0) / 4);
-    int blockSize = 4;
-
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
         if (Offsets_obj.numAxesPerStream[i] < 1)
@@ -800,8 +784,6 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->kerHWidth,
             Offsets_obj.numAxesPerStream[i],
-            gridSize,
-            blockSize,
             CASVolSize,
             CASImgSize,
             this->maskRadius,

@@ -13,6 +13,9 @@
  * - an output array for the projected images,
  * - the Kaiser Bessel lookup table and precompensation array.
  * 
+ * Note that these pointers are static variable so all child classes will share the same values. This 
+ * is useful when using multiple gridders simultaneously on the same volume on host memory.
+ * 
  * The forward and back projection operations are done in-place. In other words,
  * since the pointer to the memory address for the arrays is set in the setter functions of the AbstractGridder,
  * there is no need to return the final arrays. In the Matlab wrapper, the matrices are allocated within Matlab and the

@@ -1,5 +1,15 @@
 #pragma once
 
+/**
+ * @class   FFTShift3DFilter
+ * @brief   A filter for 3D FFT shift on a GPU array.
+ *
+ * FFTShift3DFilter inherits from the AbstractFilter class.
+ * 
+ * In order to set which GPU the filter should be run on, please use the cudaDeviceSet() function before calling the Update function.
+ * 
+ * */
+
 #include "AbstractFilter.h"
 
 class FFTShift3DFilter : public AbstractFilter
@@ -17,30 +27,28 @@ public:
         this->VolumeSize = 0;
     }
 
-    // Deconstructor
-    // ~FFTShift3DFilter();
-
+    /// Set the input GPU array
     void SetInput(cufftComplex *Input) { this->Input = Input; }
 
+    /// Set the size of the GPU array
     void SetVolumeSize(int VolumeSize) { this->VolumeSize = VolumeSize; }
 
-    void UpdateFilter(cufftComplex *Input, cudaStream_t *stream);
-
+    /// Update the filter
     void Update(cudaStream_t *stream = NULL)
     {
         // Are we using the device pointers?
-        if (this->Input != NULL )
+        if (this->Input != NULL)
         {
             UpdateFilter(this->Input, stream);
         }
-        // else if (this->d_input_struct != NULL) // Are we using structs for the pointers?
-        // {
-        //     UpdateFilter(this->d_input_struct->GetPointer(), this->d_output_struct->GetPointer());
-        // }
         else
         {
             std::cerr << "FFTShift3DFilter(): No valid input found." << '\n';
             return;
         }
     }
+
+private:
+    /// Run the CUDA kernel
+    void UpdateFilter(cufftComplex *Input, cudaStream_t *stream);
 };

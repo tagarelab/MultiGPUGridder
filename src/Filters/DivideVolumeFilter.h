@@ -1,5 +1,18 @@
 #pragma once
 
+/**
+ * @class   DivideVolumeFilter
+ * @brief   A filter for dividing two GPU arrays.
+ *
+ * DivideVolumeFilter inherits from the AbstractFilter class.
+ * 
+ * The DivideVolumeFilter divides two GPU arrays together with the following formula:
+ * VolumeOne = VolumeOne / VolumeTwo
+ * 
+ * In order to set which GPU the filter should be run on, please use the cudaDeviceSet() function before calling the Update function.
+ * 
+ * */
+
 #include "AbstractFilter.h"
 
 class DivideVolumeFilter : public AbstractFilter
@@ -21,18 +34,19 @@ public:
         this->nSlices = 0;
     }
 
-    // Deconstructor
-    // ~DivideVolumeFilter();
-
+    /// Set the first volume
     void SetVolumeOne(float *d_VolumeOne) { this->d_VolumeOne = d_VolumeOne; }
+
+    /// Set the second volume
     void SetVolumeTwo(float *d_VolumeTwo) { this->d_VolumeTwo = d_VolumeTwo; }
 
+    /// Set the volume size
     void SetVolumeSize(int VolumeSize) { this->VolumeSize = VolumeSize; }
 
+    /// If using a stack of 2D images, this is the number of images.
     void SetNumberOfSlices(int nSlices) { this->nSlices = nSlices; }
 
-    void UpdateFilter(float *Input, float *Output, cudaStream_t *stream = NULL);
-
+    /// Update the filter
     void Update(cudaStream_t *stream = NULL)
     {
         // Are we using the device pointers?
@@ -50,4 +64,8 @@ public:
             return;
         }
     }
+
+private:
+    /// Run the CUDA kernel
+    void UpdateFilter(float *Input, float *Output, cudaStream_t *stream = NULL);
 };

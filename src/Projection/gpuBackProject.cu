@@ -119,14 +119,16 @@ void gpuBackProject::RunKernel(
 	float *d_CoordAxes,
 	float kerHWidth,
 	int nAxes,
-	int GridSize,
-	int BlockSize,
 	int CASVolSize,
 	int CASImgSize,
 	int maskRadius,
 	int KB_Table_Size,
 	cudaStream_t *stream)
 {
+
+	// Define CUDA kernel dimensions
+	int GridSize = ceil(CASVolSize / 4);
+	int BlockSize = 4;
 
 	// Define CUDA kernel dimensions
 	dim3 dimGrid(GridSize, GridSize, GridSize);

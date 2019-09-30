@@ -1,5 +1,18 @@
 #pragma once
 
+/**
+ * @class   CropVolumeFilter
+ * @brief   A filter for cropping a GPU array.
+ *
+ * CropVolumeFilter inherits from the AbstractFilter class.
+ * 
+ * The CropVolumeFilter crops a GPU array. This is needed for removing the zero padding
+ * after running the forward or inverse Fourier transform operations.
+ * 
+ * In order to set which GPU the filter should be run on, please use the cudaDeviceSet() function before calling the Update function.
+ * 
+ * */
+
 #include "AbstractFilter.h"
 
 class CropVolumeFilter : public AbstractFilter
@@ -31,12 +44,13 @@ public:
         this->Output = NULL;
     }
 
-    // ~CropVolumeFilter();
-
+    /// Set the input (i.e. the larger) array
     void SetInput(float *Input) { this->Input = Input; }
 
+    /// Set the output (i.e. the smaller) array
     void SetOutput(float *Output) { this->Output = Output; }
 
+    /// Set the size of the input array
     void SetInputSize(int InputSize)
     {
         this->InputSizeX = InputSize;
@@ -44,26 +58,33 @@ public:
         this->InputSizeZ = InputSize;
     }
 
+    /// If using a stack of 2D images, this is the number of images.
     void SetNumberOfSlices(int nSlices)
     {
         this->InputSizeZ = nSlices;
     }
 
-    // Set padding along the each dimension of the array
+    /// Set cropping along the X dimension of the array
     void SetCropX(int CropX) { this->CropX = CropX; }
+
+    /// Set cropping along the Y dimension of the array
     void SetCropY(int CropY) { this->CropY = CropY; }
+
+    /// Set cropping along the Y dimension of the array
     void SetCropZ(int CropZ) { this->CropZ = CropZ; }
 
-    // Set padding in all three dimensions of the array
-    void SetPadding(int padding)
+    // Set cropping in all three dimensions of the array
+    void SetCropping(int padding)
     {
         this->CropX = padding;
         this->CropY = padding;
         this->CropZ = padding;
     }
 
+    /// Run the CUDA kernel
     void UpdateFilter(float *Input, float *Output, cudaStream_t *stream = NULL);
 
+    /// Update the filter
     void Update(cudaStream_t *stream = NULL)
     {
         // Are we using the device pointers?

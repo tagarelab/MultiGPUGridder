@@ -1,5 +1,15 @@
 #pragma once
 
+/**
+ * @class   MemoryStruct
+ * @brief   A class for allocating host (i.e CPU) memory
+ *
+ *
+ * A class for allocating and deallocating host memory. MemoryStruct also remembers needed information for each allocated array
+ * (e.g. CASImgs, images, coordinate axes, etc.) such as the array size, memory pointers, etc. This is the main CPU memory class.
+ * 
+ * */
+
 #include <cstdlib>
 #include <stdio.h>
 #include <cstring>
@@ -9,11 +19,12 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 
-// Struct to contain the needed information for each allocated array (e.g. CASImgs, images, coordinate axes, etc.)
 template <class T = float>
-struct MemoryStruct
+class MemoryStruct
 {
-    // Constructor for the structure
+public:
+    /// Constructor for the class. dims is the dimensions of the array to allocate while ArraySize is an int vector of size dims containing the
+    /// array size along each dimension.
     MemoryStruct(int dims, int *ArraySize)
     {
         this->dims = dims;
@@ -27,12 +38,35 @@ struct MemoryStruct
         {
             this->size[i] = ArraySize[i];
         }
+    }
+    /// Additional constructor for the structure: Array of 1 dimension
+    MemoryStruct(int dims, int ArraySizeX)
+    {
+        this->dims = dims;
+        this->size = new int[dims];
+        this->ErrorFlag = 0;
+        this->Allocated = false;
+        this->Initialized = false;
 
-        // Allocate the memory for the T type array
-        // AllocateArray();
+        // Set size to values in ArraySize
+        this->size[0] = ArraySizeX;
     }
 
-    // Additional constructor for the structure: Array of 3 dimensions
+    /// Additional constructor for the class: Array of 2 dimensions
+    MemoryStruct(int dims, int ArraySizeX, int ArraySizeY)
+    {
+        this->dims = dims;
+        this->size = new int[dims];
+        this->ErrorFlag = 0;
+        this->Allocated = false;
+        this->Initialized = false;
+
+        // Set size to values in ArraySize
+        this->size[0] = ArraySizeX;
+        this->size[1] = ArraySizeY;
+    }
+
+    /// Additional constructor for the class: Array of 3 dimensions
     MemoryStruct(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ)
     {
         this->dims = dims;
@@ -47,26 +81,13 @@ struct MemoryStruct
         this->size[2] = ArraySizeZ;
     }
 
-    // Additional constructor for the structure: Array of 1 dimension
-    MemoryStruct(int dims, int ArraySizeX)
-    {
-        this->dims = dims;
-        this->size = new int[dims];
-        this->ErrorFlag = 0;
-        this->Allocated = false;
-        this->Initialized = false;
-
-        // Set size to values in ArraySize
-        this->size[0] = ArraySizeX;
-    }
-
-    // Deconstructor to free the memory
+    /// Deconstructor to free the memory
     ~MemoryStruct()
     {
         DeallocateArray();
     }
 
-    // Allocate the memory for the T type array
+    /// Allocate the memory for the host array
     void AllocateArray()
     {
         this->ptr = new T[this->length()];
@@ -74,7 +95,7 @@ struct MemoryStruct
         this->Initialized = true;
     }
 
-    // Function to return the number of bytes the array is
+    /// Function to return the number of bytes the array is
     long long int bytes()
     {
         // Return the number of bytes
@@ -95,7 +116,7 @@ struct MemoryStruct
         return bytes;
     };
 
-    // Function to return the array length
+    /// Function to return the array length (i.e. the number of elements of the array).
     long long int length()
     {
         // Return the length of the array
@@ -108,7 +129,7 @@ struct MemoryStruct
         return len;
     }
 
-    // Function to return the given array dimension
+    /// Function to return the length of a given dimension of the array.
     int GetSize(int dim)
     {
         if (dim > this->dims)
@@ -120,19 +141,19 @@ struct MemoryStruct
         return size[dim];
     }
 
-    // Function to return the given array dimension as int array (i.e. no input given)
+    /// Function to return a vector containing the length along all the array dimensions.
     int *GetSize()
     {
         return this->size;
     }
 
-    // Function to return the dimesion of the array
+    /// Function to return the dimesion of the array.
     int GetDim()
     {
         return this->dims;
     }
 
-    // Copy a given array
+    /// Copy the array to a second array.
     void CopyArray(T *Array)
     {
         if (this->IsAllocated() == true || this->IsInitialized() == true)
@@ -145,7 +166,7 @@ struct MemoryStruct
         }
     }
 
-    // Copy a given pointer
+    /// Copy a given pointer to the class
     void CopyPointer(T *&ptr)
     {
         // Free the currently allocated memory
@@ -160,7 +181,7 @@ struct MemoryStruct
         this->Initialized = true;
     }
 
-    // Pin the memory to the CPU (in order to enable the async CUDA stream copying)
+    /// Pin the memory to the CPU in order to enable asynchronous memory transfers to and from the GPU
     void PinArray()
     {
         if (this->IsAllocated() == true || this->IsInitialized() == true)
@@ -173,7 +194,7 @@ struct MemoryStruct
         }
     }
 
-    // Free the memory
+    /// Free the memory if it was allocated by this class
     void DeallocateArray()
     {
         // Free the currently allocated memory
@@ -183,19 +204,19 @@ struct MemoryStruct
         }
     }
 
-    // Get the pointer
+    /// Get the pointer to the array
     T *GetPointer()
     {
         return this->ptr;
     }
 
-    // Get the pointer using some offset from the beginning of the array
+    /// Get the pointer using some offset from the beginning of the array
     T *GetPointer(int offset)
     {
         return &this->ptr[offset];
     }
 
-    // Reset the array back to all zeros
+    /// Reset the array back to all zeros
     void Reset()
     {
         if (this->IsAllocated() == true || this->IsInitialized() == true)
@@ -208,17 +229,19 @@ struct MemoryStruct
         }
     }
 
-    // Get the status of the error flag
+    /// Get the status of the error flag
     bool GetErrorFlag()
     {
         return this->ErrorFlag;
     }
 
+    /// Flag to determine whether the array was allocated by this class (true) or by another class (false).
     bool IsAllocated()
     {
         return this->Allocated;
     }
 
+    /// Flag to determine whether the array was initilized already. AllocateArray() and CopyPointer() will both set this flag to true.
     bool IsInitialized()
     {
         return this->Initialized;

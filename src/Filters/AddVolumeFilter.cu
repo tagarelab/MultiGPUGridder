@@ -4,7 +4,7 @@ template <typename T>
 __global__ void AddVolumeKernel(T *VolumeOne, T *VolumeTwo, int VolumeSize, int nSlices)
 {
     // Add two GPU arrays together (assume the arrays are the same size X, Y, and Z dimensions)
-    // VolumeOne = VolumeOne / VolumeTwo
+    // VolumeOne = VolumeOne + VolumeTwo
 
     // Index of volume in the XY plane
     int i = blockIdx.x * blockDim.x + threadIdx.x; // Column

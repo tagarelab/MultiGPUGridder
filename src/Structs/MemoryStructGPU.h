@@ -2,12 +2,23 @@
 
 #include "MemoryStruct.h"
 
-// Extend the memory struct from the abstract gridder class to include GPU related information
-template <class T = float>
-struct MemoryStructGPU : public MemoryStruct<T>
-{
+/**
+ * @class   MemoryStructGPU
+ * @brief   A class for allocating device (i.e GPU) memory
+ *
+ *
+ * A class for allocating and deallocating GPU memory. MemoryStructGPU also remembers needed information for each allocated array
+ * (e.g. CASImgs, images, coordinate axes, etc.) such as the array size, memory pointers, etc. This is the main GPU memory class.
+ * 
+ * MemoryStructGPU inherits from MemoryStruct and extends MemoryStructGPU to include GPU related information and functions. 
+ * 
+ * */
 
-    // Extend the constructor from MemoryStruct
+template <class T = float>
+class MemoryStructGPU : public MemoryStruct<T>
+{
+public:
+    /// Extend the MemoryStructGPU constructor from MemoryStruct
     MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct<T>(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
@@ -19,31 +30,11 @@ struct MemoryStructGPU : public MemoryStruct<T>
         // Create the stream on the selected GPU
         cudaStreamCreate(&this->stream);
 
-        this->ptr = NULL; // Set the pointer to NULL
-
-        // Allocate the array on the GPU
-        // AllocateGPUArray();
+        // Set the pointer to NULL
+        this->ptr = NULL;
     }
 
-    // Extend the constructor from MemoryStruct: Array of 3 dimensions
-    MemoryStructGPU(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
-    {
-        // Which GPU to use for allocating the array
-        this->GPU_Device = GPU_Device;
-
-        // Set the GPU device to the device which contains the CUDA array
-        cudaSetDevice(this->GPU_Device);
-
-        // Create the stream on the selected GPU
-        cudaStreamCreate(&this->stream);
-
-        this->ptr = NULL; // Set the pointer to NULL
-
-        // Allocate the array on the GPU
-        // AllocateGPUArray();
-    }
-
-    // Extend the constructor from MemoryStruct: Array of 1 dimensions
+    /// Extend the constructor from MemoryStruct: Array of 1 dimensions
     MemoryStructGPU(int dims, int ArraySizeX, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX)
     {
         // Which GPU to use for allocating the array
@@ -55,10 +46,43 @@ struct MemoryStructGPU : public MemoryStruct<T>
         // Create the stream on the selected GPU
         cudaStreamCreate(&this->stream);
 
-        this->ptr = NULL; // Set the pointer to NULL
+        // Set the pointer to NULL
+        this->ptr = NULL;
     }
 
-    // Deconstructor to free the GPU memory
+    /// Extend the constructor from MemoryStruct: Array of 2 dimensions
+    MemoryStructGPU(int dims, int ArraySizeX, int ArraySizeY, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX, ArraySizeY)
+    {
+        // Which GPU to use for allocating the array
+        this->GPU_Device = GPU_Device;
+
+        // Set the GPU device to the device which contains the CUDA array
+        cudaSetDevice(this->GPU_Device);
+
+        // Create the stream on the selected GPU
+        cudaStreamCreate(&this->stream);
+
+        // Set the pointer to NULL
+        this->ptr = NULL;
+    }
+
+    /// Extend the constructor from MemoryStruct: Array of 3 dimensions
+    MemoryStructGPU(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
+    {
+        // Which GPU to use for allocating the array
+        this->GPU_Device = GPU_Device;
+
+        // Set the GPU device to the device which contains the CUDA array
+        cudaSetDevice(this->GPU_Device);
+
+        // Create the stream on the selected GPU
+        cudaStreamCreate(&this->stream);
+
+        // Set the pointer to NULL
+        this->ptr = NULL;
+    }
+
+    /// Deconstructor to free any allocated GPU memory
     ~MemoryStructGPU()
     {
         if (this->Allocated == true)
@@ -67,7 +91,7 @@ struct MemoryStructGPU : public MemoryStruct<T>
         }
     }
 
-    // Copy a T type array from the CPU to the allocated array on the GPU
+    /// Copy an array array from the CPU to the previously allocated array on the GPU
     void CopyToGPU(T *Array, int Bytes)
     {
         if (Bytes != this->bytes())
@@ -79,7 +103,7 @@ struct MemoryStructGPU : public MemoryStruct<T>
         cudaMemcpy(this->ptr, Array, Bytes, cudaMemcpyHostToDevice);
     }
 
-    // Copy a T type array from the CPU to the allocated array on the GPU asynchronously
+    /// Copy an array from the CPU to the allocated array on the GPU asynchronously.
     void CopyToGPUAsyc(T *Array, int Bytes)
     {
         if (Bytes != this->bytes())
@@ -102,7 +126,7 @@ struct MemoryStructGPU : public MemoryStruct<T>
         }
     }
 
-    // Copy the array from the GPU to a T type array on the CPU
+    /// Copy the array from the GPU to a previously allocated array on the host (i.e. CPU).
     void CopyFromGPU(T *Array, int Bytes)
     {
         if (Bytes != this->bytes())
@@ -114,7 +138,7 @@ struct MemoryStructGPU : public MemoryStruct<T>
         cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost);
     }
 
-    // Allocate the memory to a given GPU device
+    /// Allocate the memory on the GPU
     void AllocateGPUArray()
     {
         // Set the current GPU
@@ -147,7 +171,6 @@ struct MemoryStructGPU : public MemoryStruct<T>
             cudaSetDevice(this->GPU_Device);
 
             // There is enough memory left on the current GPU
-            // cudaDeviceSynchronize(); // test
             cudaError_t status = cudaMalloc((void **)&this->ptr, this->bytes());
 
             if (status != 0)
@@ -166,36 +189,13 @@ struct MemoryStructGPU : public MemoryStruct<T>
         }
     }
 
-    // Allocate the memory to a given GPU device
-    void AllocateGPUArray(int Bytes)
-    {
-        // Set the current GPU
-        // cudaSetDevice(this->GPU_Device);
-
-        cudaError_t status = cudaMalloc((void **)&this->ptr, Bytes);
-
-        if (status != 0)
-        {
-            std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
-            this->ErrorFlag = -1; // Set the error flag to -1 to remember that this failed
-
-            int *curr_device = new int[1];
-            cudaGetDevice(curr_device);
-
-            std::cerr << "Current device is " << curr_device[0] << " while GPU_Device is " << this->GPU_Device << '\n';
-        }
-
-        this->ErrorFlag = 0; // Set the error flag to 0 to remember that this was sucessful
-        this->Allocated = true;
-    }
-
-    // Reset the GPU array back to all zeros
+    /// Reset the GPU array back to all zeros
     void Reset()
     {
         cudaMemset(this->ptr, 0, this->bytes());
     }
 
-    // Free the GPU memory
+    /// Free the GPU memory
     void DeallocateGPUArray()
     {
         cudaFree(this->ptr);
