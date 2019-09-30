@@ -2,7 +2,7 @@
 
 /**
  * @class   HostMemory
- * @brief   A class for allocating host (i.e CPU) memory
+ * @brief   A class for allocating host (i.e. CPU) memory
  *
  *
  * A class for allocating and deallocating host memory. HostMemory also remembers needed information for each allocated array

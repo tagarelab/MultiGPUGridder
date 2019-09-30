@@ -9,9 +9,10 @@ rehash;      % cause all .m files to be reparsed when invoked again
 
 
 % addpath('./src')
-addpath('./utils')
+% addpath('./utils')
 % addpath('./bin') % The compiled mex file is stored in the bin folder
 
+addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/src/Matlab"))
 % addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"));
 % addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original"));
 % addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj_Original/utils"));
@@ -54,7 +55,8 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1:5
+for i = 1:50
+    i
     
 %     gridder.Volume = single(MRI_volume) ;
 %     gridder.Volume(1:50,1:125,1:125) = 10;
@@ -68,10 +70,10 @@ for i = 1:5
 gridder.resetVolume();
 gridder.resetVolume();
 gridder.setVolume(single(MRI_volume));
-    tic
+%     tic
     images = gridder.forwardProject(coordAxes);
-    toc
-    easyMontage(images(:,:,:), 1)
+%     toc
+%     easyMontage(images(:,:,:), 1)
 %    easyMontage(gridder.Images(:,:,1:5), 1)
     
 
@@ -85,7 +87,7 @@ gridder.setVolume(single(MRI_volume));
     % Check for missing sections
     % Should check the CUDA return flags as well
 %     easyMontage(gridder.Images(:,:,1:10), 1)
-    pause(0.1)
+%     pause(0.1)
 end
 
 
@@ -93,7 +95,7 @@ end
 
 % Run the back projection
 
-for i = 1:2
+for i = 1:300
     
     
 %     cols = size(coordAxes,2);
@@ -115,9 +117,9 @@ toc
 
 vol=gridder.getVol();
 
-disp("Plotting...")
+% disp("Plotting...")
 % easyMontage(gridder.CASImages(:,:,:), 1)
-easyMontage(vol, 2)
+% easyMontage(vol, 2)
 end
 
 max(gridder.PlaneDensity(:))

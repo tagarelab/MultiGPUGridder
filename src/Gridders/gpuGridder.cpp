@@ -474,6 +474,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     cudaSetDevice(this->GPU_Device);
     // cudaDeviceSynchronize();
 
+    PrintMemoryAvailable();
+
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
     {
@@ -612,6 +614,8 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
+
+    PrintMemoryAvailable();
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int ImgSize = this->d_Imgs->GetSize(0);
@@ -957,6 +961,13 @@ void gpuGridder::FreeMemory()
 
 void gpuGridder::CASVolumeToVolume()
 {
+    std::cout << "CASVolumeToVolume():" << '\n';
+    std::cout << "CASVolumeToVolume():" << '\n';
+    std::cout << "CASVolumeToVolume():" << '\n';
+    std::cout << "CASVolumeToVolume():" << '\n';
+ 
+    cudaDeviceSynchronize();
+    PrintMemoryAvailable();
     // Convert a GPU CAS volume to volume
     // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
     // Step 1: Pad the input volume with zeros and convert to cufftComplex type
@@ -977,9 +988,9 @@ void gpuGridder::CASVolumeToVolume()
     KB_PreComp_size[1] = this->h_Volume->GetSize(1) * this->interpFactor;
     KB_PreComp_size[2] = this->h_Volume->GetSize(2) * this->interpFactor;
 
-    DeviceMemory<float> *d_KBPreComp = new DeviceMemory<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
-    d_KBPreComp->AllocateGPUArray();
-    d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer(), d_KBPreComp->bytes());
+    float *d_KBPreComp;
+    cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]);
+    cudaMemcpy(d_KBPreComp, this->h_KBPreComp->GetPointer(), sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2], cudaMemcpyHostToDevice);
 
     delete[] KB_PreComp_size;
 
@@ -1022,6 +1033,9 @@ void gpuGridder::CASVolumeToVolume()
     cufftHandle inverseFFTPlan;
     cufftPlan3d(&inverseFFTPlan, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, CUFFT_C2C);
     cufftExecC2C(inverseFFTPlan, (cufftComplex *)d_CASVolume_Cropped_Complex, (cufftComplex *)d_CASVolume_Cropped_Complex, CUFFT_INVERSE);
+
+    cudaDeviceSynchronize();
+
     cufftDestroy(inverseFFTPlan);
 
     // Apply a second in place 3D FFT Shift
@@ -1033,7 +1047,7 @@ void gpuGridder::CASVolumeToVolume()
     MultiplyVolumeFilter *MultiplyFilter = new MultiplyVolumeFilter();
     MultiplyFilter->SetVolumeSize(CroppedCASVolumeSize);
     MultiplyFilter->SetVolumeOne(d_CASVolume_Cropped_Complex);
-    MultiplyFilter->SetVolumeTwo(d_KBPreComp->GetPointer());
+    MultiplyFilter->SetVolumeTwo(d_KBPreComp);
     MultiplyFilter->Update();
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
@@ -1060,9 +1074,26 @@ void gpuGridder::CASVolumeToVolume()
     DivideScalar->SetVolumeSize(VolumeSize);
     DivideScalar->Update();
 
+    cudaDeviceSynchronize();
+
     // Free the temporary variables
+    cudaFree(d_KBPreComp);
     cudaFree(d_CASVolume_Cropped);
     cudaFree(d_CASVolume_Cropped_Complex);
+
+    delete DivideScalar;
+    delete ComplexToReal;
+    delete MultiplyFilter;
+    delete FFTShiftFilter;
+    delete CASFilter;
+    delete CropFilter;
+
+    std::cout << "End of CASVolumeToVolume" << '\n';
+    std::cout << "End of CASVolumeToVolume" << '\n';
+    std::cout << "End of CASVolumeToVolume" << '\n';
+    std::cout << "End of CASVolumeToVolume" << '\n';
+    std::cout << "End of CASVolumeToVolume" << '\n';
+    PrintMemoryAvailable();
 }
 
 void gpuGridder::ReconstructVolume()

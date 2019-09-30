@@ -4,7 +4,7 @@
 
 /**
  * @class   DeviceMemory
- * @brief   A class for allocating device (i.e GPU) memory
+ * @brief   A class for allocating device (i.e. GPU) memory
  *
  *
  * A class for allocating and deallocating GPU memory. DeviceMemory also remembers needed information for each allocated array
@@ -198,7 +198,11 @@ public:
     /// Free the GPU memory
     void DeallocateGPUArray()
     {
+        std::cout << "DeallocateGPUArray():" << '\n';
+        cudaSetDevice(this->GPU_Device);
         cudaFree(this->ptr);
+
+        this->Allocated = false;
     }
 
 protected:
