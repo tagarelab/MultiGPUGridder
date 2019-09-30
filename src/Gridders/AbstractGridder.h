@@ -1,5 +1,25 @@
 #pragma once
 
+/**
+ * @class   AbstractGridder
+ * @brief   A class for the gridder interface
+ *
+ *
+ * This class is used as the parent class for all gridders. The AbstractGridder 
+ * provides functions for setting the pointer to host (i.e. CPU) memory for 
+ * the required arrays. These arrays include 
+ * - the volume, 
+ * - a set of coordinate axes,
+ * - an output array for the projected images,
+ * - the Kaiser Bessel lookup table and precompensation array.
+ * 
+ * The forward and back projection operations are done in-place. In other words,
+ * since the pointer to the memory address for the arrays is set in the setter functions of the AbstractGridder,
+ * there is no need to return the final arrays. In the Matlab wrapper, the matrices are allocated within Matlab and the
+ * memory pointers are passed to the AbstractGridder. Then after the computation, the arrays within Matlab will
+ * have the updated outputs without the need for returning the values back to Matlab (which saves on memory transfer time).
+*/
+
 #include <stdio.h>
 #include <iostream>
 #include "MemoryStruct.h"
@@ -9,47 +29,85 @@ class AbstractGridder
 
 public:
     // Constructor
+    /**
+     * The AbstractGridder constructor takes the size of the volume (which must have equal demensions), the number of coordinate axes
+     * for forward and back projection, and the interpolation factor for upsampling the volume for the forward and 
+     * inverse Fourier transform.
+     */
     AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor);
 
     // Deconstructor
     ~AbstractGridder();
 
-    // Run the forward projection and return the projection images
+    /// Run the forward projection and return the projection images
     void ForwardProject();
 
-    // Run the back projection and return the volume
-    float *BackProject();
+    /// Run the back projection and return the volume
+    void *BackProject();
 
-    // Reset the volume to all zeros
-    void ResetVolume() { this->h_Volume->Reset(); };
+    /// Reset the volume to all zeros
+    void ResetVolume();
 
-    // Setter functions
+    /// Set the volume by passing a pointer to previously allocated memory and an int vector (of size 3) which has the array dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetVolume(float *h_Volume, int *VolumeSize);
+
+    /// Set the Kaiser Bessel lookup table by passing a pointer to previously allocated memory and an int vector (of size 1) which has the array dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetKerBesselVector(float *h_KB_Table, int *ArraySize);
-    void SetCASVolume(float *h_CASVolume, int *ArraySize);
+
+    /// Set the output images array (i.e. the result from forward projection) by passing a pointer to previously allocated memory
+    /// and an int vector (of size 3) which has the array dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetImages(float *h_Imgs, int *ArraySize);
+
+    /// Set the coordinate axes array (i.e. for determining the projection angles) by passing a pointer to previously allocated memory
+    /// and an int vector (of size 1) which has the array dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetCoordAxes(float *h_CoordAxes, int *ArraySize);
-    void SetMaxAxesToAllocate(int MaxAxesToAllocate) { this->MaxAxesToAllocate = MaxAxesToAllocate; }
-    void SetNumAxes(int numCoordAxes) { this->numCoordAxes = numCoordAxes; }
-    void SetCASImages(float *h_CASImgs, int *ArraySize);
-    void SetPlaneDensity(float *h_PlaneDensity, int *ArraySize);
+
+    /// Set the Kaiser Bessel pre-compensation array by passing a pointer to previously allocated memory and an int vector (of size 3) which has the volume dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetKBPreCompArray(float *h_KBPreComp, int *ArraySize);
+
+    /// OPTIONAL: Set the CAS volume array by passing a pointer to previously allocated memory and an int vector (of size 3) which has the volume dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
+    void SetCASVolume(float *h_CASVolume, int *ArraySize);
+
+    /// OPTIONAL: Set the CAS images array (i.e. the CAS version of the output from the forward projection) by passing a pointer to previously allocated memory
+    /// and an int vector (of size 3) which has the volume dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
+    void SetCASImages(float *h_CASImgs, int *ArraySize);
+
+    /// OPTIONAL: Set the plane density array by passing a pointer to previously allocated memory and an int vector (of size 3) which has the volume dimensions.
+    /// This is used for the back projection and represents the density of the projection directions and is used for compensating the back projection result.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
+    void SetPlaneDensity(float *h_PlaneDensity, int *ArraySize);
+
+    /// OPTIONAL: Set maximum number of coordinate axes (and corresponding number of intermediate arrays) for the forward and back projection.
+    /// Although the projection classes estimate the number of coordinate axes based on available memory, this can be useful for limiting to a smaller number.
+    void SetMaxAxesToAllocate(int MaxAxesToAllocate) { this->MaxAxesToAllocate = MaxAxesToAllocate; }
+
+    /// The number of coordinate axes to be used in the forward and back projection.
+    void SetNumAxes(int numCoordAxes) { this->numCoordAxes = numCoordAxes; }
+
+    /// Interpolation factor for upsampling the volume for forward and inverse Fourier transform. Default is 2.
     void SetInterpFactor(float interpFactor) { this->interpFactor = interpFactor; };
+
+    /// The mask radius for forward and back projection. The default value is the volume size times interpolation factor divided by two minus one.
     void SetMaskRadius(float maskRadius) { this->maskRadius = maskRadius; };
 
-    // Getter functions
+    /// Get the number of corrdinate axes.
     int GetNumAxes() { return this->numCoordAxes; }
-    int GetMaxAxesToAllocate() { return this->MaxAxesToAllocate; }
-    int *GetVolumeSize() { return this->h_Volume->GetSize(); };
-    int *GetCASVolumeSize() { return this->h_CASVolume->GetSize(); }
-    int *GetCASImagesSize() { return this->h_CASImgs->GetSize(); }
-    int *GetImgSize() { return this->h_Imgs->GetSize(); }
+
+    /// Get the pointer to the volume.
     float *GetVolume() { return this->h_Volume->GetPointer(); };
+
+    /// Get the pointer to the CAS volume.
     float *GetCASVolume() { return this->h_CASVolume->GetPointer(); }
-    float *GetCoordAxesPtr_CPU() { return this->h_CoordAxes->GetPointer(); }
+
+    /// Get the mask radius parameter.
     float GetMaskRadius() { return this->maskRadius; }
-    float *GetCASImgsPtr_CPU() { return this->h_CASImgs->GetPointer(); }
-    float *GetImgsPtr_CPU() { return this->h_Imgs->GetPointer(); }
 
 protected:
     // Create one instance of the following arrays to shared between objects of type AbstractGridder (and child objects)

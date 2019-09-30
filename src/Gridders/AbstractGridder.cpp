@@ -10,7 +10,6 @@ MemoryStruct<float> *AbstractGridder::h_KB_Table;
 MemoryStruct<float> *AbstractGridder::h_PlaneDensity;
 MemoryStruct<float> *AbstractGridder::h_KBPreComp;
 
-
 AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
 {
     // Constructor for the abstract gridder class
@@ -197,3 +196,8 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
     // Set the number of coordinate axes by dividing by the number of elements per axe (i.e. 9)
     this->SetNumAxes(ArraySize[0] / 9);
 }
+
+void AbstractGridder::ResetVolume()
+{
+    this->h_Volume->Reset();
+};
