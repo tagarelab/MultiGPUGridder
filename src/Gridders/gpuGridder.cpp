@@ -258,46 +258,46 @@ void gpuGridder::InitilizeGPUArrays()
     axes_size[0] = axes_size[0] * 9; // 9 elements per coordinate axes
 
     // Allocate the volume
-    this->d_Volume = new MemoryStructGPU<float>(3, this->VolumeSize, this->VolumeSize, this->VolumeSize, this->GPU_Device);
+    this->d_Volume = new HostMemoryGPU<float>(3, this->VolumeSize, this->VolumeSize, this->VolumeSize, this->GPU_Device);
     this->d_Volume->AllocateGPUArray();
 
     // If running the FFT on the device allocate the required intermediate array
     if (this->RunFFTOnDevice == 1)
     {
         // Allocate padded volume (used for converting the volume to CAS volume)
-        this->d_PaddedVolume = new MemoryStructGPU<float>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
+        this->d_PaddedVolume = new HostMemoryGPU<float>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
         this->d_PaddedVolume->AllocateGPUArray();
 
-        this->d_PaddedVolumeComplex = new MemoryStructGPU<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
+        this->d_PaddedVolumeComplex = new HostMemoryGPU<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
         this->d_PaddedVolumeComplex->AllocateGPUArray();
 
         // Allocate the complex CAS images array
-        this->d_CASImgsComplex = new MemoryStructGPU<cufftComplex>(3, CASimgs_size, this->GPU_Device);
+        this->d_CASImgsComplex = new HostMemoryGPU<cufftComplex>(3, CASimgs_size, this->GPU_Device);
         this->d_CASImgsComplex->AllocateGPUArray();
     }
 
     // Allocate the plane density array (for the back projection)
-    this->d_PlaneDensity = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
+    this->d_PlaneDensity = new HostMemoryGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
     this->d_PlaneDensity->AllocateGPUArray();
 
     // Allocate the CAS volume
-    this->d_CASVolume = new MemoryStructGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
+    this->d_CASVolume = new HostMemoryGPU<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
     this->d_CASVolume->AllocateGPUArray();
 
     // Allocate the CAS images
-    this->d_CASImgs = new MemoryStructGPU<float>(3, CASimgs_size, this->GPU_Device);
+    this->d_CASImgs = new HostMemoryGPU<float>(3, CASimgs_size, this->GPU_Device);
     this->d_CASImgs->AllocateGPUArray();
 
     // Allocate the images
-    this->d_Imgs = new MemoryStructGPU<float>(3, imgs_size, this->GPU_Device);
+    this->d_Imgs = new HostMemoryGPU<float>(3, imgs_size, this->GPU_Device);
     this->d_Imgs->AllocateGPUArray();
 
     // Allocate the coordinate axes array
-    this->d_CoordAxes = new MemoryStructGPU<float>(this->h_CoordAxes->GetDim(), this->h_CoordAxes->GetSize(), this->GPU_Device);
+    this->d_CoordAxes = new HostMemoryGPU<float>(this->h_CoordAxes->GetDim(), this->h_CoordAxes->GetSize(), this->GPU_Device);
     this->d_CoordAxes->AllocateGPUArray();
 
     // Allocate the Kaiser bessel lookup table
-    this->d_KB_Table = new MemoryStructGPU<float>(this->h_KB_Table->GetDim(), this->h_KB_Table->GetSize(), this->GPU_Device);
+    this->d_KB_Table = new HostMemoryGPU<float>(this->h_KB_Table->GetDim(), this->h_KB_Table->GetSize(), this->GPU_Device);
     this->d_KB_Table->AllocateGPUArray();
     this->d_KB_Table->CopyToGPU(this->h_KB_Table->GetPointer(), this->h_KB_Table->bytes());
 
@@ -977,7 +977,7 @@ void gpuGridder::CASVolumeToVolume()
     KB_PreComp_size[1] = this->h_Volume->GetSize(1) * this->interpFactor;
     KB_PreComp_size[2] = this->h_Volume->GetSize(2) * this->interpFactor;
 
-    MemoryStructGPU<float> *d_KBPreComp = new MemoryStructGPU<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
+    HostMemoryGPU<float> *d_KBPreComp = new HostMemoryGPU<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
     d_KBPreComp->AllocateGPUArray();
     d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer(), d_KBPreComp->bytes());
 
@@ -1087,7 +1087,7 @@ void gpuGridder::ReconstructVolume()
     KB_PreComp_size[1] = this->h_Volume->GetSize(1) * this->interpFactor;
     KB_PreComp_size[2] = this->h_Volume->GetSize(2) * this->interpFactor;
 
-    MemoryStructGPU<float> *d_KBPreComp = new MemoryStructGPU<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
+    HostMemoryGPU<float> *d_KBPreComp = new HostMemoryGPU<float>(this->d_CASVolume->GetDim(), KB_PreComp_size, this->GPU_Device);
     d_KBPreComp->AllocateGPUArray();
     d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer(), d_KBPreComp->bytes());
 

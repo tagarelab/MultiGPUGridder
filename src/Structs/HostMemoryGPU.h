@@ -1,25 +1,25 @@
 #pragma once
 
-#include "MemoryStruct.h"
+#include "HostMemory.h"
 
 /**
- * @class   MemoryStructGPU
+ * @class   HostMemoryGPU
  * @brief   A class for allocating device (i.e GPU) memory
  *
  *
- * A class for allocating and deallocating GPU memory. MemoryStructGPU also remembers needed information for each allocated array
+ * A class for allocating and deallocating GPU memory. HostMemoryGPU also remembers needed information for each allocated array
  * (e.g. CASImgs, images, coordinate axes, etc.) such as the array size, memory pointers, etc. This is the main GPU memory class.
  * 
- * MemoryStructGPU inherits from MemoryStruct and extends MemoryStructGPU to include GPU related information and functions. 
+ * HostMemoryGPU inherits from HostMemory and extends HostMemoryGPU to include GPU related information and functions. 
  * 
  * */
 
 template <class T = float>
-class MemoryStructGPU : public MemoryStruct<T>
+class HostMemoryGPU : public HostMemory<T>
 {
 public:
-    /// Extend the MemoryStructGPU constructor from MemoryStruct
-    MemoryStructGPU(int dims, int *ArraySize, int GPU_Device) : MemoryStruct<T>(dims, ArraySize)
+    /// Extend the HostMemoryGPU constructor from HostMemory
+    HostMemoryGPU(int dims, int *ArraySize, int GPU_Device) : HostMemory<T>(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -34,8 +34,8 @@ public:
         this->ptr = NULL;
     }
 
-    /// Extend the constructor from MemoryStruct: Array of 1 dimensions
-    MemoryStructGPU(int dims, int ArraySizeX, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX)
+    /// Extend the constructor from HostMemory: Array of 1 dimensions
+    HostMemoryGPU(int dims, int ArraySizeX, int GPU_Device) : HostMemory<T>(dims, ArraySizeX)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -50,8 +50,8 @@ public:
         this->ptr = NULL;
     }
 
-    /// Extend the constructor from MemoryStruct: Array of 2 dimensions
-    MemoryStructGPU(int dims, int ArraySizeX, int ArraySizeY, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX, ArraySizeY)
+    /// Extend the constructor from HostMemory: Array of 2 dimensions
+    HostMemoryGPU(int dims, int ArraySizeX, int ArraySizeY, int GPU_Device) : HostMemory<T>(dims, ArraySizeX, ArraySizeY)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -66,8 +66,8 @@ public:
         this->ptr = NULL;
     }
 
-    /// Extend the constructor from MemoryStruct: Array of 3 dimensions
-    MemoryStructGPU(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : MemoryStruct<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
+    /// Extend the constructor from HostMemory: Array of 3 dimensions
+    HostMemoryGPU(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : HostMemory<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -83,7 +83,7 @@ public:
     }
 
     /// Deconstructor to free any allocated GPU memory
-    ~MemoryStructGPU()
+    ~HostMemoryGPU()
     {
         if (this->Allocated == true)
         {

@@ -13,8 +13,8 @@
  * 
  * */
 
-#include "MemoryStruct.h"
-#include "MemoryStructGPU.h"
+#include "HostMemory.h"
+#include "HostMemoryGPU.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -40,11 +40,11 @@ protected:
 
     int dims;
 
-    MemoryStructGPU<float> *d_input_struct;
-    MemoryStructGPU<float> *d_output_struct;
+    HostMemoryGPU<float> *d_input_struct;
+    HostMemoryGPU<float> *d_output_struct;
 
-    MemoryStruct<float> *h_input_struct;
-    MemoryStruct<float> *h_output_struct;
+    HostMemory<float> *h_input_struct;
+    HostMemory<float> *h_output_struct;
 
     float *d_input_ptr;
     float *d_output_ptr;

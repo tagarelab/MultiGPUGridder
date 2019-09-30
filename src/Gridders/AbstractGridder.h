@@ -25,7 +25,7 @@
 
 #include <stdio.h>
 #include <iostream>
-#include "MemoryStruct.h"
+#include "HostMemory.h"
 
 class AbstractGridder
 {
@@ -115,14 +115,14 @@ public:
 protected:
     // Create one instance of the following arrays to shared between objects of type AbstractGridder (and child objects)
     // All of these are on the CPU
-    static MemoryStruct<float> *h_Imgs;
-    static MemoryStruct<float> *h_Volume;
-    static MemoryStruct<float> *h_CoordAxes;
-    static MemoryStruct<float> *h_KB_Table;
-    static MemoryStruct<float> *h_KBPreComp;    // Kaiser Bessel precompensation array (currently set using Matlab getPreComp())
-    static MemoryStruct<float> *h_CASVolume;    // Optional inputs
-    static MemoryStruct<float> *h_CASImgs;      // Optional inputs
-    static MemoryStruct<float> *h_PlaneDensity; // Optional inputs
+    static HostMemory<float> *h_Imgs;
+    static HostMemory<float> *h_Volume;
+    static HostMemory<float> *h_CoordAxes;
+    static HostMemory<float> *h_KB_Table;
+    static HostMemory<float> *h_KBPreComp;    // Kaiser Bessel precompensation array (currently set using Matlab getPreComp())
+    static HostMemory<float> *h_CASVolume;    // Optional inputs
+    static HostMemory<float> *h_CASImgs;      // Optional inputs
+    static HostMemory<float> *h_PlaneDensity; // Optional inputs
 
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;

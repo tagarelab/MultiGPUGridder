@@ -1,14 +1,14 @@
 #include "AbstractGridder.h"
 
 // Initialize static members
-MemoryStruct<float> *AbstractGridder::h_Volume;
-MemoryStruct<float> *AbstractGridder::h_CASVolume;
-MemoryStruct<float> *AbstractGridder::h_Imgs;
-MemoryStruct<float> *AbstractGridder::h_CASImgs;
-MemoryStruct<float> *AbstractGridder::h_CoordAxes;
-MemoryStruct<float> *AbstractGridder::h_KB_Table;
-MemoryStruct<float> *AbstractGridder::h_PlaneDensity;
-MemoryStruct<float> *AbstractGridder::h_KBPreComp;
+HostMemory<float> *AbstractGridder::h_Volume;
+HostMemory<float> *AbstractGridder::h_CASVolume;
+HostMemory<float> *AbstractGridder::h_Imgs;
+HostMemory<float> *AbstractGridder::h_CASImgs;
+HostMemory<float> *AbstractGridder::h_CoordAxes;
+HostMemory<float> *AbstractGridder::h_KB_Table;
+HostMemory<float> *AbstractGridder::h_PlaneDensity;
+HostMemory<float> *AbstractGridder::h_KBPreComp;
 
 AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
 {
@@ -55,7 +55,7 @@ void AbstractGridder::SetKerBesselVector(float *ker_bessel_Vector, int *ArraySiz
     // Set the keiser bessel vector
     if (this->KB_TableInitialized == false)
     {
-        this->h_KB_Table = new MemoryStruct<float>(1, ArraySize);
+        this->h_KB_Table = new HostMemory<float>(1, ArraySize);
         this->h_KB_Table->CopyPointer(ker_bessel_Vector);
         this->h_KB_Table->PinArray();
 
@@ -73,7 +73,7 @@ void AbstractGridder::SetVolume(float *Volume, int *ArraySize)
     // First save the given pointer
     if (this->VolumeInitialized == false)
     {
-        this->h_Volume = new MemoryStruct<float>(3, ArraySize);
+        this->h_Volume = new HostMemory<float>(3, ArraySize);
         this->h_Volume->CopyPointer(Volume);
         this->h_Volume->PinArray();
 
@@ -91,7 +91,7 @@ void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
     // Set the CAS volume (an optional input to the gridder)
     if (this->CASVolumeInitialized == false)
     {
-        this->h_CASVolume = new MemoryStruct<float>(3, ArraySize);
+        this->h_CASVolume = new HostMemory<float>(3, ArraySize);
         this->h_CASVolume->CopyPointer(CASVolume);
         this->h_CASVolume->PinArray();
 
@@ -109,7 +109,7 @@ void AbstractGridder::SetPlaneDensity(float *PlaneDensity, int *ArraySize)
     // Set the plane density array (optional)
     if (this->PlaneDensityInitialized == false)
     {
-        this->h_PlaneDensity = new MemoryStruct<float>(3, ArraySize);
+        this->h_PlaneDensity = new HostMemory<float>(3, ArraySize);
         this->h_PlaneDensity->CopyPointer(PlaneDensity);
         this->h_PlaneDensity->PinArray();
 
@@ -127,7 +127,7 @@ void AbstractGridder::SetKBPreCompArray(float *KBPreCompArray, int *ArraySize)
     // Set the Kaiser Bessel precompentation array (currently set using Matlab's getPreComp() function)
     if (this->KBPreCompInitialized == false)
     {
-        this->h_KBPreComp = new MemoryStruct<float>(3, ArraySize);
+        this->h_KBPreComp = new HostMemory<float>(3, ArraySize);
         this->h_KBPreComp->CopyPointer(KBPreCompArray);
         this->h_KBPreComp->PinArray();
 
@@ -145,7 +145,7 @@ void AbstractGridder::SetImages(float *imgs, int *ArraySize)
     // Set the images array
     if (this->ImgsInitialized == false)
     {
-        this->h_Imgs = new MemoryStruct<float>(3, ArraySize);
+        this->h_Imgs = new HostMemory<float>(3, ArraySize);
         this->h_Imgs->CopyPointer(imgs);
         this->h_Imgs->PinArray();
 
@@ -163,7 +163,7 @@ void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
     // Set the CAS images array
     if (this->CASImgsInitialized == false)
     {
-        this->h_CASImgs = new MemoryStruct<float>(3, ArraySize);
+        this->h_CASImgs = new HostMemory<float>(3, ArraySize);
         this->h_CASImgs->CopyPointer(CASimgs);
         this->h_CASImgs->PinArray();
 
@@ -181,7 +181,7 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
     // Set the coordinate axes pointer
     if (this->CoordAxesInitialized == false)
     {
-        this->h_CoordAxes = new MemoryStruct<float>(1, ArraySize);
+        this->h_CoordAxes = new HostMemory<float>(1, ArraySize);
         this->h_CoordAxes->CopyPointer(coordAxes);
         this->h_CoordAxes->PinArray();
 

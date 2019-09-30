@@ -10,7 +10,7 @@
  * volume, coordinate axes vector, etc, and for setting various parameters such as the interpolation factor.
  * 
  * The gpuGridder estimates the number of coordinate axes which the GPU has available memory for. The GPU memory has
- * type MemoryStructGPU which remembers various required information about the GPU array.
+ * type HostMemoryGPU which remembers various required information about the GPU array.
  * 
  * The ForwardProject and BackProject functions both take the same inputs: AxesOffset and nAxesToProcess which represent
  * the offset (in number of coordinate axes) of the host (i.e. CPU) coordinate axes array to start the forward or back projection
@@ -25,8 +25,8 @@
 #include "AbstractGridder.h"
 #include "gpuForwardProject.h"
 #include "gpuBackProject.h"
-#include "MemoryStruct.h"
-#include "MemoryStructGPU.h"
+#include "HostMemory.h"
+#include "HostMemoryGPU.h"
 
 #include "CropVolumeFilter.h"
 #include "CASToComplexFilter.h"
@@ -172,16 +172,16 @@ public:
 
 private:
     // Initilize pointers for allocating memory on the GPU
-    MemoryStructGPU<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
-    MemoryStructGPU<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
-    MemoryStructGPU<float> *d_CASVolume;
-    MemoryStructGPU<float> *d_PaddedVolume;
-    MemoryStructGPU<float> *d_CASImgs;
-    MemoryStructGPU<float> *d_Imgs;     // Output images
-    MemoryStructGPU<float> *d_KB_Table; // Kaiser bessel lookup table
-    MemoryStructGPU<float> *d_CoordAxes;
-    MemoryStructGPU<float> *d_PlaneDensity;
-    MemoryStructGPU<float> *d_Volume;
+    HostMemoryGPU<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
+    HostMemoryGPU<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
+    HostMemoryGPU<float> *d_CASVolume;
+    HostMemoryGPU<float> *d_PaddedVolume;
+    HostMemoryGPU<float> *d_CASImgs;
+    HostMemoryGPU<float> *d_Imgs;     // Output images
+    HostMemoryGPU<float> *d_KB_Table; // Kaiser bessel lookup table
+    HostMemoryGPU<float> *d_CoordAxes;
+    HostMemoryGPU<float> *d_PlaneDensity;
+    HostMemoryGPU<float> *d_Volume;
 
     // Kernel launching parameters
     // int gridSize;

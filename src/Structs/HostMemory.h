@@ -1,11 +1,11 @@
 #pragma once
 
 /**
- * @class   MemoryStruct
+ * @class   HostMemory
  * @brief   A class for allocating host (i.e CPU) memory
  *
  *
- * A class for allocating and deallocating host memory. MemoryStruct also remembers needed information for each allocated array
+ * A class for allocating and deallocating host memory. HostMemory also remembers needed information for each allocated array
  * (e.g. CASImgs, images, coordinate axes, etc.) such as the array size, memory pointers, etc. This is the main CPU memory class.
  * 
  * */
@@ -20,12 +20,12 @@
 #include <cuda.h>
 
 template <class T = float>
-class MemoryStruct
+class HostMemory
 {
 public:
     /// Constructor for the class. dims is the dimensions of the array to allocate while ArraySize is an int vector of size dims containing the
     /// array size along each dimension.
-    MemoryStruct(int dims, int *ArraySize)
+    HostMemory(int dims, int *ArraySize)
     {
         this->dims = dims;
         this->size = new int[dims];
@@ -40,7 +40,7 @@ public:
         }
     }
     /// Additional constructor for the structure: Array of 1 dimension
-    MemoryStruct(int dims, int ArraySizeX)
+    HostMemory(int dims, int ArraySizeX)
     {
         this->dims = dims;
         this->size = new int[dims];
@@ -53,7 +53,7 @@ public:
     }
 
     /// Additional constructor for the class: Array of 2 dimensions
-    MemoryStruct(int dims, int ArraySizeX, int ArraySizeY)
+    HostMemory(int dims, int ArraySizeX, int ArraySizeY)
     {
         this->dims = dims;
         this->size = new int[dims];
@@ -67,7 +67,7 @@ public:
     }
 
     /// Additional constructor for the class: Array of 3 dimensions
-    MemoryStruct(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ)
+    HostMemory(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ)
     {
         this->dims = dims;
         this->size = new int[dims];
@@ -82,7 +82,7 @@ public:
     }
 
     /// Deconstructor to free the memory
-    ~MemoryStruct()
+    ~HostMemory()
     {
         DeallocateArray();
     }
