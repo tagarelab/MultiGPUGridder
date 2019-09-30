@@ -14,7 +14,7 @@
  * */
 
 #include "HostMemory.h"
-#include "HostMemoryGPU.h"
+#include "DeviceMemory.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -40,8 +40,8 @@ protected:
 
     int dims;
 
-    HostMemoryGPU<float> *d_input_struct;
-    HostMemoryGPU<float> *d_output_struct;
+    DeviceMemory<float> *d_input_struct;
+    DeviceMemory<float> *d_output_struct;
 
     HostMemory<float> *h_input_struct;
     HostMemory<float> *h_output_struct;

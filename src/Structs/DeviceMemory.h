@@ -3,23 +3,23 @@
 #include "HostMemory.h"
 
 /**
- * @class   HostMemoryGPU
+ * @class   DeviceMemory
  * @brief   A class for allocating device (i.e GPU) memory
  *
  *
- * A class for allocating and deallocating GPU memory. HostMemoryGPU also remembers needed information for each allocated array
+ * A class for allocating and deallocating GPU memory. DeviceMemory also remembers needed information for each allocated array
  * (e.g. CASImgs, images, coordinate axes, etc.) such as the array size, memory pointers, etc. This is the main GPU memory class.
  * 
- * HostMemoryGPU inherits from HostMemory and extends HostMemoryGPU to include GPU related information and functions. 
+ * DeviceMemory inherits from HostMemory and extends DeviceMemory to include GPU related information and functions. 
  * 
  * */
 
 template <class T = float>
-class HostMemoryGPU : public HostMemory<T>
+class DeviceMemory : public HostMemory<T>
 {
 public:
-    /// Extend the HostMemoryGPU constructor from HostMemory
-    HostMemoryGPU(int dims, int *ArraySize, int GPU_Device) : HostMemory<T>(dims, ArraySize)
+    /// Extend the DeviceMemory constructor from HostMemory
+    DeviceMemory(int dims, int *ArraySize, int GPU_Device) : HostMemory<T>(dims, ArraySize)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -35,7 +35,7 @@ public:
     }
 
     /// Extend the constructor from HostMemory: Array of 1 dimensions
-    HostMemoryGPU(int dims, int ArraySizeX, int GPU_Device) : HostMemory<T>(dims, ArraySizeX)
+    DeviceMemory(int dims, int ArraySizeX, int GPU_Device) : HostMemory<T>(dims, ArraySizeX)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -51,7 +51,7 @@ public:
     }
 
     /// Extend the constructor from HostMemory: Array of 2 dimensions
-    HostMemoryGPU(int dims, int ArraySizeX, int ArraySizeY, int GPU_Device) : HostMemory<T>(dims, ArraySizeX, ArraySizeY)
+    DeviceMemory(int dims, int ArraySizeX, int ArraySizeY, int GPU_Device) : HostMemory<T>(dims, ArraySizeX, ArraySizeY)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -67,7 +67,7 @@ public:
     }
 
     /// Extend the constructor from HostMemory: Array of 3 dimensions
-    HostMemoryGPU(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : HostMemory<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
+    DeviceMemory(int dims, int ArraySizeX, int ArraySizeY, int ArraySizeZ, int GPU_Device) : HostMemory<T>(dims, ArraySizeX, ArraySizeY, ArraySizeZ)
     {
         // Which GPU to use for allocating the array
         this->GPU_Device = GPU_Device;
@@ -83,7 +83,7 @@ public:
     }
 
     /// Deconstructor to free any allocated GPU memory
-    ~HostMemoryGPU()
+    ~DeviceMemory()
     {
         if (this->Allocated == true)
         {

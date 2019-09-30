@@ -32,7 +32,7 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRA
 set(SOURCE_Files 
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Structs/HostMemory.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Structs/HostMemoryGPU.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Structs/DeviceMemory.h
 
 	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/AbstractGridder.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Gridders/AbstractGridder.cpp
