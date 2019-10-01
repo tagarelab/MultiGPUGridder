@@ -11,7 +11,7 @@ __global__ void AddVolumeKernel(T *VolumeOne, T *VolumeTwo, int VolumeSize, int 
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
 
     // Are we within the array bounds?
-    if (i < 0 || i > VolumeSize || j < 0 || j > VolumeSize)
+    if (i < 0 || i >= VolumeSize || j < 0 || j >= VolumeSize)
     {
         return;
     }

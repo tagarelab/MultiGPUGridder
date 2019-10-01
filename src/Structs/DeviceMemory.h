@@ -145,6 +145,13 @@ public:
         cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost);
     }
 
+    /// Copy the array from the GPU to a previously allocated array on the host (i.e. CPU).
+    void CopyFromGPU(T *Array)
+    {
+        // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
+        cudaMemcpy(Array, this->ptr, this->bytes(), cudaMemcpyDeviceToHost);
+    }
+
     /// Allocate the memory on the GPU
     void AllocateGPUArray()
     {

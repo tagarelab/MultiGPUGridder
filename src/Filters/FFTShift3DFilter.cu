@@ -97,7 +97,12 @@ __global__ void FFTShift3DKernel(T *data, int N)
     }
 }
 
-void FFTShift3DFilter::UpdateFilter(cufftComplex *Input, cudaStream_t *stream)
+// Explicit template instantiation
+template class FFTShift3DFilter<float>;
+template class FFTShift3DFilter<cufftComplex>;
+
+template <class T>
+void FFTShift3DFilter<T>::UpdateFilter(T *Input, cudaStream_t *stream)
 {
     // Apply a 3D FFT shift to an array
 

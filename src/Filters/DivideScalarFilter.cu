@@ -9,7 +9,7 @@ __global__ void DivideScalarKernel(float *Input, float Scalar, int VolumeSize, i
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
 
     // Are we outside the bounds of the image?
-    if (i > VolumeSize || i < 0 || j > VolumeSize || j < 0)
+    if (i >= VolumeSize || i < 0 || j >= VolumeSize || j < 0)
     {
         return;
     }

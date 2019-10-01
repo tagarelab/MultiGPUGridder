@@ -165,7 +165,7 @@ void gpuGridder::VolumeToCASVolume()
     RealToComplex->Update();
 
     // STEP 2: Apply an in place 3D FFT Shift
-    FFTShift3DFilter *FFTShiftFilter = new FFTShift3DFilter();
+    FFTShift3DFilter<cufftComplex> *FFTShiftFilter = new FFTShift3DFilter<cufftComplex>();
     FFTShiftFilter->SetInput(this->d_PaddedVolumeComplex->GetPointer());
     FFTShiftFilter->SetVolumeSize(PaddedVolumeSize);
     FFTShiftFilter->Update();
@@ -821,7 +821,7 @@ void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
     CASFilter->Update(&stream);
 
     // Run a FFTShift on each 2D slice
-    FFTShift2DFilter *FFTShiftFilter = new FFTShift2DFilter();
+    FFTShift2DFilter<cufftComplex> *FFTShiftFilter = new FFTShift2DFilter<cufftComplex>();
     FFTShiftFilter->SetInput(CASImgsComplex);
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
@@ -914,7 +914,7 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
     RealFilter->Update(&stream);
 
     // Run FFTShift on each 2D slice
-    FFTShift2DFilter *FFTShiftFilter = new FFTShift2DFilter();
+    FFTShift2DFilter<cufftComplex> *FFTShiftFilter = new FFTShift2DFilter<cufftComplex>();
     FFTShiftFilter->SetInput(CASImgsComplex);
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
@@ -1024,7 +1024,7 @@ void gpuGridder::CASVolumeToVolume()
     CASFilter->Update();
 
     // Run FFTShift on the 3D volume
-    FFTShift3DFilter *FFTShiftFilter = new FFTShift3DFilter();
+    FFTShift3DFilter<cufftComplex> *FFTShiftFilter = new FFTShift3DFilter<cufftComplex>();
     FFTShiftFilter->SetInput(d_CASVolume_Cropped_Complex);
     FFTShiftFilter->SetVolumeSize(CroppedCASVolumeSize);
     FFTShiftFilter->Update();
@@ -1044,7 +1044,7 @@ void gpuGridder::CASVolumeToVolume()
     FFTShiftFilter->Update();
 
     // Multiply by the Kaiser Bessel precompensation array
-    MultiplyVolumeFilter *MultiplyFilter = new MultiplyVolumeFilter();
+    MultiplyVolumeFilter<cufftComplex> *MultiplyFilter = new MultiplyVolumeFilter<cufftComplex>();
     MultiplyFilter->SetVolumeSize(CroppedCASVolumeSize);
     MultiplyFilter->SetVolumeOne(d_CASVolume_Cropped_Complex);
     MultiplyFilter->SetVolumeTwo(d_KBPreComp);
@@ -1161,7 +1161,7 @@ void gpuGridder::ReconstructVolume()
     CASFilter->Update();
 
     // Run FFTShift on the 3D volume
-    FFTShift3DFilter *FFTShiftFilter = new FFTShift3DFilter();
+    FFTShift3DFilter<cufftComplex> *FFTShiftFilter = new FFTShift3DFilter<cufftComplex>();
     FFTShiftFilter->SetInput(d_CASVolume_Cropped_Complex);
     FFTShiftFilter->SetVolumeSize(CroppedCASVolumeSize);
     FFTShiftFilter->Update();
@@ -1178,7 +1178,7 @@ void gpuGridder::ReconstructVolume()
     FFTShiftFilter->Update();
 
     // Multiply by the Kaiser Bessel precompensation array
-    MultiplyVolumeFilter *MultiplyFilter = new MultiplyVolumeFilter();
+    MultiplyVolumeFilter<cufftComplex> *MultiplyFilter = new MultiplyVolumeFilter<cufftComplex>();
     MultiplyFilter->SetVolumeSize(CroppedCASVolumeSize);
     MultiplyFilter->SetVolumeOne(d_CASVolume_Cropped_Complex);
     MultiplyFilter->SetVolumeTwo(d_KBPreComp->GetPointer());

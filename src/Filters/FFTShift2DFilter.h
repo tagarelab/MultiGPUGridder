@@ -14,10 +14,11 @@
 
 #include "AbstractFilter.h"
 
+template <class T = float>
 class FFTShift2DFilter : public AbstractFilter
 {
 private:
-    cufftComplex *Input;
+    T *Input;
 
     int ImageSize;
     int nSlices;
@@ -26,13 +27,14 @@ public:
     // Constructor
     FFTShift2DFilter() : AbstractFilter()
     {
-        this->Input = NULL;
+        // this->Input = NULL;
         this->ImageSize = 0;
         this->nSlices = 0;
     }
 
     /// Set the input array
-    void SetInput(cufftComplex *Input) { this->Input = Input; }
+    // template <typename T>
+    void SetInput(T *Input) { this->Input = Input; }
 
     /// Set the size of the image
     void SetImageSize(int ImageSize) { this->ImageSize = ImageSize; }
@@ -57,5 +59,8 @@ public:
 
 private:
     /// Run the CUDA kernel
-    void UpdateFilter(cufftComplex *Input, cudaStream_t *stream);
+    void UpdateFilter(T *Input, cudaStream_t *stream);
+
+
+
 };

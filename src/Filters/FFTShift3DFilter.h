@@ -12,10 +12,11 @@
 
 #include "AbstractFilter.h"
 
+template <class T = float>
 class FFTShift3DFilter : public AbstractFilter
 {
 private:
-    cufftComplex *Input;
+    T *Input;
 
     int VolumeSize;
 
@@ -28,7 +29,7 @@ public:
     }
 
     /// Set the input GPU array
-    void SetInput(cufftComplex *Input) { this->Input = Input; }
+    void SetInput(T *Input) { this->Input = Input; }
 
     /// Set the size of the GPU array
     void SetVolumeSize(int VolumeSize) { this->VolumeSize = VolumeSize; }
@@ -50,5 +51,5 @@ public:
 
 private:
     /// Run the CUDA kernel
-    void UpdateFilter(cufftComplex *Input, cudaStream_t *stream);
+    void UpdateFilter(T *Input, cudaStream_t *stream);
 };

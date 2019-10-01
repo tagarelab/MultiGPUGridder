@@ -10,7 +10,7 @@ __global__ void MultiplyVolumesKernel(cufftComplex *VolumeOne, float *VolumeTwo,
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
 
     // Are we within the volume bounds?
-    if (i < 0 || i > VolumeSize || j < 0 || j > VolumeSize)
+    if (i < 0 || i >= VolumeSize || j < 0 || j >= VolumeSize)
     {
         return;
     }
@@ -26,7 +26,38 @@ __global__ void MultiplyVolumesKernel(cufftComplex *VolumeOne, float *VolumeTwo,
     }
 }
 
-void MultiplyVolumeFilter::UpdateFilter(cufftComplex *Input, float *Output, cudaStream_t *stream)
+__global__ void MultiplyVolumesKernel(float *VolumeOne, float *VolumeTwo, int VolumeSize, int NumberSlices)
+{
+    // Multiply two GPU arrays together (assume the arrays are the same size and square)
+    // VolumeOne = VolumeOne * VolumeTwo
+
+    // Index of volume
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // Column
+    int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
+
+    // Are we within the volume bounds?
+    if (i < 0 || i >= VolumeSize || j < 0 || j >= VolumeSize)
+    {
+        return;
+    }
+
+    for (int k = 0; k < NumberSlices; k++)
+    {
+        // Get the linear index of the volume
+        int ndx = i + j * VolumeSize + k * VolumeSize * VolumeSize;
+
+        // Multiply together
+        // Only multiply the real component of the cufftComplex array for now
+        VolumeOne[ndx] = VolumeOne[ndx] * VolumeTwo[ndx];
+    }
+}
+
+// Explicit template instantiation
+template class MultiplyVolumeFilter<float>;
+template class MultiplyVolumeFilter<cufftComplex>;
+
+template <class T>
+void MultiplyVolumeFilter<T>::UpdateFilter(T *Input, float *Output, cudaStream_t *stream)
 {
     // Add two GPU arrays (of dimensions 3) together
     // Equation: VolumeOne = VolumeOne + VolumeTwo

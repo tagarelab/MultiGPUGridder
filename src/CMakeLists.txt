@@ -8,6 +8,7 @@ message(STATUS "C++11 support has been enabled by default.")
 
 # Options within the CMake GUI to ask the user
 option(WITH_MATLAB   "Compile the Matlab mex wrapper  (requires MATLAB)" TRUE)
+option(BUILD_TESTS   "Build Matlab tests  (requires MATLAB)" TRUE)
 
 
 # Create the project using C++ and CUDA
@@ -78,8 +79,11 @@ add_library(MultiGPUGridder SHARED ${SOURCE_Files}  )
 # Link the CUDA libraries and header files to the project
 target_link_libraries( MultiGPUGridder ${CUDA_LIBRARIES})
 
+# Variable for all the directories of source code
+set(DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs ${CMAKE_CURRENT_SOURCE_DIR}/Tests ${CMAKE_CURRENT_SOURCE_DIR}/Mex)
+
 # Include all the header files
-target_include_directories(MultiGPUGridder PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+target_include_directories(MultiGPUGridder PUBLIC DIRECTORIES)
 
 if(WITH_MATLAB)
 	find_package(Matlab)
@@ -92,8 +96,15 @@ if(WITH_MATLAB)
 		matlab_add_mex(NAME mexMultiGPUForwardProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUForwardProject.cpp LINK_TO MultiGPUGridder)	
 		matlab_add_mex(NAME mexMultiGPUBackProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUBackProject.cpp LINK_TO MultiGPUGridder)	
 		matlab_add_mex(NAME mexMultiGPUGetVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUGetVolume.cpp LINK_TO MultiGPUGridder)	
-		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUReconstructVolume.cpp LINK_TO MultiGPUGridder)	
+		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUReconstructVolume.cpp LINK_TO MultiGPUGridder)			
 		message(STATUS "Matlab library located")
+
+		if (BUILD_TESTS)
+			matlab_add_mex(NAME mexPadVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexPadVolume.cpp ${SOURCE_Files} LINK_TO MultiGPUGridder)	
+
+			message(STATUS "Matlab tests added")
+		endif()
+
 	endif()
 
 	if(WIN32)
@@ -104,18 +115,42 @@ if(WITH_MATLAB)
 		matlab_add_mex(NAME mexMultiGPUBackProject SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUBackProject.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
 		matlab_add_mex(NAME mexMultiGPUGetVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUGetVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
 		matlab_add_mex(NAME mexMultiGPUReconstructVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Mex/mexMultiGPUReconstructVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
-		matlab_add_mex(NAME mexPadVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexPadVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
 
 		message(STATUS "Matlab library located")
+
+		if (BUILD_TESTS)
+			matlab_add_mex(NAME mexPadVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexPadVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexAddVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexAddVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexCropVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexCropVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexDivideScalar SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexDivideScalar.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexFFTShift2D SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexFFTShift2D.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexFFTShift3D SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexFFTShift3D.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexDivideVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexDivideVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+			matlab_add_mex(NAME mexMultiplyVolume SRC ${CMAKE_CURRENT_SOURCE_DIR}/Tests/mexMultiplyVolume.cpp ${SOURCE_Files} LINK_TO ${CUDA_LIBRARIES})	
+
+			message(STATUS "Matlab tests added")
+		endif()
+
 	endif()
 
-	target_include_directories(mexDeleteGridder PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexCreateGridder PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexSetVariables PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexMultiGPUForwardProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexMultiGPUBackProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexMultiGPUGetVolume PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexMultiGPUReconstructVolume PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
-	target_include_directories(mexPadVolume PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs)
+	target_include_directories(mexDeleteGridder PUBLIC ${DIRECTORIES})
+	target_include_directories(mexCreateGridder PUBLIC ${DIRECTORIES})
+	target_include_directories(mexSetVariables PUBLIC ${DIRECTORIES})
+	target_include_directories(mexMultiGPUForwardProject PUBLIC ${DIRECTORIES})
+	target_include_directories(mexMultiGPUBackProject PUBLIC ${DIRECTORIES})
+	target_include_directories(mexMultiGPUGetVolume PUBLIC ${DIRECTORIES})
+	target_include_directories(mexMultiGPUReconstructVolume PUBLIC ${DIRECTORIES})
+
+	if (BUILD_TESTS)
+		target_include_directories(mexPadVolume PUBLIC ${DIRECTORIES})
+		target_include_directories(mexAddVolume PUBLIC ${DIRECTORIES})
+		target_include_directories(mexCropVolume PUBLIC ${DIRECTORIES})
+		target_include_directories(mexDivideScalar PUBLIC ${DIRECTORIES})
+		target_include_directories(mexFFTShift2D PUBLIC ${DIRECTORIES})
+		target_include_directories(mexFFTShift3D PUBLIC ${DIRECTORIES})
+		target_include_directories(mexDivideVolume PUBLIC ${DIRECTORIES})
+		target_include_directories(mexMultiplyVolume PUBLIC ${DIRECTORIES})
+
+	endif()
 
 endif()

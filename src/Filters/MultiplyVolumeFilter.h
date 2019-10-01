@@ -15,10 +15,11 @@
 
 #include "AbstractFilter.h"
 
+template <class T = float>
 class MultiplyVolumeFilter : public AbstractFilter
 {
 private:
-    cufftComplex *d_VolumeOne;
+    T *d_VolumeOne;
     float *d_VolumeTwo;
     int VolumeSize;
     int nSlices;
@@ -35,7 +36,7 @@ public:
     }
 
     /// Set the first volume
-    void SetVolumeOne(cufftComplex *d_VolumeOne) { this->d_VolumeOne = d_VolumeOne; }
+    void SetVolumeOne(T *d_VolumeOne) { this->d_VolumeOne = d_VolumeOne; }
 
     /// Set the second volume
     void SetVolumeTwo(float *d_VolumeTwo) { this->d_VolumeTwo = d_VolumeTwo; }
@@ -63,5 +64,5 @@ public:
 
 private:
     /// Run the CUDA kernel
-    void UpdateFilter(cufftComplex *Input, float *Output, cudaStream_t *stream = NULL);
+    void UpdateFilter(T *Input, float *Output, cudaStream_t *stream = NULL);
 };

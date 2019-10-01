@@ -1,39 +1,40 @@
 #include "FFTShift2DFilter.h"
 
 template <typename T>
-__global__ void cufftShift_2D_kernel(T *data, int N, int nSlices)
+__global__ void cufftShift_2D_kernel(T *data, int VolumeSize, int nSlices)
 {
+    // Modified from https://github.com/marwan-abdellah/cufftShift/blob/master/Src/CUDA/Kernels/in-place/cufftShift_2D_IP.cu
+    // GNU Lesser General Public License
+
     // 2D Slice & 1D Line
-    int sLine = N;
-    int sSlice = N * N;
+    int sLine = VolumeSize;
+    int sSlice = VolumeSize * VolumeSize;
 
     // Transformations Equations
     int sEq1 = (sSlice + sLine) / 2;
     int sEq2 = (sSlice - sLine) / 2;
 
-    // Thread Index (1D)
-    int xThreadIdx = threadIdx.x;
-    int yThreadIdx = threadIdx.y;
-
-    // Block Width & Height
-    int blockWidth = blockDim.x;
-    int blockHeight = blockDim.y;
-
     // Thread Index (2D)
-    int xIndex = blockIdx.x * blockWidth + xThreadIdx;
-    int yIndex = blockIdx.y * blockHeight + yThreadIdx;
+    int X = blockIdx.x * blockDim.x + threadIdx.x;
+    int Y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    // Are we outside the bounds of the image?
+    if (X >= VolumeSize || X < 0 || Y >= VolumeSize || Y < 0)
+    {
+        return;
+    }
 
     // Each thread will do all the slices for some X, Y position in the 3D matrix
-    for (int zIndex = 0; zIndex < nSlices; zIndex++)
+    for (int Z = 0; Z < nSlices; Z++)
     {
         // Thread Index Converted into 1D Index
-        int index = (zIndex * sSlice) + (yIndex * sLine) + xIndex;
+        int index = (Z * sSlice) + (Y * sLine) + X;
 
         T regTemp;
 
-        if (xIndex < N / 2)
+        if (X < VolumeSize / 2)
         {
-            if (yIndex < N / 2)
+            if (Y < VolumeSize / 2)
             {
                 regTemp = data[index];
 
@@ -46,7 +47,7 @@ __global__ void cufftShift_2D_kernel(T *data, int N, int nSlices)
         }
         else
         {
-            if (yIndex < N / 2)
+            if (Y < VolumeSize / 2)
             {
                 regTemp = data[index];
 
@@ -59,7 +60,13 @@ __global__ void cufftShift_2D_kernel(T *data, int N, int nSlices)
         }
     }
 }
-void FFTShift2DFilter::UpdateFilter(cufftComplex *Input, cudaStream_t *stream)
+
+// Explicit template instantiation
+template class FFTShift2DFilter<float>;
+template class FFTShift2DFilter<cufftComplex>;
+
+template <class T>
+void FFTShift2DFilter<T>::UpdateFilter(T *Input, cudaStream_t *stream)
 {
     // Apply a 2D FFT shift to an array
 

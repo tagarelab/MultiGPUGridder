@@ -20,10 +20,10 @@ __global__ void DivideVolumesKernel(float *VolumeOne, float *VolumeTwo, int Volu
         // Get the linear index of the volume
         int ndx = i + j * VolumeSize + k * VolumeSize * VolumeSize;
 
-        if (abs(VolumeTwo[ndx]) > 0.000001f)
+        // Check that both values are not zero in order to prevent dividing by zero
+        if (VolumeOne[ndx] != 0 && VolumeTwo[ndx] != 0)
         {
-            // Add a small amount to the denominator (i.e. 1e-6) to prevent dividing by zero
-            VolumeOne[ndx] = VolumeOne[ndx] / (VolumeTwo[ndx] + 0.000001f);
+            VolumeOne[ndx] = VolumeOne[ndx] / VolumeTwo[ndx];
         }
         else
         {
