@@ -75,15 +75,17 @@ set(SOURCE_Files
 	${CMAKE_CURRENT_SOURCE_DIR}/Filters/MultiplyVolumeFilter.cu
   )
 
-add_library(MultiGPUGridder SHARED ${SOURCE_Files}  )
-# Link the CUDA libraries and header files to the project
-target_link_libraries( MultiGPUGridder ${CUDA_LIBRARIES})
-
 # Variable for all the directories of source code
-set(DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Structs ${CMAKE_CURRENT_SOURCE_DIR}/Tests ${CMAKE_CURRENT_SOURCE_DIR}/Mex)
+set(DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/Structs ${CMAKE_CURRENT_SOURCE_DIR}/Filters ${CMAKE_CURRENT_SOURCE_DIR}/Gridders ${CMAKE_CURRENT_SOURCE_DIR}/Projection ${CMAKE_CURRENT_SOURCE_DIR}/Tests ${CMAKE_CURRENT_SOURCE_DIR}/Mex)
 
-# Include all the header files
-target_include_directories(MultiGPUGridder PUBLIC DIRECTORIES)
+if(NOT WIN32)
+	add_library(MultiGPUGridder SHARED ${SOURCE_Files}  )
+	# Link the CUDA libraries and header files to the project
+	target_link_libraries( MultiGPUGridder ${CUDA_LIBRARIES})
+
+	# Include all the header files
+	target_include_directories(MultiGPUGridder PUBLIC DIRECTORIES)
+endif()
 
 if(WITH_MATLAB)
 	find_package(Matlab)
