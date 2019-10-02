@@ -213,7 +213,7 @@ void gpuGridder::SetGPU(int GPU_Device)
 
     // Check how many GPUs there are on the computer
     int numGPUDetected;
-    cudaGetDeviceCount(&numGPUDetected);
+    gpuErrorCheck(cudaGetDeviceCount(&numGPUDetected));
 
     // Check wether the given GPU_Device value is valid
     if (GPU_Device < 0 || GPU_Device >= numGPUDetected) //  An invalid numGPUs selection was chosen
@@ -315,7 +315,7 @@ void gpuGridder::InitilizeCUDAStreams()
 
     for (int i = 0; i < this->nStreams; i++) // Loop through the streams
     {
-        cudaStreamCreate(&this->streams[i]);
+        gpuErrorCheck(cudaStreamCreate(&this->streams[i]));
     }
 }
 
@@ -328,6 +328,8 @@ void gpuGridder::Allocate()
     {
         // Estimate the maximum number of coordinate axes to allocate per stream
         this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->h_Volume->GetSize(0), this->interpFactor);
+
+        this->MaxAxesToAllocate = 100; // TEST
 
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
@@ -344,7 +346,7 @@ void gpuGridder::PrintMemoryAvailable()
     // Check to make sure the GPU has enough available memory left
     size_t mem_tot_0 = 0;
     size_t mem_free_0 = 0;
-    cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+    gpuErrorCheck(cudaMemGetInfo(&mem_free_0, &mem_tot_0));
     std::cout << "Memory remaining on GPU " << this->GPU_Device << " " << mem_free_0 << " out of " << mem_tot_0 << '\n';
 }
 
@@ -533,39 +535,46 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             continue;
         }
 
-        // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
-        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+        std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
+                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
         // Between batches sync all the CUDA streams
         // This prevents two streams trying to use the same memory
         if (streams[Offsets_obj.stream_ID[i]] == 0)
         {
+            // return; // TEST
             cudaDeviceSynchronize();
-            // for (int j = 0; j < this->nStreams; j++)
-            // {
-            //     cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
-            // }
+            for (int j = 0; j < this->nStreams; j++)
+            {
+                cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
+            }
         }
 
+        std::cout << "Offsets_obj.gpuCASImgs_Offset[i]: " << Offsets_obj.gpuCASImgs_Offset[i] << '\n';
+        std::cout << "this->d_CASImgs->bytes(): " << this->d_CASImgs->bytes() << '\n';
+        std::cout << "Offsets_obj.gpuCASImgs_streamBytes[i]: " << Offsets_obj.gpuCASImgs_streamBytes[i] << '\n';
+        std::cout << "Offsets_obj.stream_ID[i]: " << Offsets_obj.stream_ID[i] << '\n';
+        std::cout << "this->d_CASImgs->GetPointer(): " << this->d_CASImgs->GetPointer() << '\n';
+
         // PrintMemoryAvailable();
-        cudaMemsetAsync(
+        gpuErrorCheck(cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
             Offsets_obj.gpuCASImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]);
+            streams[Offsets_obj.stream_ID[i]]));
 
-        cudaMemsetAsync(
+        gpuErrorCheck(cudaMemsetAsync(
             this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
             0,
             Offsets_obj.gpuImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]);
+            streams[Offsets_obj.stream_ID[i]]));
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
-        cudaMemcpyAsync(
+        gpuErrorCheck(cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
-            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
+            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]));
 
         // Run the forward projection kernel
         gpuForwardProject::RunKernel(
@@ -586,11 +595,11 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         // If running the inverse FFT on the device
         if (this->RunFFTOnDevice == 1)
         {
-            cudaMemsetAsync(
+            gpuErrorCheck(cudaMemsetAsync(
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 0,
                 2 * Offsets_obj.gpuCASImgs_streamBytes[i], // cufftComplex type so multiply the bytes by 2
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
             this->CASImgsToImgs(
@@ -601,22 +610,22 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
                 Offsets_obj.numAxesPerStream[i]);
 
             // Lastly, copy the resulting cropped projection images back to the host pinned memory (CPU)
-            cudaMemcpyAsync(
+            gpuErrorCheck(cudaMemcpyAsync(
                 this->h_Imgs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 Offsets_obj.gpuImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
         }
         else
         {
             // Copy the resulting CAS images back to the host pinned memory (CPU)
-            cudaMemcpyAsync(
+            gpuErrorCheck(cudaMemcpyAsync(
                 this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
         }
     }
 }
@@ -624,7 +633,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
-    cudaSetDevice(this->GPU_Device);
+    gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
     PrintMemoryAvailable();
 
@@ -661,7 +670,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     //     this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
     // }
 
-    cudaDeviceSynchronize();
+    gpuErrorCheck(cudaDeviceSynchronize());
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
@@ -677,57 +686,57 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         // This prevents two streams trying to use the same memory
         if (streams[Offsets_obj.stream_ID[i]] == 0)
         {
-            cudaDeviceSynchronize();
+            gpuErrorCheck(cudaDeviceSynchronize());
             // for (int j = 0; j < this->nStreams; j++)
             // {
             //     cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
             // }
         }
 
-        cudaMemsetAsync(
+        gpuErrorCheck(cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
             Offsets_obj.gpuCASImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]);
+            streams[Offsets_obj.stream_ID[i]]));
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
-        cudaMemcpyAsync(
+        gpuErrorCheck(cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
-            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
+            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]));
 
         if (this->RunFFTOnDevice == 0)
         {
             // Copy the CASImages from the pinned CPU array and use instead of the images array
-            cudaMemcpyAsync(
+            gpuErrorCheck(cudaMemcpyAsync(
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyHostToDevice,
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
         }
         else
         {
-            cudaMemsetAsync(
+            gpuErrorCheck(cudaMemsetAsync(
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 0,
                 Offsets_obj.gpuImgs_streamBytes[i],
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
 
-            cudaMemsetAsync(
+            gpuErrorCheck(cudaMemsetAsync(
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 0,
                 2 * Offsets_obj.gpuCASImgs_streamBytes[i],
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
 
             // Copy the section of images to the GPU
-            cudaMemcpyAsync(
+            gpuErrorCheck(cudaMemcpyAsync(
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 this->h_Imgs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
                 Offsets_obj.gpuImgs_streamBytes[i],
                 cudaMemcpyHostToDevice,
-                streams[Offsets_obj.stream_ID[i]]);
+                streams[Offsets_obj.stream_ID[i]]));
 
             // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
             this->ImgsToCASImgs(
@@ -757,7 +766,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
 {
     // Calculate the plane density by running the back projection kernel with CASimages equal to one
-    cudaSetDevice(this->GPU_Device);
+    gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int ImgSize = this->d_Imgs->GetSize(0);
@@ -783,7 +792,7 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
 
     delete[] CASImgsOnes;
 
-    cudaDeviceSynchronize();
+    gpuErrorCheck(cudaDeviceSynchronize());
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
@@ -799,19 +808,19 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
         // This prevents two streams trying to use the same memory
         if (streams[Offsets_obj.stream_ID[i]] == 0)
         {
-            cudaDeviceSynchronize();
+            gpuErrorCheck(cudaDeviceSynchronize());
             // for (int j = 0; j < this->nStreams; j++)
             // {
-                // cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
+            // cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
             // }
         }
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
-        cudaMemcpyAsync(
+        gpuErrorCheck(cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
-            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]);
+            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]));
 
         // Run the back projection kernel
         gpuBackProject::RunKernel(
@@ -988,14 +997,14 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
 void gpuGridder::FreeMemory()
 {
     // Free all of the allocated memory
-    cudaSetDevice(this->GPU_Device);
-    cudaDeviceReset(); // This deletes the CUDA context (i.e. deallocates all memory)
+    gpuErrorCheck(cudaSetDevice(this->GPU_Device));
+    gpuErrorCheck(cudaDeviceReset()); // This deletes the CUDA context (i.e. deallocates all memory)
 }
 
 void gpuGridder::CASVolumeToVolume()
 {
     std::cout << "CASVolumeToVolume():" << '\n';
-    cudaDeviceSynchronize();
+    gpuErrorCheck(cudaDeviceSynchronize());
     PrintMemoryAvailable();
     // Convert a GPU CAS volume to volume
     // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
@@ -1018,8 +1027,8 @@ void gpuGridder::CASVolumeToVolume()
     KB_PreComp_size[2] = this->h_Volume->GetSize(2) * this->interpFactor;
 
     float *d_KBPreComp;
-    cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]);
-    cudaMemcpy(d_KBPreComp, this->h_KBPreComp->GetPointer(), sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2], cudaMemcpyHostToDevice);
+    gpuErrorCheck(cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]));
+    gpuErrorCheck(cudaMemcpy(d_KBPreComp, this->h_KBPreComp->GetPointer(), sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2], cudaMemcpyHostToDevice));
 
     delete[] KB_PreComp_size;
 
@@ -1028,11 +1037,11 @@ void gpuGridder::CASVolumeToVolume()
 
     // Allocate GPU memory for CAS volume without the extra padding
     float *d_CASVolume_Cropped;
-    cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize);
+    gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
     // Allocate GPU memory for cufftComplex type of the cropped CAS volume (i.e. d_CASVolume_Cropped)
     cufftComplex *d_CASVolume_Cropped_Complex;
-    cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize);
+    gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
     // Remove the extraPadding from the CAS volume
     CropVolumeFilter *CropFilter = new CropVolumeFilter();
@@ -1063,7 +1072,7 @@ void gpuGridder::CASVolumeToVolume()
     cufftPlan3d(&inverseFFTPlan, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, CUFFT_C2C);
     cufftExecC2C(inverseFFTPlan, (cufftComplex *)d_CASVolume_Cropped_Complex, (cufftComplex *)d_CASVolume_Cropped_Complex, CUFFT_INVERSE);
 
-    cudaDeviceSynchronize();
+    gpuErrorCheck(cudaDeviceSynchronize());
 
     cufftDestroy(inverseFFTPlan);
 
@@ -1103,12 +1112,12 @@ void gpuGridder::CASVolumeToVolume()
     DivideScalar->SetVolumeSize(VolumeSize);
     DivideScalar->Update();
 
-    cudaDeviceSynchronize();
+    gpuErrorCheck(cudaDeviceSynchronize());
 
     // Free the temporary variables
-    cudaFree(d_KBPreComp);
-    cudaFree(d_CASVolume_Cropped);
-    cudaFree(d_CASVolume_Cropped_Complex);
+    gpuErrorCheck(cudaFree(d_KBPreComp));
+    gpuErrorCheck(cudaFree(d_CASVolume_Cropped));
+    gpuErrorCheck(cudaFree(d_CASVolume_Cropped_Complex));
 
     delete DivideScalar;
     delete ComplexToReal;
@@ -1158,11 +1167,11 @@ void gpuGridder::ReconstructVolume()
 
     // Allocate GPU memory for CAS volume without the extra padding
     float *d_CASVolume_Cropped;
-    cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize);
+    gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
     // Allocate GPU memory for cufftComplex type of the cropped CAS volume (i.e. d_CASVolume_Cropped)
     cufftComplex *d_CASVolume_Cropped_Complex;
-    cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize);
+    gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
     // Divide the CASVolume by the plane density to normalize
     DivideVolumeFilter *DivideFilter = new DivideVolumeFilter();
@@ -1238,6 +1247,6 @@ void gpuGridder::ReconstructVolume()
     DivideScalar->Update();
 
     // Free the temporary variables
-    cudaFree(d_CASVolume_Cropped);
-    cudaFree(d_CASVolume_Cropped_Complex);
+    gpuErrorCheck(cudaFree(d_CASVolume_Cropped));
+    gpuErrorCheck(cudaFree(d_CASVolume_Cropped_Complex));
 }

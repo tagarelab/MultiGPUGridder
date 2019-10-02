@@ -196,18 +196,18 @@ void MultiGPUGridder::CASVolumeToVolume()
 
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        cudaSetDevice(GPU_For_Reconstruction);
+        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
         for (int i = 0; i < this->Num_GPUs; i++)
         {
             // The first GPU can now access GPU device number i
-            cudaDeviceEnablePeerAccess(i, 0);
+            gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
         }
 
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
         AddCASVolumes(GPU_For_Reconstruction);
 
         // Reconstruct the volume using the GPU_For_Reconstruction GPU
-        cudaSetDevice(GPU_For_Reconstruction);
+        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
         gpuGridder_vec[GPU_For_Reconstruction]->CASVolumeToVolume();
         gpuGridder_vec[GPU_For_Reconstruction]->CopyVolumeToHost();
     }
@@ -244,11 +244,11 @@ void MultiGPUGridder::ReconstructVolume()
 
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        cudaSetDevice(GPU_For_Reconstruction); // Set the current device to the first GPU
+        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction)); // Set the current device to the first GPU
         for (int i = 0; i < this->Num_GPUs; i++)
         {
             // The first GPU can now access GPU device number i
-            cudaDeviceEnablePeerAccess(i, 0);
+            gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
         }
 
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
@@ -278,8 +278,8 @@ void MultiGPUGridder::AddCASVolumes(int GPU_Device)
     // Add the CASVolume from all the GPUs to the given GPU device
     // This is needed for reconstructing the volume after back projection
 
-    cudaDeviceSynchronize();
-    cudaSetDevice(GPU_Device);
+    gpuErrorCheck(cudaDeviceSynchronize());
+    gpuErrorCheck(cudaSetDevice(GPU_Device));
     AddVolumeFilter *AddFilter = new AddVolumeFilter();
 
     int CASVolumeSize = this->h_Volume->GetSize(0) * this->interpFactor + this->extraPadding * 2;
@@ -295,7 +295,7 @@ void MultiGPUGridder::AddCASVolumes(int GPU_Device)
                 AddFilter->SetVolumeOne(gpuGridder_vec[GPU_Device]->GetCASVolumePtr());
                 AddFilter->SetVolumeTwo(gpuGridder_vec[i]->GetCASVolumePtr());
                 AddFilter->Update();
-                cudaDeviceSynchronize();
+                gpuErrorCheck(cudaDeviceSynchronize());
             }
         }
     }
@@ -314,8 +314,8 @@ void MultiGPUGridder::AddPlaneDensities(int GPU_Device)
     // Add the plane density from all the GPUs to the given GPU device
     // This is needed for reconstructing the volume after back projection
 
-    cudaDeviceSynchronize();
-    cudaSetDevice(GPU_Device);
+    gpuErrorCheck(cudaDeviceSynchronize());
+    gpuErrorCheck(cudaSetDevice(GPU_Device));
     AddVolumeFilter *AddFilter = new AddVolumeFilter();
 
     int PlaneDensityVolumeSize = this->h_Volume->GetSize(0) * this->interpFactor + this->extraPadding * 2;
@@ -331,7 +331,7 @@ void MultiGPUGridder::AddPlaneDensities(int GPU_Device)
                 AddFilter->SetVolumeOne(gpuGridder_vec[GPU_Device]->GetPlaneDensityPtr());
                 AddFilter->SetVolumeTwo(gpuGridder_vec[i]->GetPlaneDensityPtr());
                 AddFilter->Update();
-                cudaDeviceSynchronize();
+                gpuErrorCheck(cudaDeviceSynchronize());
             }
         }
     }
@@ -350,8 +350,8 @@ void MultiGPUGridder::GPU_Sync()
     // Synchronize all of the GPUs
     for (int i = 0; i < this->Num_GPUs; i++)
     {
-        cudaSetDevice(this->GPU_Devices[i]);
-        cudaDeviceSynchronize();
+        gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
+        gpuErrorCheck(cudaDeviceSynchronize());
     }
 }
 

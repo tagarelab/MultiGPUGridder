@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HostMemory.h"
+#include "gpuErrorCheck.h"
 
 /**
  * @class   DeviceMemory
@@ -25,10 +26,10 @@ public:
         this->GPU_Device = GPU_Device;
 
         // Set the GPU device to the device which contains the CUDA array
-        cudaSetDevice(this->GPU_Device);
+        gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
         // Create the stream on the selected GPU
-        cudaStreamCreate(&this->stream);
+        gpuErrorCheck(cudaStreamCreate(&this->stream));
 
         // Set the pointer to NULL
         this->ptr = NULL;
@@ -41,10 +42,10 @@ public:
         this->GPU_Device = GPU_Device;
 
         // Set the GPU device to the device which contains the CUDA array
-        cudaSetDevice(this->GPU_Device);
+        gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
         // Create the stream on the selected GPU
-        cudaStreamCreate(&this->stream);
+        gpuErrorCheck(cudaStreamCreate(&this->stream));
 
         // Set the pointer to NULL
         this->ptr = NULL;
@@ -57,10 +58,10 @@ public:
         this->GPU_Device = GPU_Device;
 
         // Set the GPU device to the device which contains the CUDA array
-        cudaSetDevice(this->GPU_Device);
+        gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
         // Create the stream on the selected GPU
-        cudaStreamCreate(&this->stream);
+        gpuErrorCheck(cudaStreamCreate(&this->stream));
 
         // Set the pointer to NULL
         this->ptr = NULL;
@@ -73,10 +74,10 @@ public:
         this->GPU_Device = GPU_Device;
 
         // Set the GPU device to the device which contains the CUDA array
-        cudaSetDevice(this->GPU_Device);
+        gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
         // Create the stream on the selected GPU
-        cudaStreamCreate(&this->stream);
+        gpuErrorCheck(cudaStreamCreate(&this->stream));
 
         // Set the pointer to NULL
         this->ptr = NULL;
@@ -100,14 +101,14 @@ public:
         }
 
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
-        cudaMemcpy(this->ptr, Array, Bytes, cudaMemcpyHostToDevice);
+        gpuErrorCheck(cudaMemcpy(this->ptr, Array, Bytes, cudaMemcpyHostToDevice));
     }
 
     /// Copy an array array from the CPU to the previously allocated array on the GPU
     void CopyToGPU(T *Array)
     {
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
-        cudaMemcpy(this->ptr, Array, this->bytes(), cudaMemcpyHostToDevice);
+        gpuErrorCheck(cudaMemcpy(this->ptr, Array, this->bytes(), cudaMemcpyHostToDevice));
     }
 
     /// Copy an array from the CPU to the allocated array on the GPU asynchronously.
@@ -123,7 +124,7 @@ public:
 
         if (status != 0)
         {
-            std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+            std::cerr << "Device Memory cudaMalloc: " << cudaGetErrorString(status) << '\n';
             this->ErrorFlag = -1; // Set the error flag to -1 to remember that this failed
 
             int *curr_device = new int[1];
@@ -142,26 +143,26 @@ public:
         }
 
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
-        cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost);
+        gpuErrorCheck(cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost));
     }
 
     /// Copy the array from the GPU to a previously allocated array on the host (i.e. CPU).
     void CopyFromGPU(T *Array)
     {
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
-        cudaMemcpy(Array, this->ptr, this->bytes(), cudaMemcpyDeviceToHost);
+        gpuErrorCheck(cudaMemcpy(Array, this->ptr, this->bytes(), cudaMemcpyDeviceToHost));
     }
 
     /// Allocate the memory on the GPU
     void AllocateGPUArray()
     {
         // Set the current GPU
-        cudaSetDevice(this->GPU_Device);
+        gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
         // Check to make sure the GPU has enough available memory left
         size_t mem_tot_0 = 0;
         size_t mem_free_0 = 0;
-        cudaMemGetInfo(&mem_free_0, &mem_tot_0);
+        gpuErrorCheck(cudaMemGetInfo(&mem_free_0, &mem_tot_0));
 
         // Is there enough available memory on the device to allocate this array?
         if (mem_free_0 < this->bytes())
@@ -182,14 +183,14 @@ public:
         }
         else
         {
-            cudaSetDevice(this->GPU_Device);
+            gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
             // There is enough memory left on the current GPU
             cudaError_t status = cudaMalloc((void **)&this->ptr, this->bytes());
 
             if (status != 0)
             {
-                std::cerr << "cudaMalloc: " << cudaGetErrorString(status) << '\n';
+                std::cerr << "DeviceMemory cudaMalloc: " << cudaGetErrorString(status) << '\n';
                 this->ErrorFlag = -1; // Set the error flag to -1 to remember that this failed
 
                 int *curr_device = new int[1];
@@ -206,15 +207,15 @@ public:
     /// Reset the GPU array back to all zeros
     void Reset()
     {
-        cudaMemset(this->ptr, 0, this->bytes());
+        gpuErrorCheck(cudaMemset(this->ptr, 0, this->bytes()));
     }
 
     /// Free the GPU memory
     void DeallocateGPUArray()
     {
         std::cout << "DeallocateGPUArray():" << '\n';
-        cudaSetDevice(this->GPU_Device);
-        cudaFree(this->ptr);
+        gpuErrorCheck(cudaSetDevice(this->GPU_Device));
+        gpuErrorCheck(cudaFree(this->ptr));
 
         this->Allocated = false;
     }

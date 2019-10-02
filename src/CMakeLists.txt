@@ -34,6 +34,7 @@ set(SOURCE_Files
 
     ${CMAKE_SOURCE_DIR}/Structs/HostMemory.h
     ${CMAKE_SOURCE_DIR}/Structs/DeviceMemory.h
+    ${CMAKE_SOURCE_DIR}/Structs/gpuErrorCheck.h
 
 	${CMAKE_SOURCE_DIR}/Gridders/AbstractGridder.h
 	${CMAKE_SOURCE_DIR}/Gridders/AbstractGridder.cpp

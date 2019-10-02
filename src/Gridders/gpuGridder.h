@@ -40,6 +40,8 @@
 #include "MultiplyVolumeFilter.h"
 #include "DivideScalarFilter.h"
 
+#include "gpuErrorCheck.h"
+
 #include <cstdlib>
 #include <stdio.h>
 #include <vector>

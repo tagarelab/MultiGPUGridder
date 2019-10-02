@@ -20,6 +20,7 @@
 #include "AbstractGridder.h"
 #include "gpuGridder.h"
 #include "AddVolumeFilter.h"
+#include "gpuErrorCheck.h"
 
 #include <thread> // For multi-threading on the CPU
 
