@@ -12,7 +12,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         NumAxes;
         GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 1;
+        nStreams = 20;
         
         % Single type variables        
         interpFactor;
@@ -49,6 +49,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.NumAxes = int32(varargin{2});
             this.interpFactor = single(varargin{3});
                         
+            if (this.VolumeSize >=256)
+                disp("Setting number of streams to 1")
+                this.nStreams = 1;
+            end
+%             
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
             
             gridder_Varargin = [];

@@ -536,6 +536,17 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
+        // Between batches sync all the CUDA streams
+        // This prevents two streams trying to use the same memory
+        if (streams[Offsets_obj.stream_ID[i]] == 0)
+        {
+            cudaDeviceSynchronize();
+            // for (int j = 0; j < this->nStreams; j++)
+            // {
+            //     cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
+            // }
+        }
+
         // PrintMemoryAvailable();
         cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
@@ -662,6 +673,17 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         // std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
+        // Between batches sync all the CUDA streams
+        // This prevents two streams trying to use the same memory
+        if (streams[Offsets_obj.stream_ID[i]] == 0)
+        {
+            cudaDeviceSynchronize();
+            // for (int j = 0; j < this->nStreams; j++)
+            // {
+            //     cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
+            // }
+        }
+
         cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
@@ -772,6 +794,17 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
 
         // std::cout << "GPU: " << this->GPU_Device << " plane density stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+
+        // Between batches sync all the CUDA streams
+        // This prevents two streams trying to use the same memory
+        if (streams[Offsets_obj.stream_ID[i]] == 0)
+        {
+            cudaDeviceSynchronize();
+            // for (int j = 0; j < this->nStreams; j++)
+            // {
+                // cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
+            // }
+        }
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         cudaMemcpyAsync(
@@ -965,7 +998,7 @@ void gpuGridder::CASVolumeToVolume()
     std::cout << "CASVolumeToVolume():" << '\n';
     std::cout << "CASVolumeToVolume():" << '\n';
     std::cout << "CASVolumeToVolume():" << '\n';
- 
+
     cudaDeviceSynchronize();
     PrintMemoryAvailable();
     // Convert a GPU CAS volume to volume

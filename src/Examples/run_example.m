@@ -25,7 +25,7 @@ end
 
 VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 10;
+n1_axes = 20;
 n2_axes = 10;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -56,7 +56,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1%:50
+for i = 1:5
     i
     
 %     gridder.Volume = single(MRI_volume) ;
@@ -93,10 +93,9 @@ end
 
 
 
-
 % Run the back projection
 
-for i = 1%:300
+for i = 1:5
     
     
 %     cols = size(coordAxes,2);
