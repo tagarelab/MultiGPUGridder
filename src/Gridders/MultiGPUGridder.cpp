@@ -185,6 +185,41 @@ void MultiGPUGridder::BackProject()
     GPU_Sync();
 }
 
+void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
+{
+    // Allow the first GPU to access the memory of the other GPUs
+    // This is needed for the reconstruct volume function
+
+    if (this->PeerAccessEnabled == false)
+    {
+        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
+        for (int i = 0; i < this->Num_GPUs; i++)
+        {
+            if (i != GPU_For_Reconstruction)
+            {
+                // Is peer access already enabled?
+                int canAccessPeer;
+                cudaDeviceCanAccessPeer(&canAccessPeer, GPU_For_Reconstruction, i);
+
+                if (canAccessPeer == 1)
+                {
+                    // The first GPU can now access GPU device number i
+                    gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
+                }
+                else
+                {
+                    std::cerr << "The GPUs appear to not support peer access for sharing memory. \
+                            ReconstructVolume() and CASVolumeToVolume() cannot run without this ability.Please try \
+                            reconstructing on the CPU instead of the GPU."
+                              << '\n';
+                }
+            }
+        }
+
+        this->PeerAccessEnabled = true;
+    }
+}
+
 void MultiGPUGridder::CASVolumeToVolume()
 {
     // Combine the CASVolume from each GPU and convert it to volume
@@ -196,12 +231,7 @@ void MultiGPUGridder::CASVolumeToVolume()
 
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
-        for (int i = 0; i < this->Num_GPUs; i++)
-        {
-            // The first GPU can now access GPU device number i
-            gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
-        }
+        EnablePeerAccess(GPU_For_Reconstruction);
 
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
         AddCASVolumes(GPU_For_Reconstruction);
@@ -244,12 +274,7 @@ void MultiGPUGridder::ReconstructVolume()
 
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction)); // Set the current device to the first GPU
-        for (int i = 0; i < this->Num_GPUs; i++)
-        {
-            // The first GPU can now access GPU device number i
-            gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
-        }
+        EnablePeerAccess(GPU_For_Reconstruction);
 
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
         AddCASVolumes(GPU_For_Reconstruction);

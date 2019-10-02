@@ -30,7 +30,7 @@ class MultiGPUGridder : public AbstractGridder
 public:
 	/// MultiGPUGridder constructor. The GPU_Devices array is a vector of Num_GPUs size which contains the NVIDIA device number for the GPUs to use which
 	/// ranges from 0 to the number of GPUs minus 1 on the current computer. RunFFTOnDevice is a flag to either run the forward and inverse Fourier transforms
-	/// on the GPUs (value of 1) or to run them on the host (value of 0) such as within Matlab or Python. 
+	/// on the GPUs (value of 1) or to run them on the host (value of 0) such as within Matlab or Python.
 	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
 	{
 		std::cout << "RunFFTOnDevice: " << RunFFTOnDevice << '\n';
@@ -71,6 +71,7 @@ public:
 		this->ProjectInitializedFlag = false;
 
 		this->RunFFTOnDevice = RunFFTOnDevice;
+		this->PeerAccessEnabled = false;
 	}
 
 	// Deconstructor
@@ -144,4 +145,10 @@ private:
 
 	// Flag to determine whether we are running the FFT on the GPU or not
 	int RunFFTOnDevice;
+
+	/// Allow the first GPU to access the memory of the other GPUs
+	/// This is needed for the reconstruct volume function
+	void EnablePeerAccess(int GPU_For_Reconstruction);
+
+	bool PeerAccessEnabled;
 };
