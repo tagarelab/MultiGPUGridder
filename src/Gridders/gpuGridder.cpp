@@ -995,10 +995,6 @@ void gpuGridder::FreeMemory()
 void gpuGridder::CASVolumeToVolume()
 {
     std::cout << "CASVolumeToVolume():" << '\n';
-    std::cout << "CASVolumeToVolume():" << '\n';
-    std::cout << "CASVolumeToVolume():" << '\n';
-    std::cout << "CASVolumeToVolume():" << '\n';
-
     cudaDeviceSynchronize();
     PrintMemoryAvailable();
     // Convert a GPU CAS volume to volume
