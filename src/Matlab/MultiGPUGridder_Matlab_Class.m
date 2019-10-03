@@ -13,7 +13,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0,1,2,3]);
+        GPUs = int32([3,2]);
         MaxAxesToAllocate;
         nStreams = 32;
         

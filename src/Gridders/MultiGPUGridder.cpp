@@ -193,22 +193,24 @@ void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
         gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
         for (int i = 0; i < this->Num_GPUs; i++)
         {
-            if (i != GPU_For_Reconstruction)
+            if (this->GPU_Devices[i] != GPU_For_Reconstruction)
             {
-                // Is peer access already enabled?
+                // Can peer access be enabled?
                 int canAccessPeer;
-                cudaDeviceCanAccessPeer(&canAccessPeer, GPU_For_Reconstruction, i);
+                cudaDeviceCanAccessPeer(&canAccessPeer, GPU_For_Reconstruction, this->GPU_Devices[i]);
+                std::cout << "GPU_For_Reconstruction: " << GPU_For_Reconstruction << '\n';
+                std::cout << "this->GPU_Devices[i]: " << this->GPU_Devices[i] << '\n';
 
                 if (canAccessPeer == 1)
                 {
                     // The first GPU can now access GPU device number i
-                    gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
+                    gpuErrorCheck(cudaDeviceEnablePeerAccess(this->GPU_Devices[i], 0));
                 }
                 else
                 {
                     std::cerr << "The GPUs appear to not support peer access for sharing memory. \
-                            ReconstructVolume() and CASVolumeToVolume() cannot run without this ability.Please try \
-                            reconstructing on the CPU instead of the GPU."
+                    ReconstructVolume() and CASVolumeToVolume() cannot run without this ability.Please try \
+                    reconstructing on the CPU instead of the GPU."
                               << '\n';
                 }
             }
