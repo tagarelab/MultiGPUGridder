@@ -7,12 +7,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
         RunFFTOnGPU = true;        
         
+        % Flag for status output to the console
+        verboseFlag = true;
+        
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
         GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 1;
+        nStreams = 32;
         
         % Single type variables        
         interpFactor;
@@ -63,9 +66,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
             gridder_Varargin{4} = int32(length(this.GPUs));
             gridder_Varargin{5} = int32(this.GPUs);
             gridder_Varargin{6} = int32(this.RunFFTOnGPU);
+            gridder_Varargin{7} = this.verboseFlag;            
 
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(gridder_Varargin{1:6});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
                        
             % Initilize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];

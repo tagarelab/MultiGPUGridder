@@ -49,8 +49,13 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
         EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
     }
 
-    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
+    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 50% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.5);
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::EstimateMaxAxesToAllocate() on GPU " << this->GPU_Device << " estimated maximum axes to allocate = " << EstimatedMaxAxes << '\n';
+    }
 
     return EstimatedMaxAxes;
 }
@@ -123,8 +128,6 @@ float *gpuGridder::GetPlaneDensityFromDevice()
 
 void gpuGridder::VolumeToCASVolume()
 {
-    cudaSetDevice(this->GPU_Device);
-
     // Convert a GPU volume to CAS volume
     // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
     // Step 1: Pad the input volume with zeros and convert to cufftComplex type
@@ -133,6 +136,14 @@ void gpuGridder::VolumeToCASVolume()
     // Step 4: fftshift
     // Step 5: Convert to CAS volume using CUDA kernel
     // Step 6: Apply extra zero padding
+
+    cudaSetDevice(this->GPU_Device);
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::EstimateMaxVolumeToCASVolumexesToAllocate() on GPU " << '\n';
+        PrintMemoryAvailable();
+    }
 
     // Example: input size = 128; interpFactor = 2 -> paddedVolSize = 256
     int PaddedVolumeSize = this->VolumeSize * this->interpFactor;
@@ -230,6 +241,13 @@ void gpuGridder::SetGPU(int GPU_Device)
 void gpuGridder::InitilizeGPUArrays()
 {
     // Initilize the GPU arrays and allocate the needed memory on the GPU
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::InitilizeGPUArrays() on GPU " << '\n';
+        PrintMemoryAvailable();
+    }
+
     cudaSetDevice(this->GPU_Device);
     if (this->MaxAxesToAllocate == 0)
     {
@@ -329,8 +347,6 @@ void gpuGridder::Allocate()
         // Estimate the maximum number of coordinate axes to allocate per stream
         this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->h_Volume->GetSize(0), this->interpFactor);
 
-        this->MaxAxesToAllocate = 50; // TEST
-
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
 
@@ -354,6 +370,11 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes)
 {
     // Loop through all of the coordinate axes and calculate the corresponding pointer offset values
     // which are needed for running the CUDA kernels
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::PlanOffsetValues()" << '\n';
+    }
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int CASImgSize = this->d_CASImgs->GetSize(0);
@@ -390,10 +411,17 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes)
         EstimatedNumAxesPerStream = ceil((double)this->MaxAxesToAllocate / (double)this->nStreams);
     }
 
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::PlanOffsetValues() "
+                  << "estimated number of axes to process on each stream = " << EstimatedNumAxesPerStream << '\n';
+    }
+
     while (processed_nAxes < nAxes && batch < MaxBatches)
     {
         for (int i = 0; i < this->nStreams; i++) // Loop through the streams
         {
+            // Make sure we have enough memory allocated to process this stream on the current batch
             if (numAxesGPU_Batch + EstimatedNumAxesPerStream > this->MaxAxesToAllocate)
             {
                 continue;
@@ -487,15 +515,27 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
-    // cudaDeviceSynchronize();
 
-    PrintMemoryAvailable();
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::ForwardProject() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
 
     // Have the GPU arrays been allocated?
     if (this->GPUArraysAllocatedFlag == false)
     {
+        if (this->verbose == true)
+        {
+            std::cout << "Allocating memory on " << this->GPU_Device << '\n';
+        }
+
         Allocate();
-        // PrintMemoryAvailable();
+
+        if (this->verbose == true)
+        {
+            PrintMemoryAvailable();
+        }
 
         this->GPUArraysAllocatedFlag = true;
     }
@@ -543,9 +583,14 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
-        // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
-        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
-        // PrintMemoryAvailable();
+        if (this->verbose == true)
+        {
+            std::cout << '\n';
+            std::cout << '\n';
+            std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
+                      << " batch " << Offsets_obj.currBatch[i]
+                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+        }
 
         if (Offsets_obj.numAxesPerStream[i] < 1)
         {
@@ -630,7 +675,29 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
-    PrintMemoryAvailable();
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::BackProject() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
+
+    // Have the GPU arrays been allocated?
+    if (this->GPUArraysAllocatedFlag == false)
+    {
+        if (this->verbose == true)
+        {
+            std::cout << "Allocating memory on " << this->GPU_Device << '\n';
+        }
+
+        Allocate();
+
+        if (this->verbose == true)
+        {
+            PrintMemoryAvailable();
+        }
+
+        this->GPUArraysAllocatedFlag = true;
+    }
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int ImgSize = this->d_Imgs->GetSize(0);
@@ -674,9 +741,14 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
             continue;
         }
 
-        // std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
-        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
-
+        if (this->verbose == true)
+        {
+            std::cout << '\n';
+            std::cout << '\n';
+            std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
+                      << " batch " << Offsets_obj.currBatch[i]
+                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+        }
 
         gpuErrorCheck(cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
@@ -753,6 +825,12 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
     // Calculate the plane density by running the back projection kernel with CASimages equal to one
     gpuErrorCheck(cudaSetDevice(this->GPU_Device));
 
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::CalculatePlaneDensity() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
+
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here
     int ImgSize = this->d_Imgs->GetSize(0);
     int CASImgSize = this->d_CASImgs->GetSize(0);
@@ -786,18 +864,13 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             continue;
         }
 
-        // std::cout << "GPU: " << this->GPU_Device << " plane density stream " << Offsets_obj.stream_ID[i]
-        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
-
-        // Between batches sync all the CUDA streams
-        // This prevents two streams trying to use the same memory
-        if (streams[Offsets_obj.stream_ID[i]] == 0)
+        if (this->verbose == true)
         {
-            gpuErrorCheck(cudaDeviceSynchronize());
-            // for (int j = 0; j < this->nStreams; j++)
-            // {
-            // cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
-            // }
+            std::cout << '\n';
+            std::cout << '\n';
+            std::cout << "GPU: " << this->GPU_Device << " plane density stream " << Offsets_obj.stream_ID[i]
+                      << " batch " << Offsets_obj.currBatch[i]
+                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
         }
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
@@ -827,6 +900,12 @@ void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
 {
     // Convert CAS images to images using an inverse FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::CASImgsToImgs() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
 
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);
@@ -910,6 +989,12 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
 
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::ImgsToCASImgs() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
+
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);
 
@@ -990,7 +1075,13 @@ void gpuGridder::CASVolumeToVolume()
 {
     std::cout << "CASVolumeToVolume():" << '\n';
     gpuErrorCheck(cudaDeviceSynchronize());
-    PrintMemoryAvailable();
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::CASVolumeToVolume() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
+
     // Convert a GPU CAS volume to volume
     // Note: The volume must be square (i.e. have the same dimensions for the X, Y, and Z)
     // Step 1: Pad the input volume with zeros and convert to cufftComplex type
@@ -1129,6 +1220,12 @@ void gpuGridder::ReconstructVolume()
     // Step 4: fftshift
     // Step 5: Convert to CAS volume using CUDA kernel
     // Step 6: Apply extra zero padding
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::ReconstructVolume() on GPU " << this->GPU_Device << '\n';
+        PrintMemoryAvailable();
+    }
 
     int CASVolumeSize = this->d_CASVolume->GetSize(0);
     int CASImgSize = this->d_CASImgs->GetSize(0);

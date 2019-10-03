@@ -9,9 +9,9 @@
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-    if (nrhs != 6)
+    if (nrhs != 7)
     {
-        mexErrMsgTxt("mexCreateClass: There should be 6 inputs: Volume size, number of coordinate axes, the interpolation factor, number of GPUs, a vector of GPU device numbers, and a flag to run the FFTs on the GPU or not.");
+        mexErrMsgTxt("mexCreateClass: There should be 7 inputs: Volume size, number of coordinate axes, the interpolation factor, number of GPUs, a vector of GPU device numbers, a flag to run the FFTs on the GPU or not, and a flag for verbose output.");
     }
 
     int *VolumeSize = (int *)mxGetData(prhs[0]);
@@ -20,8 +20,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int Num_GPUs = (int)mxGetScalar(prhs[3]);
     int *GPU_Device = (int *)mxGetData(prhs[4]);
     int RunFFTOnDevice = (int)mxGetScalar(prhs[5]);
+    bool verboseFlag = (bool)mxGetScalar(prhs[6]);
 
     // Return a handle to a new C++ instance
-    plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder(*VolumeSize, *numCoordAxes, *interpFactor, Num_GPUs, GPU_Device, RunFFTOnDevice));
+    plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder(*VolumeSize, *numCoordAxes, *interpFactor, Num_GPUs, GPU_Device, RunFFTOnDevice, verboseFlag));
 
 }
