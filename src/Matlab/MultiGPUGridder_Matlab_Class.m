@@ -50,13 +50,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
-            this.interpFactor = single(varargin{3});
-                        
-%             if (this.VolumeSize >=256)
-%                 disp("Setting number of streams to 1")
-%                 this.nStreams = 1;
-%             end
-            
+            this.interpFactor = single(varargin{3});                                  
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
             
             gridder_Varargin = [];
@@ -79,29 +73,27 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize)); 
 
             % Create the Volume array
-            this.Volume = single(zeros(repmat(this.VolumeSize, 1, 3)));  
-            
+            this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');              
         
             % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
             if (this.RunFFTOnGPU == false)
  
                 % Create the CASImages array
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
-                this.CASImages = single(zeros([CASImagesSize, CASImagesSize, this.NumAxes]));    
+                this.CASImages = zeros([CASImagesSize, CASImagesSize, this.NumAxes], 'single');  
                 
                 % Create the PlaneDensity array
-                this.PlaneDensity = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));  
+                this.PlaneDensity = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');
                                                             
                 % Create the CASVolume array
-                this.CASVolume = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3)));                                    
-                
+                this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');                                                     
            
             end
             
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
             InterpVolSize = this.VolumeSize * int32(this.interpFactor);
-            this.KBPreComp = single(zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3)));  
+            this.KBPreComp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');    
            
             preComp=getPreComp(InterpVolSize,this.kerHWidth);
             preComp=preComp';

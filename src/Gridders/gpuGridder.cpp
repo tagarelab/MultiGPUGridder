@@ -1074,7 +1074,6 @@ void gpuGridder::FreeMemory()
 
 void gpuGridder::CASVolumeToVolume()
 {
-    std::cout << "CASVolumeToVolume():" << '\n';
     gpuErrorCheck(cudaDeviceSynchronize());
 
     if (this->verbose == true)
@@ -1203,12 +1202,6 @@ void gpuGridder::CASVolumeToVolume()
     delete CASFilter;
     delete CropFilter;
 
-    std::cout << "End of CASVolumeToVolume" << '\n';
-    std::cout << "End of CASVolumeToVolume" << '\n';
-    std::cout << "End of CASVolumeToVolume" << '\n';
-    std::cout << "End of CASVolumeToVolume" << '\n';
-    std::cout << "End of CASVolumeToVolume" << '\n';
-    PrintMemoryAvailable();
 }
 
 void gpuGridder::ReconstructVolume()

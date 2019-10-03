@@ -186,6 +186,7 @@ void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
     if (this->verbose == true)
     {
         std::cout << "MultiGPUGridder::EnablePeerAccess()" << '\n';
+        std::cout << "GPU_For_Reconstruction: " << this->GPU_Devices[GPU_For_Reconstruction] << '\n';
     }
 
     if (this->PeerAccessEnabled == false)
@@ -198,9 +199,7 @@ void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
                 // Can peer access be enabled?
                 int canAccessPeer;
                 cudaDeviceCanAccessPeer(&canAccessPeer, this->GPU_Devices[GPU_For_Reconstruction], this->GPU_Devices[i]);
-                std::cout << "GPU_For_Reconstruction: " << this->GPU_Devices[GPU_For_Reconstruction] << '\n';
-                std::cout << "this->GPU_Devices[i]: " << this->GPU_Devices[i] << '\n';
-
+                
                 if (canAccessPeer == 1)
                 {
                     // The first GPU can now access GPU device number i
