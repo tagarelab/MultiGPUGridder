@@ -93,4 +93,6 @@ void PadVolumeFilter::UpdateFilter(float *Input, float *Output, cudaStream_t *st
                                                OutputSizeX, OutputSizeY, OutputSizeZ,
                                                this->paddingX, this->paddingY, this->paddingZ);
     }
+
+    gpuErrorCheck(cudaPeekAtLastError());
 }

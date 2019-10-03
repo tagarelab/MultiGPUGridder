@@ -128,5 +128,7 @@ void CASToComplexFilter::UpdateFilter(float *Input, cufftComplex *Output, cudaSt
         CASVolumeToComplexKernel<<<dimGrid, dimBlock>>>(Input, Output, this->VolumeSize, NumberSlices, VolumeFlag);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+
     return;
 };

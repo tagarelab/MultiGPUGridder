@@ -102,5 +102,7 @@ void FFTShift2DFilter<T>::UpdateFilter(T *Input, cudaStream_t *stream)
         cufftShift_2D_kernel<<<dimGrid, dimBlock>>>(Input, this->ImageSize, this->nSlices);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+    
     return;
 };

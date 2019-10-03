@@ -8,7 +8,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verboseFlag = false;
+        verboseFlag = true;
         
         % Int 32 type variables        
         VolumeSize;        

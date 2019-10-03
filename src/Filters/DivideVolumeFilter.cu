@@ -32,7 +32,7 @@ __global__ void DivideVolumesKernel(float *VolumeOne, float *VolumeTwo, int Volu
     }
 }
 
-void DivideVolumeFilter::UpdateFilter(float* Input, float* Output, cudaStream_t *stream)
+void DivideVolumeFilter::UpdateFilter(float *Input, float *Output, cudaStream_t *stream)
 {
     // Add two GPU arrays (of dimensions 3) together
     // Equation: VolumeOne = VolumeOne + VolumeTwo
@@ -76,6 +76,8 @@ void DivideVolumeFilter::UpdateFilter(float* Input, float* Output, cudaStream_t 
     {
         DivideVolumesKernel<<<dimGrid, dimBlock>>>(Input, Output, this->VolumeSize, NumberSlices);
     }
+
+    gpuErrorCheck(cudaPeekAtLastError());
 
     return;
 };

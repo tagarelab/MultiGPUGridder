@@ -127,10 +127,10 @@ public:
 
     /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
     float *GetPlaneDensityFromDevice();
-    
+
     /// Get the pointer to the volume array on the GPU.
     float *GetCASVolumePtr();
-    
+
     /// Get the pointer to the plane density array on the GPU.
     float *GetPlaneDensityPtr();
 
@@ -139,7 +139,7 @@ public:
 
     /// Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if running the Fourier transform on the CPU (such as within Matlab or Python).
     void CopyCASVolumeToHost();
-    
+
     /// Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if running the Fourier transform on the CPU (such as within Matlab or Python).
     void CopyPlaneDensityToHost();
 
@@ -165,7 +165,7 @@ public:
     /// Convert projection images to CAS images by running a forward FFT
     void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
 
-    /// Reconstruct the volume by converting the CASVolume to Volume and running an inverse FFT. This volume is normalized by the plane density array and the 
+    /// Reconstruct the volume by converting the CASVolume to Volume and running an inverse FFT. This volume is normalized by the plane density array and the
     /// Kaiser Bessel pre-compensation array.
     void ReconstructVolume();
 

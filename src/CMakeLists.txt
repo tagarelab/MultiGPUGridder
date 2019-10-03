@@ -32,9 +32,9 @@ set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRA
 # Create a variable with all the source file names
 set(SOURCE_Files 
 
+    ${CMAKE_SOURCE_DIR}/Structs/gpuErrorCheck.h
     ${CMAKE_SOURCE_DIR}/Structs/HostMemory.h
     ${CMAKE_SOURCE_DIR}/Structs/DeviceMemory.h
-    ${CMAKE_SOURCE_DIR}/Structs/gpuErrorCheck.h
 
 	${CMAKE_SOURCE_DIR}/Gridders/AbstractGridder.h
 	${CMAKE_SOURCE_DIR}/Gridders/AbstractGridder.cpp

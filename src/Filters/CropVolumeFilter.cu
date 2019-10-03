@@ -93,4 +93,6 @@ void CropVolumeFilter::UpdateFilter(float *Input, float *Output, cudaStream_t *s
                                                 OutputSizeX, OutputSizeY, OutputSizeZ,
                                                 this->CropX, this->CropY, this->CropZ);
     }
+
+    gpuErrorCheck(cudaPeekAtLastError());
 }

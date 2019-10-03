@@ -63,5 +63,7 @@ void AddVolumeFilter::UpdateFilter(float* Input, float* Output, cudaStream_t *st
         AddVolumeKernel<<<dimGrid, dimBlock>>>(Input, Output, this->VolumeSize, this->nSlices);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+
     return;
 };

@@ -15,6 +15,7 @@
 
 #include "HostMemory.h"
 #include "DeviceMemory.h"
+#include "gpuErrorCheck.h"
 
 #include <cstdlib>
 #include <stdio.h>

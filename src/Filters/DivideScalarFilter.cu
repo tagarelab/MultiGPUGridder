@@ -69,5 +69,7 @@ void DivideScalarFilter::UpdateFilter(float *Input, cudaStream_t *stream)
         DivideScalarKernel<<<dimGrid, dimBlock>>>(Input, this->Scalar, this->VolumeSize, NumberSlices);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+    
     return;
 };

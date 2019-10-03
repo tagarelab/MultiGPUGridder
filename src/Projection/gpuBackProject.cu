@@ -148,5 +148,7 @@ void gpuBackProject::RunKernel(
 			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
 	}
 
+	gpuErrorCheck(cudaPeekAtLastError());
+
 	return;
 }

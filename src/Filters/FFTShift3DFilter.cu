@@ -134,5 +134,7 @@ void FFTShift3DFilter<T>::UpdateFilter(T *Input, cudaStream_t *stream)
         FFTShift3DKernel<<<dimGrid, dimBlock>>>(Input, this->VolumeSize);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+
     return;
 };

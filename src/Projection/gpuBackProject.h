@@ -10,6 +10,8 @@
  * 
  * */
 
+#include "gpuErrorCheck.h"
+
 #include <cstdlib>
 #include <stdio.h>
 #include <iostream>

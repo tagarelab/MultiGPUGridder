@@ -101,5 +101,7 @@ void MultiplyVolumeFilter<T>::UpdateFilter(T *Input, float *Output, cudaStream_t
         MultiplyVolumesKernel<<<dimGrid, dimBlock>>>(Input, Output, this->VolumeSize, NumberSlices);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+
     return;
 };

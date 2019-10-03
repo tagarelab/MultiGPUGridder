@@ -10,9 +10,12 @@
  * 
  * */
 
+#include "gpuErrorCheck.h"
+
 #include <cstdlib>
 #include <stdio.h>
 #include <iostream>
+#include <vector>
 
 // includes CUDA Runtime
 #include <cuda_runtime.h>

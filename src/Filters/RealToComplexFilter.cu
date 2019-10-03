@@ -68,5 +68,7 @@ void RealToComplexFilter::UpdateFilter(float *Input, cufftComplex *Output, cudaS
         RealToComplexKernel<<<dimGrid, dimBlock>>>(Input, Output, this->VolumeSize, NumberSlices);
     }
 
+    gpuErrorCheck(cudaPeekAtLastError());
+    
     return;
 };
