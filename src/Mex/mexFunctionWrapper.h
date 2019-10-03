@@ -1,5 +1,23 @@
-#ifndef __CLASS_HANDLE_H__ // Only define the header once
-#define __CLASS_HANDLE_H__
+/**
+ * @header   mexFunctionWrapper
+ * @brief   A class for mex functions
+ *
+ *
+ * This class is used for keeping both the host (i.e. CPU) and the device (i.e. GPU) memory persisant 
+ * when going back and forth to Matlab. Essentially, when the MultiGPUGridder object is created,
+ * the corresponding memory pointer is converted to a real uint64 scalar and returned to Matlab. 
+ * This scalar is remembered within the Matlab class (by the objectHandle member).
+ * 
+ * Then, when calling a new mex function, the objectHandle (i.e. the real uint64 scalar) is passed from
+ * Matlab to the C++ code and then recasted back into the MultiGPUGridder object. This allows us to maintain
+ * the memory between Matlab mex function calls.
+ * 
+ * 
+ * 
+ * 
+ * */
+
+#pragma once
 
 #include <mex.h>
 #include <iostream>
@@ -62,5 +80,3 @@ inline void destroyObject(const mxArray *in)
     delete convertMat2HandlePtr<base>(in);
     mexUnlock();
 }
-
-#endif // __CLASS_HANDLE_HPP__
