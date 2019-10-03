@@ -871,6 +871,7 @@ void gpuGridder::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             std::cout << "GPU: " << this->GPU_Device << " plane density stream " << Offsets_obj.stream_ID[i]
                       << " batch " << Offsets_obj.currBatch[i]
                       << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+            PrintMemoryAvailable();
         }
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU

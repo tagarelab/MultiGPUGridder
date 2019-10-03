@@ -106,10 +106,10 @@ public:
 	void SumCASVolumes();
 
 	/// Sum the CAS volumes from each gpuGridder to the given device after running the back projection
-	void AddCASVolumes(int GPU_Device);
+	void AddCASVolumes(int GPU_For_Reconstruction);
 
 	/// Sum the plane densities on the GPU devices to the given device after running the back projection
-	void AddPlaneDensities(int GPU_Device);
+	void AddPlaneDensities(int GPU_For_Reconstruction);
 
 private:
 	// Plan which GPU will process which coordinate axes

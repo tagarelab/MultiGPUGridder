@@ -23,9 +23,9 @@ for i = 1:4
     reset(gpuDevice(i));
 end
 
-VolumeSize = 128;
+VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 20;
+n1_axes = 600;
 n2_axes = 10;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -78,7 +78,7 @@ gridder.setVolume(single(MRI_volume));
     easyMontage(images(:,:,:), 1)
 %    easyMontage(gridder.Images(:,:,1:5), 1)
     
-
+return
     
 %        [origBox,interpBox,CASBox]=getSizes(VolumeSize,interpFactor,3);
 %       CASImgsTest = imgsFromCASImgs(gridder.CASImages, interpBox, []); 
