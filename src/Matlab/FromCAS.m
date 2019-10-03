@@ -8,7 +8,6 @@ function c=FromCAS(r)
 o1=min(2,s1);
 o2=min(2,s2);
 o3=min(2,s3);
-% c=zeros(s1,s2,s3);
-c=zeros(s1,s2,s3,'single');
+c=zeros(s1,s2,s3);
 c(o1:s1,o2:s2,o3:s3)=0.5*(r(o1:s1,o2:s2,o3:s3)+r(s1:-1:o1,s2:-1:o2,s3:-1:o3)...
     +1i*(r(o1:s1,o2:s2,o3:s3)-r(s1:-1:o1,s2:-1:o2,s3:-1:o3)));
