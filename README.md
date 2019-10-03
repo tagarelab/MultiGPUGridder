@@ -1,4 +1,4 @@
-# Multi-GPU Gridding Index Page
+# Multi-GPU Gridding 
 
 ## Introduction
 
@@ -17,28 +17,28 @@ wrapper for calling all the functions from within Matlab or from within Python.
 | **Matlab**       | >= R2018a | Optional: If compiling the MATLAB wrappers for calling the class.|
 | **Python**       | >= 3.0    | Optional: If compiling the Python wrappers for calling the class.|
 
-## install_sec Installation
+## Installation
 
-### Step 1: Clone or download the GitHub repository to your computer.
+#### Step 1: Clone or download the GitHub repository to your computer.
 
-### Step 2: Open the CMake GUI with the source code path to be the "src" folder and the binaries path to be a new folder name "bin".
+#### Step 2: Open the CMake GUI with the source code path to be the "src" folder and the binaries path to be a new folder name "bin".
 
-### Step 3: Within CMake, click on Configure
+#### Step 3: Within CMake, click on Configure
 
-### Step 4: Check or uncheck the optional settings (such as BUILD_TESTS and WITH_MATLAB).
+#### Step 4: Check or uncheck the optional settings (such as BUILD_TESTS and WITH_MATLAB).
 
-### Step 5: Click configure again and then click on Generate.
+#### Step 5: Click configure again and then click on Generate.
 
-### Step 6 (Windows): Click on Open Project which should open Visual Studio. Then right click on ALL_BUILD and click on build. Decide between Debug or Release (see the drop down on the top center within Visual Studio).
+#### Step 6 (Windows): Click on Open Project which should open Visual Studio. Then right click on ALL_BUILD and click on build. Decide between Debug or Release (see the drop down on the top center within Visual Studio).
 
-### Step 6 (Linux): Close CMake and open a terminal within the bin folder (which was created by CMake). Within the terminal type "make" which will then compile the code.
+#### Step 6 (Linux): Close CMake and open a terminal within the bin folder (which was created by CMake). Within the terminal type "make" which will then compile the code.
 
-### Step 7: Optionally, run the units tests within Matlab and / or Python to check everything is functioning correctly.
+#### Step 7: Optionally, run the units tests within Matlab and / or Python to check everything is functioning correctly.
 
 
 ## Example
 
-Here is a simple example on running the Matlab wrapper:
+Here is a simple example on running the multi-GPU gridder from within Matlab:
 
     % Add the required Matlab file paths
     mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
@@ -79,8 +79,6 @@ Here is a simple example on running the Matlab wrapper:
     reconstructVol = gridder.reconstructVol();
     easyMontage(reconstructVol, 3)
 
-![Matlab_Example](src/DocumentationImages/Matlab_Example.png)
-
 ## API Documentation
 
-[Please see the corresponding API documentation for further details](https://brentfoster.github.io/MultiGPUGridder/)
+[Please see the corresponding API documentation for further details.](https://brentfoster.github.io/MultiGPUGridder/)
