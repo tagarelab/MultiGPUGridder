@@ -155,6 +155,8 @@ public:
         std::vector<unsigned long long> Imgs_CPU_Offset;
         std::vector<int> gpuImgs_streamBytes;
         std::vector<int> stream_ID;
+        std::vector<int> currBatch;
+        int Batches;
         int num_offsets;
     };
 

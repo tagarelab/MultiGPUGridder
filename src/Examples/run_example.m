@@ -23,9 +23,9 @@ for i = 1:4
 reset(gpuDevice(i));
 end
 
-VolumeSize = 64;
+VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 200;
+n1_axes = 100;
 n2_axes = 10;
 
 disp(['Imgs are ' num2str(VolumeSize*VolumeSize*n1_axes*n2_axes*4*10^-9) ' GB with ' num2str(n1_axes*n2_axes + 1) ' axes'])
@@ -56,7 +56,7 @@ disp("ForwardProject...")
 
 %%
 
-for i = 1:2
+for i = 1:3
     i
     
 %     gridder.Volume = single(MRI_volume) ;
@@ -71,9 +71,10 @@ for i = 1:2
 gridder.resetVolume();
 gridder.resetVolume();
 gridder.setVolume(single(MRI_volume));
-%     tic
-    images = gridder.forwardProject(coordAxes);
-%     toc
+    tic
+    images = gridder.forwardProject(coordAxes);    
+    toc
+    
     easyMontage(images(:,:,:), 1)
 %    easyMontage(gridder.Images(:,:,1:5), 1)
     
@@ -95,7 +96,7 @@ end
 
 % Run the back projection
 
-for i = 1
+for i = 1:2
     
     
 %     cols = size(coordAxes,2);

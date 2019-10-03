@@ -329,7 +329,7 @@ void gpuGridder::Allocate()
         // Estimate the maximum number of coordinate axes to allocate per stream
         this->MaxAxesToAllocate = EstimateMaxAxesToAllocate(this->h_Volume->GetSize(0), this->interpFactor);
 
-        this->MaxAxesToAllocate = 100; // TEST
+        this->MaxAxesToAllocate = 50; // TEST
 
         // Initilize the needed arrays on the GPU
         InitilizeGPUArrays();
@@ -368,7 +368,7 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes)
     int processed_nAxes = 0;
 
     // While we have coordinate axes to process, loop through the GPUs and the streams
-    int MaxBatches = 10000; // Maximum iterations in case we get stuck in the while loop for some reason
+    int MaxBatches = 500; // Maximum iterations in case we get stuck in the while loop for some reason
     int batch = 0;
 
     // Initilize a variable which will remember how many axes have been assigned to the GPU
@@ -394,6 +394,19 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes)
     {
         for (int i = 0; i < this->nStreams; i++) // Loop through the streams
         {
+            if (numAxesGPU_Batch + EstimatedNumAxesPerStream > this->MaxAxesToAllocate)
+            {
+                continue;
+            }
+
+            // Save the current batch number
+            Offsets_obj.currBatch.push_back(batch);
+
+            if (batch > Offsets_obj.Batches)
+            {
+                Offsets_obj.Batches = batch;
+            }
+
             // If we're about to process more than the number of coordinate axes, process the remaining faction of numAxesPerStream
             if (processed_nAxes + EstimatedNumAxesPerStream >= nAxes)
             {
@@ -530,33 +543,15 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
+        // std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
+        //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+        // PrintMemoryAvailable();
+
         if (Offsets_obj.numAxesPerStream[i] < 1)
         {
             continue;
         }
 
-        std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
-                  << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
-
-        // Between batches sync all the CUDA streams
-        // This prevents two streams trying to use the same memory
-        if (streams[Offsets_obj.stream_ID[i]] == 0)
-        {
-            // return; // TEST
-            cudaDeviceSynchronize();
-            for (int j = 0; j < this->nStreams; j++)
-            {
-                cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
-            }
-        }
-
-        std::cout << "Offsets_obj.gpuCASImgs_Offset[i]: " << Offsets_obj.gpuCASImgs_Offset[i] << '\n';
-        std::cout << "this->d_CASImgs->bytes(): " << this->d_CASImgs->bytes() << '\n';
-        std::cout << "Offsets_obj.gpuCASImgs_streamBytes[i]: " << Offsets_obj.gpuCASImgs_streamBytes[i] << '\n';
-        std::cout << "Offsets_obj.stream_ID[i]: " << Offsets_obj.stream_ID[i] << '\n';
-        std::cout << "this->d_CASImgs->GetPointer(): " << this->d_CASImgs->GetPointer() << '\n';
-
-        // PrintMemoryAvailable();
         gpuErrorCheck(cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
@@ -682,16 +677,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         // std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
         //           << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
 
-        // Between batches sync all the CUDA streams
-        // This prevents two streams trying to use the same memory
-        if (streams[Offsets_obj.stream_ID[i]] == 0)
-        {
-            gpuErrorCheck(cudaDeviceSynchronize());
-            // for (int j = 0; j < this->nStreams; j++)
-            // {
-            //     cudaStreamSynchronize(streams[Offsets_obj.stream_ID[j]]);
-            // }
-        }
 
         gpuErrorCheck(cudaMemsetAsync(
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
