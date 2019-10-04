@@ -7,9 +7,9 @@ classdef FilterTests < matlab.unittest.TestCase
         %MaxGPUs = gpuDeviceCount;     
         
         type = {'uint16'};
-        GPU_Device = {0,1,2,3};
-        VolumeSize = {32,64,128,256};
-        nSlices = {20,40,60,80};
+        GPU_Device = {0,3};
+        VolumeSize = {64,256};
+        nSlices = {32,128};
     end    
 
     methods (Test)
