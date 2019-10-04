@@ -7,7 +7,7 @@ __global__ void CASVolumeToComplexKernel(float *CASVolume, cufftComplex *Complex
     int j = blockIdx.y * blockDim.y + threadIdx.y; // Row
 
     // Are we outside the bounds of the image?
-    if (i > VolumeSize || i < 0 || j > VolumeSize || j < 0)
+    if (i >= VolumeSize || i < 0 || j >= VolumeSize || j < 0)
     {
         return;
     }

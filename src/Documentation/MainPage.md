@@ -136,7 +136,7 @@ The
 
 function takes the **real uint64 scalar** (which was passed from the Matlab class to the mex function) and casts the pointer to the MultiGPUGridder class to get the object back. The convertPtr2Mat<>() function does that opposite (convert the memory pointer to a real uint64 scalar) to return back to Matlab.
 
-\section matlab_wrapper Matlab Wrapper - In-place computation
+\section matlab_in_place Matlab Wrapper - In-place computation
 
 In order to avoid unnecessary copying to and from Matlab as well as to avoid unneeded memory allocation, we perform the calculations in place. The steps were then
 
@@ -175,7 +175,7 @@ Then within the AbstractGridder (which is the parent class of the MultiGPUGridde
 Here, we create a new HostMemory object and copy the pointer of the Matlab allocated array. We lastly pin the memory to allow for
 asynchronous memory transfer to and from the GPUs. Please see the [NVIDIA documentation for further information](https://devblogs.nvidia.com/how-overlap-data-transfers-cuda-cc/).
 
-\section matlab_wrapper Matlab Wrapper - Mex Functions
+\section matlab_mex Matlab Wrapper - Mex Functions
 
 | Mex Wrapper File Name        | Purpose                                                                            |
 |------------------------------|------------------------------------------------------------------------------------|

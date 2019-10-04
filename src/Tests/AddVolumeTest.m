@@ -1,10 +1,10 @@
-addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
-
-VolumeOne = single(ones(300,300,20));
-VolumeTwo = single(ones(300,300,20)*5);
+function Result = AddVolumeTest(VolumeSize, nSlices, GPU_Device)
 
 
-GPU_Device = 0;
+
+VolumeOne = single(rand(VolumeSize,VolumeSize,nSlices));
+VolumeTwo = single(rand(VolumeSize,VolumeSize,nSlices)*5);
+
 reset(gpuDevice(GPU_Device+1));
 
 AddedVolume = mexAddVolume(...
@@ -15,4 +15,4 @@ AddedVolume = mexAddVolume(...
 
 imagesc(AddedVolume(:,:,2))
 
-isequal(AddedVolume, VolumeOne + VolumeTwo)
+Result = isequal(AddedVolume, VolumeOne + VolumeTwo);

@@ -8,14 +8,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verboseFlag = true;
+        verbose = true;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0,1,2,3]);
+        GPUs = int32([0]);
         MaxAxesToAllocate;
-        nStreams = 64;
+        nStreams = 1;
         
         % Single type variables        
         interpFactor;
@@ -60,7 +60,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             gridder_Varargin{4} = int32(length(this.GPUs));
             gridder_Varargin{5} = int32(this.GPUs);
             gridder_Varargin{6} = int32(this.RunFFTOnGPU);
-            gridder_Varargin{7} = this.verboseFlag;            
+            gridder_Varargin{7} = this.verbose;            
+            
+            if (length(varargin) == 4)
+                this.RunFFTOnGPU = varargin{4};
+            end
 
             % Create the gridder instance
             this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           

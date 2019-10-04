@@ -49,8 +49,8 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
         EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
     }
 
-    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 50% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.5);
+    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
 
     if (this->verbose == true)
     {
@@ -590,6 +590,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
                       << " batch " << Offsets_obj.currBatch[i]
                       << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
+
         }
 
         if (Offsets_obj.numAxesPerStream[i] < 1)

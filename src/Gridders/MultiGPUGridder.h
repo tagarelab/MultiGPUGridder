@@ -45,16 +45,22 @@ public:
 			return;
 		}
 
+		this->verbose = verbose;
+
 		// Create an intance of the gpuGridder class for each GPU
 		for (int i = 0; i < Num_GPUs; i++)
 		{
-			int GPU_Device = GPU_Devices[i];
-			cudaSetDevice(GPU_Device);
+			cudaSetDevice(GPU_Devices[i]);
+
+			if (this->verbose == true)
+			{
+				std::cout << "MultiGPUGridder creating gpuGridder object on GPU " << GPU_Devices[i] << '\n';
+			}
 
 			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
 			cudaDeviceReset();
 
-			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, RunFFTOnDevice, GPU_Device, verbose);
+			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, RunFFTOnDevice, GPU_Devices[i], verbose);
 
 			// Save the new object to the vector of gpuGridder objects
 			gpuGridder_vec.push_back(gpuGridder_obj);
@@ -69,7 +75,6 @@ public:
 		// Set the flag to false
 		this->ProjectInitializedFlag = false;
 
-		this->verbose = verbose;
 		this->RunFFTOnDevice = RunFFTOnDevice;
 		this->PeerAccessEnabled = false;
 	}
@@ -153,5 +158,5 @@ private:
 	bool PeerAccessEnabled;
 
 	// Should we print status information to the console?
-    bool verbose;
+	bool verbose;
 };

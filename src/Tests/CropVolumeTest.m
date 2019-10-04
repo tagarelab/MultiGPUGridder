@@ -1,11 +1,8 @@
-addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
+function Result = CropVolumeTest(VolumeSize, nSlices, CropX, CropY, CropZ, GPU_Device)
 
-InputVolume = ones(300,300,20);
+reset(gpuDevice(GPU_Device+1));
 
-CropX = 2;
-CropY = 10;
-CropZ = 5;
-GPU_Device = 0;
+InputVolume = ones(VolumeSize,VolumeSize,nSlices);
 
 CroppedVolume = mexCropVolume(...
     single(InputVolume), ...
@@ -15,8 +12,6 @@ CroppedVolume = mexCropVolume(...
     int32(CropZ), ...
     int32(GPU_Device));
 
-imagesc(CroppedVolume(:,:,2))
-
 GT_CroppedVolume = InputVolume(CropX+1:end-CropX, CropY+1:end-CropY, CropZ+1:end-CropZ);
 
-isequal(GT_CroppedVolume, CroppedVolume)
+Result = isequal(GT_CroppedVolume, CroppedVolume);

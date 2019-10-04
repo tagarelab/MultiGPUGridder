@@ -1,9 +1,8 @@
-addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
+function Result = DivideScalarTest(VolumeSize, nSlices, Scalar, GPU_Device)
 
-Volume = single(rand(30,30,2));
-Scalar = single(rand(1));
+Volume = single(rand(VolumeSize,VolumeSize,nSlices));
+Scalar = single(Scalar);
 
-GPU_Device = 0;
 reset(gpuDevice(GPU_Device+1));
 
 DividedVolume = mexDivideScalar(...
@@ -13,9 +12,5 @@ DividedVolume = mexDivideScalar(...
     int32(GPU_Device));
 
 GT_DividedVolume = Volume ./ Scalar;
-subplot(1,2,1)
-imagesc(DividedVolume(:,:,2))
-subplot(1,2,2)
-imagesc(GT_DividedVolume(:,:,2))
 
-isequal(DividedVolume, GT_DividedVolume)
+Result = isequal(DividedVolume, GT_DividedVolume);

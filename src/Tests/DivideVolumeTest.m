@@ -1,13 +1,13 @@
-addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
+function Result = DivideVolumeTest(VolumeSize, nSlices, GPU_Device)
 
-VolumeOne = single(round(rand(30,30,20) * 100));
+reset(gpuDevice(GPU_Device+1));
+
+VolumeOne = single(round(rand(VolumeSize,VolumeSize,nSlices) * 100));
 VolumeTwo = single(round(rand(size(VolumeOne))*100));
 
+% Avoid zero values (the CUDA kernel doesn't return inf while Matlab does)
 VolumeOne = VolumeOne + 1e-2;
 VolumeTwo = VolumeTwo + 1e-2;
-
-GPU_Device = 0;
-reset(gpuDevice(GPU_Device+1));
 
 DividedVolume = mexDivideVolume(...
     single(VolumeOne), ...
@@ -17,12 +17,4 @@ DividedVolume = mexDivideVolume(...
 
 GT_DividedVolume = VolumeOne ./ VolumeTwo;
 
-slice = 2;
-subplot(1,3,1)
-imagesc(DividedVolume(:,:,slice))
-subplot(1,3,2)
-imagesc(GT_DividedVolume(:,:,slice))
-subplot(1,3,3)
-imagesc(DividedVolume(:,:,slice) - GT_DividedVolume(:,:,slice))
-
-isequal(DividedVolume, GT_DividedVolume)
+Result = isequal(DividedVolume, GT_DividedVolume);
