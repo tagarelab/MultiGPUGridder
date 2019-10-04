@@ -13,8 +13,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("mexBackProject: There should be 1 input.");
     }
-
-    // std::cout << "mexBackProject()" << '\n';
     
     // Get the class instance pointer from the first input
     MultiGPUGridder *MultiGPUGridderObj = convertMat2Ptr<MultiGPUGridder>(prhs[0]);

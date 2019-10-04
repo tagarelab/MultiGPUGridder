@@ -8,14 +8,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = false;        
         
         % Flag for status output to the console
-        verbose = true;
+        verbose = false;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0,1]);
+        GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 1;
+        nStreams = 32;
         
         % Single type variables        
         interpFactor;

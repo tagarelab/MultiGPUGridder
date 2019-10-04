@@ -1139,7 +1139,7 @@ void gpuGridder::CASVolumeToVolume()
     CropFilter->SetNumberOfSlices(CroppedCASVolumeSize);
     CropFilter->Update();
 
-    // Convert the CASImgs to complex cufft type
+    // Convert the CAS volume to complex cufft type
     CASToComplexFilter *CASFilter = new CASToComplexFilter();
     CASFilter->SetCASVolume(d_CASVolume_Cropped);
     CASFilter->SetComplexOutput(d_CASVolume_Cropped_Complex);
@@ -1152,7 +1152,7 @@ void gpuGridder::CASVolumeToVolume()
     FFTShiftFilter->SetVolumeSize(CroppedCASVolumeSize);
     FFTShiftFilter->Update();
 
-    //  Plane and execute the forward FFT on the 3D array
+    //  Plane and execute the inverse FFT on the 3D array
     cufftHandle inverseFFTPlan;
     cufftPlan3d(&inverseFFTPlan, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, CUFFT_C2C);
     cufftExecC2C(inverseFFTPlan, (cufftComplex *)d_CASVolume_Cropped_Complex, (cufftComplex *)d_CASVolume_Cropped_Complex, CUFFT_INVERSE);
