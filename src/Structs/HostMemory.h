@@ -211,7 +211,7 @@ public:
     }
 
     /// Get the pointer using some offset from the beginning of the array
-    T *GetPointer(int offset)
+    T *GetPointer(long long int offset)
     {
         return &this->ptr[offset];
     }

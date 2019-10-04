@@ -52,6 +52,9 @@ int gpuGridder::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
     EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
 
+    // Set a maximum value for this or else for small volume size this because too large and can cause errors
+    EstimatedMaxAxes = std::min(EstimatedMaxAxes, 5000);
+
     if (this->verbose == true)
     {
         std::cout << "gpuGridder::EstimateMaxAxesToAllocate() on GPU " << this->GPU_Device << " estimated maximum axes to allocate = " << EstimatedMaxAxes << '\n';
@@ -589,8 +592,8 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
             std::cout << '\n';
             std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
                       << " batch " << Offsets_obj.currBatch[i]
-                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
-
+                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes "
+                      << " running FFT on device " << this->RunFFTOnDevice << '\n';
         }
 
         if (Offsets_obj.numAxesPerStream[i] < 1)
@@ -667,6 +670,11 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
                 streams[Offsets_obj.stream_ID[i]]));
+        }
+
+        if (this->verbose == true)
+        {
+            std::cout << "Stream completed" << '\n';
         }
     }
 }
@@ -1202,7 +1210,6 @@ void gpuGridder::CASVolumeToVolume()
     delete FFTShiftFilter;
     delete CASFilter;
     delete CropFilter;
-
 }
 
 void gpuGridder::ReconstructVolume()

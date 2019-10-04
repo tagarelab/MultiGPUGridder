@@ -14,7 +14,7 @@ p = TestRunProgressPlugin.withVerbosity(3);
 runner.addPlugin(p);
 
 % Run the test suite on the CUDA filters
-FilterResults = runner.run(TestSuite.fromFile('FilterTests.m', 'ParameterProperty', 'GPU_Device'));
+FilterResults = runner.run(TestSuite.fromFile('Filter_Unit_Tests.m', 'ParameterProperty', 'GPU_Device'));
 
 % Run the test suite on the forward projection
 ForwardProjectionResults = runner.run(TestSuite.fromFile('ForwardProjectTests.m', 'ParameterProperty', 'GPU_Device'));

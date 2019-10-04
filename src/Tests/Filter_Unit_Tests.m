@@ -1,4 +1,4 @@
-classdef FilterTests < matlab.unittest.TestCase
+classdef Filter_Unit_Tests < matlab.unittest.TestCase
     % SolverTest tests solutions for the CUDA filter kernels
 
     % Class variables
