@@ -93,7 +93,7 @@ public:
     }
 
     /// Copy an array array from the CPU to the previously allocated array on the GPU
-    void CopyToGPU(T *Array, int Bytes)
+    void CopyToGPU(T *Array, long long int Bytes)
     {
         if (Bytes != this->bytes())
         {
@@ -112,7 +112,7 @@ public:
     }
 
     /// Copy an array from the CPU to the allocated array on the GPU asynchronously.
-    void CopyToGPUAsyc(T *Array, int Bytes)
+    void CopyToGPUAsyc(T *Array, long long int Bytes)
     {
         if (Bytes != this->bytes())
         {
@@ -135,7 +135,7 @@ public:
     }
 
     /// Copy the array from the GPU to a previously allocated array on the host (i.e. CPU).
-    void CopyFromGPU(T *Array, int Bytes)
+    void CopyFromGPU(T *Array, long long int Bytes)
     {
         if (Bytes != this->bytes())
         {

@@ -8,14 +8,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = false;        
         
         % Flag for status output to the console
-        verbose = false;
+        verbose = true;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0]);
+        GPUs = int32([0,1]);
         MaxAxesToAllocate;
-        nStreams = 32;
+        nStreams = 1;
         
         % Single type variables        
         interpFactor;
@@ -209,11 +209,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
                     [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    this.CASImages = CASImgsFromImgs(this.Images, interpBox, []);
+                    newCASImgs = CASImgsFromImgs(this.Images, interpBox, []);
+                    this.CASImages(:,:,:) = newCASImgs; % Avoid Matlab's copy-on-write
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed
-                tempAxes = single(varargin{2}); % Seems needed to get matlab to actually copy the data (see copy-on-write)
+                tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
                 this.coordAxes(:) = tempAxes(:);
             end
 
@@ -230,10 +231,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function resetVolume(this)
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = single(0 * this.Volume); 
+           
+           if (this.RunFFTOnGPU == false)
+               this.CASVolume= single(0 * this.CASVolume); 
+           end
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)
             
+            this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUReconstructVolume(this.objectHandle);
             
             if (this.RunFFTOnGPU == false)
@@ -253,7 +259,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end   
         %% getVol - Convert the CAS Volume to Volume
         function Volume = getVol(this)
-            
+        
+           this.Set(); % Run the set function in case one of the arrays has changed
            mexMultiGPUGetVolume(this.objectHandle);
            
             if (this.RunFFTOnGPU == false)
