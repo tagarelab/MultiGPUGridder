@@ -3,13 +3,17 @@ clear
 close all
 
 import matlab.unittest.TestSuite
+import matlab.unittest.TestRunner
+import matlab.unittest.plugins.TestRunProgressPlugin
 
-addpath('../src')
-addpath('../utils')
+addpath(genpath('../Tests'))
 
-reset(gpuDevice())
+runner = TestRunner.withNoPlugins;
+p = TestRunProgressPlugin.withVerbosity(4);
+runner.addPlugin(p);
 
-run(TestSuite.fromFile('ForwardProjectTests.m'))
-run(TestSuite.fromFile('BackProjectTests.m'))
+% Run the test suite
+results = runner.run(TestSuite.fromFile('FilterTests.m', 'ParameterProperty', 'GPU_Device'));
 
-reset(gpuDevice())
+% Display the results as a table
+table(results)

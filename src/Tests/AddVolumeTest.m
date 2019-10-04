@@ -13,6 +13,4 @@ AddedVolume = mexAddVolume(...
     int32(size(VolumeOne)), ...
     int32(GPU_Device));
 
-imagesc(AddedVolume(:,:,2))
-
 Result = isequal(AddedVolume, VolumeOne + VolumeTwo);

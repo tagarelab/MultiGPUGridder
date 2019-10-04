@@ -4,6 +4,7 @@
 *.o
 *.mat
 *.m~
+*.log
 
 # Ignore build folders
 bin/
