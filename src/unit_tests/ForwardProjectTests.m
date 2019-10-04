@@ -18,8 +18,8 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
         nStreams = {1,64};
         
         % Parameters for creating the volume and coordinate axes
-        VolumeSize = {64,256};       
-        n1_axes = {1,200,400};
+        VolumeSize = {256};       
+        n1_axes = {1,200};
         n2_axes = {50};
 
     end

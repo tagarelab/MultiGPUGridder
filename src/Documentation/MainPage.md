@@ -79,14 +79,19 @@ Here is a simple example on running the Matlab wrapper:
     reconstructVol = gridder.reconstructVol();
     easyMontage(reconstructVol, 3)
 
-![Matlab_Example](Images/Matlab_Example.png)
+![Matlab_Example](./Images/Matlab_Example.png)
 
+\section matlab_unit_tests Matlab - Unit Tests
+
+The package also provides units tests to run within Matlab. The tests verify that each CUDA kernel returns the expected output. Additionally, there are unit tests for the forward and back projection kernels which test the output from each GPU, a combintation of GPUs, and varied parameters such as the volume size, number of projection directions, and the number of CUDA streams. In order to run the unit tests, go to the /src/unit_tests folder. Then within Matlab, run the Run_Unit_Tests.m script. 
+
+For changing the testing parameters (such as if your computer has a different number of GPUs), modify the GPU_Device parameter in FilterTest.m, ForwardProjectTests.m, and BackProjectTests.m. Feel free to modify the other testing parameters as well if desired.
 
 \section cuda CUDA - Asynchronous memory transfers
 
 For large datasets, there is significant copying of data to/from the GPUs. CUDA allows for overlapping of memory transfers and kernel executation (see [NVIDIA documentation for further information](https://devblogs.nvidia.com/how-overlap-data-transfers-cuda-cc/). This greatly lowers the computation time for large datasets. CUDA streams allow us to perform this.
 
-![CUDA_Streaming_Overview](Images/CUDA_Streaming_Overview.png)
+![CUDA_Streaming_Overview](./Images/CUDA_Streaming_Overview.png)
 
 For example, in the gpuGridder:: ForwardProject function, we perform asynchronous (async) memory transfers from the host (i.e.the CPU) to the device (i.e.the GPU). The following simplified code illustrates this
 
@@ -187,5 +192,5 @@ asynchronous memory transfer to and from the GPUs. Please see the [NVIDIA docume
 | mexMultiGPUGetVolume         | Runs an inverse FFT to get the volume                                              |
 | mexMultiGPUReconstructVolume | Normalizes by the plane density and runs an inverse FFT to get the volume          |
 
-![Multi_GPU_Gridder_Overview](Images/Multi_GPU_Gridder_Overview.png)
+![Multi_GPU_Gridder_Overview](./Images/Multi_GPU_Gridder_Overview.png)
 
