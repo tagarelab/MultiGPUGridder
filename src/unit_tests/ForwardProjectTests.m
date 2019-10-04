@@ -4,9 +4,7 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
 
     % Class variables
     properties (TestParameter)  
-        %Initialize parameters
-        %MaxGPUs = gpuDeviceCount;     
-        
+        %Initialize parameters       
         type = {'uint16'};
         
         % Parameters for running the CUDA kernels
@@ -18,8 +16,8 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
         nStreams = {1,64};
         
         % Parameters for creating the volume and coordinate axes
-        VolumeSize = {256};       
-        n1_axes = {1,200};
+        VolumeSize = {64,128,256};       
+        n1_axes = {1,100};
         n2_axes = {50};
 
     end
@@ -45,6 +43,9 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
             gridder.nStreams = nStreams;
             
             % Set the GPU device to use
+            if any(GPU_Device > gpuDeviceCount-1) % Check that the computer has all the GPUs available
+                return
+            end
             gridder.GPUs = int32(GPU_Device);
             
             % Set the volume
@@ -87,6 +88,9 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
             gridder.nStreams = nStreams;
             
             % Set the GPU device to use
+            if any(GPU_Device > gpuDeviceCount-1) % Check that the computer has all the GPUs available
+                return
+            end
             gridder.GPUs = int32(GPU_Device);
             
             % Set the volume

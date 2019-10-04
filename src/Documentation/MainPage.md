@@ -11,9 +11,9 @@ wrapper for calling all the functions from within Matlab or from within Python.
 | Library      | Version   | Usage                                                                                       |
 |--------------|-----------|---------------------------------------------------------------------------------------------|
 | **CUDA**         | >= 10.0   | Used for calling the GPU functions and processing data on the GPU.|
-| **NVCC**         | >= 10.0   | NVIDIA CUDA compiler for compiling the GPU code. Should be included with the CUDA download.|
+| **NVCC**         | >= 10.0   | NVIDIA CUDA compiler for compiling the GPU code. This should be included with the CUDA download.|
 | **C++ Compiler** | >= C++11  | A C++ compiler is needed for compiling the C++ code.|
-| **Nvidia GPU**    |  >=3.0  Compute capability       | Between 1 and 12 NVIDIA GPUs are required. Please contact us if you need support for more than 12 GPUs.|
+| **Nvidia GPU**    |  >=3.0  Compute capability       | Between 1 and 12 NVIDIA GPUs are required.|
 | **Matlab**       | >= R2018a | Optional: If compiling the MATLAB wrappers for calling the class.|
 | **Python**       | >= 3.0    | Optional: If compiling the Python wrappers for calling the class.|
 
@@ -85,7 +85,7 @@ Here is a simple example on running the Matlab wrapper:
 
 The package also provides units tests to run within Matlab. The tests verify that each CUDA kernel returns the expected output. Additionally, there are unit tests for the forward and back projection kernels which test the output from each GPU, a combintation of GPUs, and varied parameters such as the volume size, number of projection directions, and the number of CUDA streams. In order to run the unit tests, go to the /src/unit_tests folder. Then within Matlab, run the Run_Unit_Tests.m script. 
 
-For changing the testing parameters (such as if your computer has a different number of GPUs), modify the GPU_Device parameter in FilterTest.m, ForwardProjectTests.m, and BackProjectTests.m. Feel free to modify the other testing parameters as well if desired.
+For changing the testing parameters (such as if your computer has a different number of GPUs), modify the GPU_Device parameter at the top of FilterTest.m, ForwardProjectTests.m, and BackProjectTests.m. Also feel free to modify the other testing parameters as well.
 
 \section cuda CUDA - Asynchronous memory transfers
 
@@ -93,7 +93,7 @@ For large datasets, there is significant copying of data to/from the GPUs. CUDA 
 
 ![CUDA_Streaming_Overview](./Images/CUDA_Streaming_Overview.png)
 
-For example, in the gpuGridder:: ForwardProject function, we perform asynchronous (async) memory transfers from the host (i.e.the CPU) to the device (i.e.the GPU). The following simplified code illustrates this
+For example, in the gpuGridder::ForwardProject function, we perform asynchronous (async) memory transfers from the host (i.e.the CPU) to the device (i.e.the GPU). The following simplified code illustrates this
 
     cudaMemcpyAsync(
         d_CoordAxes->GetPointer(),
@@ -117,7 +117,7 @@ Similarly to the memory transfers, we also use CUDA streams for calling the GPU 
     FFTShiftFilter->SetNumberOfSlices(nSlices);
     FFTShiftFilter->Update(&stream);
 
-The CUDA stream is assigned by simply passing the reference to the stream (&stream) to the FFTShift2DFilter:: Update function. The other filters work in the same way.
+The CUDA stream is assigned by simply passing the reference to the stream (&stream) to the FFTShift2DFilter::Update function. The other filters work in the same way.
 
 \section memory Host Memory Pointers
 
@@ -191,6 +191,10 @@ asynchronous memory transfer to and from the GPUs. Please see the [NVIDIA docume
 | mexMultiGPUBackProject       | Call the back projection function                                                  |
 | mexMultiGPUGetVolume         | Runs an inverse FFT to get the volume                                              |
 | mexMultiGPUReconstructVolume | Normalizes by the plane density and runs an inverse FFT to get the volume          |
+
+
+The mexCreateGridder creates an instance of the MultiGPUGridder class. The MultiGPUGridder class then creates an instance of the gpuGridder class with one gpuGridder object per GPU. Then in the mexMultiGPUForwardProject function for example, the MultiGPUGridder object simply iterates over the gpuGridder objects and calls the gpuGridder::ForwardProject function. See the figure below for a graphical representation of this.
+
 
 ![Multi_GPU_Gridder_Overview](./Images/Multi_GPU_Gridder_Overview.png)
 

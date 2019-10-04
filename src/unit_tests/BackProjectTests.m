@@ -1,176 +1,116 @@
 classdef BackProjectTests < matlab.unittest.TestCase
-    % SolverTest tests solutions to the forward project CUDA gridder
+    % SolverTest tests solutions to the back project CUDA gridder
+
 
     % Class variables
-    properties   
-
+    properties (TestParameter)  
         %Initialize parameters
-        nBatches = 2;
-        nGPUs = 1;
-        MaxGPUs = gpuDeviceCount;
         
-        nStreams = 64;
-        volSize = 128;
-        n1_axes = 50;
-        n2_axes = 50;
+        type = {'uint16'};
+        
+        % Parameters for running the CUDA kernels
+        GPU_Device = {...
+            3,...
+            [2,0], ...
+            [3,2,1,0]};
+        
+        nStreams = {1,64};
+        
+        % Parameters for creating the volume and coordinate axes
+        VolumeSize = {64};       
+        n1_axes = {1,2};
+        n2_axes = {50};
 
-        kernelHWidth = 2;
-        interpFactor = 2.0;
-        
-        origSize   = 128; 
-        volCenter  = 128/2  + 1;
-        origCenter = 128/2  + 1;
-        origHWidth = (128/2 + 1)- 1;
+    end    
+
+    methods (Test)
+        function testBackProjection_FFTOnGPU(testCase, GPU_Device, VolumeSize, nStreams, n1_axes, n2_axes)
+
+            % Create the fuzzy sphere volume
+            origSize=VolumeSize;
+            origCenter=origSize/2+1;
+            Volume = fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
+            
+            % Define the projection directions
+            coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
+
+            % Create the gridder object
+            RunFFTOnGPU = true;
+            interpFactor = 2;
+            gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes * n2_axes, interpFactor, RunFFTOnGPU);
+            
+            % Set the number of CUDA streams to use
+            gridder.nStreams = nStreams;
+            
+            % Set the GPU device to use
+            gridder.GPUs = int32(GPU_Device);
+            
+            % Set the volume
+            gridder.setVolume(Volume);
+
+            % Run the forward projection
+            images = gridder.forwardProject(coordAxes);                
+            
+            % Run the back projection
+            gridder.resetVolume();
+            gridder.backProject(gridder.Images, coordAxes)
+            
+            % Reconstruct the volume
+            reconstructVol = gridder.reconstructVol();
+            
+            % Create a ground truth by simply summing the MRI volume in the 3 directions
+            GT_Projection = squeeze(sum(Volume,3));     
+            
+            % Calculate the absolute mean difference between the ground truth and the projected images
+            Vol_Difference = abs(reconstructVol - Volume);
+            
+            % Verify that the projections are close to the ground truth
+            testCase.verifyLessThanOrEqual(max(Vol_Difference(:)), 1);
+
+        end
+
+       function testBackProjection_FFTOnCPU(testCase, GPU_Device, VolumeSize, nStreams, n1_axes, n2_axes)
+
+            % Create the fuzzy sphere volume
+            origSize=VolumeSize;
+            origCenter=origSize/2+1;
+            Volume = fuzzymask(origSize,3,origSize*.25,2,origCenter*[1 1 1]);
+            
+            % Define the projection directions
+            coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
+
+            % Create the gridder object
+            RunFFTOnGPU = false;
+            interpFactor = 2;
+            gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes * n2_axes, interpFactor, RunFFTOnGPU);
+            
+            % Set the number of CUDA streams to use
+            gridder.nStreams = nStreams;
+            
+            % Set the GPU device to use
+            gridder.GPUs = int32(GPU_Device);
+            
+            % Set the volume
+            gridder.setVolume(Volume);
+
+            % Run the forward projection
+            images = gridder.forwardProject(coordAxes);                
+            
+            % Run the back projection
+            gridder.resetVolume();
+            gridder.backProject(gridder.Images, coordAxes)
+            
+            % Reconstruct the volume
+            reconstructVol = gridder.reconstructVol();            
+
+            % Calculate the absolute mean difference between the ground truth and the projected images
+            Vol_Difference = abs(reconstructVol - Volume);
+            
+            % Verify that the projections are close to the ground truth
+            testCase.verifyLessThanOrEqual(max(Vol_Difference(:)), 1);
+
+        end
 
     end
     
-
-    methods (Test)
-        function testForwardProjection_1_GPU(testCase)
-
-            reset(gpuDevice())
-            
-            % Use the example matlab MRI image to take projections of
-            load mri;
-            img = squeeze(D);
-            img = imresize3(img,[testCase.volSize, testCase.volSize, testCase.volSize]);
-            vol = single(img);
-
-            % Define the projection directions           
-            coordAxes  = single([1 0 0 0 1 0 0 0 1]');
-            coordAxes  = [coordAxes create_uniform_axes(testCase.n1_axes, testCase.n2_axes,0,10)];
-            coordAxes  = coordAxes(:);
-            nCoordAxes = length(coordAxes)/9;
-
-            % MATLAB pre-processing to covert vol to CASVol
-            [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, testCase.interpFactor);
-
-            % Initialize the multi GPU gridder
-            obj = MultiGPUGridder_Matlab_Class();
-            obj.SetNumberBatches(testCase.nBatches);
-            obj.SetNumberGPUs(testCase.nGPUs);
-            obj.SetNumberStreams(testCase.nStreams);
-            obj.SetMaskRadius(single((size(vol,1) * testCase.interpFactor)/2 - 1)); 
-
-            obj.SetVolume(single(CASVol))
-
-            obj.SetAxes(coordAxes)
-
-            obj.SetImgSize(int32([size(vol,1) * testCase.interpFactor, size(vol,1) * testCase.interpFactor,nCoordAxes]))
-
-            % Run the forward projection kernel
-            obj.Forward_Project()
-
-            InterpCASImgs = obj.GetImgs();
-
-            imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); % Just use the first projection
-            
-
-            % Run the back projection kernel
-            disp("ResetVolume()...")
-            obj.ResetVolume()
-
-            disp("Back_Project()...")
-            obj.Back_Project()
-
-            disp("Get_Volume()...") % Get the volumes from all the GPUs added together
-            volCAS = obj.GetVolume();
-
-            % Get the density of inserted planes by backprojecting CASimages of values equal to one
-            disp("Get Plane Density()...")
-            interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
-            obj.ResetVolume();
-            obj.SetImages(interpImgs)
-            obj.Back_Project()
-            volWt = obj.GetVolume();
-
-            % Normalize the back projection result with the plane density
-            % Divide the previous volume with the plane density volume
-            volCAS=volCAS./(volWt+1e-6);
-
-            % Reconstruct the volume from CASVol
-            disp("volFromCAS()...")
-            volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,testCase.kernelHWidth);
-
-            % Free the memory 
-            obj.CUDA_Free('all')
-            clear obj
-            
-            testCase.verifyGreaterThanOrEqual(max(volReconstructed(:)), 0);
-
-        end
-
-        function testForwardProjection_Multi_GPU(testCase)
-            
-            reset(gpuDevice());
-
-            % Use the example matlab MRI image to take projections of
-            load mri;
-            img = squeeze(D);
-            img = imresize3(img,[testCase.volSize, testCase.volSize, testCase.volSize]);
-            vol = single(img);
-
-            % Define the projection directions           
-            coordAxes  = single([1 0 0 0 1 0 0 0 1]');
-            coordAxes  = [coordAxes create_uniform_axes(testCase.n1_axes, testCase.n2_axes,0,10)];
-            coordAxes  = coordAxes(:);
-            nCoordAxes = length(coordAxes)/9;
-
-            % MATLAB pre-processing to covert vol to CASVol
-            [CASVol, CASBox, origBox, interpBox, fftinfo] = Vol_Preprocessing(vol, testCase.interpFactor);
-
-
-            % Initialize the multi GPU gridder
-            obj = MultiGPUGridder_Matlab_Class();
-            obj.SetNumberBatches(testCase.nBatches);
-            obj.SetNumberGPUs(testCase.MaxGPUs);
-            obj.SetNumberStreams(testCase.nStreams);
-            obj.SetMaskRadius(single((size(vol,1) * testCase.interpFactor)/2 - 1)); 
-
-            obj.SetVolume(single(CASVol))
-
-            obj.SetAxes(coordAxes)
-
-            obj.SetImgSize(int32([size(vol,1) * testCase.interpFactor, size(vol,1) * testCase.interpFactor,nCoordAxes]))
-
-            % Run the forward projection kernel
-            obj.Forward_Project()
-
-            InterpCASImgs = obj.GetImgs();
-            imgs=imgsFromCASImgs(InterpCASImgs(:,:,1), interpBox, fftinfo); % Just use the first projection            
-
-            % Run the back projection kernel
-            disp("ResetVolume()...")
-            obj.ResetVolume()
-
-            disp("Back_Project()...")
-            obj.Back_Project()
-
-            disp("Get_Volume()...") % Get the volumes from all the GPUs added together
-            volCAS = obj.GetVolume();
-
-            % Get the density of inserted planes by backprojecting CASimages of values equal to one
-            disp("Get Plane Density()...")
-            interpImgs=ones([interpBox.size interpBox.size size(coordAxes,1)/9],'single');
-            obj.ResetVolume();
-            obj.SetImages(interpImgs)
-            obj.Back_Project()
-            volWt = obj.GetVolume();
-
-            % Normalize the back projection result with the plane density
-            % Divide the previous volume with the plane density volume
-            volCAS=volCAS./(volWt+1e-6);
-
-            % Reconstruct the volume from CASVol
-            disp("volFromCAS()...")
-            volReconstructed=volFromCAS(volCAS,CASBox,interpBox,origBox,testCase.kernelHWidth);
-
-            % Free the memory 
-            obj.CUDA_Free('all')
-            clear obj
-            
-            testCase.verifyGreaterThanOrEqual(max(volReconstructed(:)), 0);
-
-        end
-    end    
 end

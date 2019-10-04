@@ -19,8 +19,16 @@ FilterResults = runner.run(TestSuite.fromFile('FilterTests.m', 'ParameterPropert
 % Run the test suite on the forward projection
 ForwardProjectionResults = runner.run(TestSuite.fromFile('ForwardProjectTests.m', 'ParameterProperty', 'GPU_Device'));
 
+% Run the test suite on the back projection
+BackProjectionResults = runner.run(TestSuite.fromFile('BackProjectTests.m', 'ParameterProperty', 'GPU_Device'));
+
 % Display the results of the CUDA filters as a table
 table(FilterResults)
 
 % Display the results of the forward projection as a table
-table(ForwardProjectionResults )
+table(ForwardProjectionResults)
+
+% Display the results of the back projection as a table
+table(BackProjectionResults)
+
+

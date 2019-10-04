@@ -238,12 +238,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
+                
                 % Normalize by the plane density               
                 this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
 
-                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+                this.Volume = volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);            
+                
+                this.Volume = this.Volume  / single(this.VolumeSize * this.VolumeSize );
+                
             end
 
             Volume = single(this.Volume);         
