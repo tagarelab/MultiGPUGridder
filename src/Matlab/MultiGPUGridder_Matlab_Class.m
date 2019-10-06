@@ -5,7 +5,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = false;        
+        RunFFTOnGPU = true;        
         
         % Flag for status output to the console
         verbose = false;
@@ -13,7 +13,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0,1,2,3]);
+        GPUs = int32([0]);
         MaxAxesToAllocate;
         nStreams = 32;
         
@@ -43,9 +43,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % (3) interpFactor        
             
             % Add the paths of the compiled Mex files and the util folder relative to this file
-            mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
-            addpath(fullfile(mfilepath,'./utils'));
-            addpath(fullfile(mfilepath,'../../bin'));
+%             mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
+%             addpath(fullfile(mfilepath,'./utils'));
+%             addpath(fullfile(mfilepath,'../../bin'));
  
             
             this.VolumeSize = int32(varargin{1});

@@ -9,15 +9,16 @@ classdef ForwardProjectTests < matlab.unittest.TestCase
         
         % Parameters for running the CUDA kernels
         GPU_Device = {...
-            3,...
-            [2,0], ...
-            [3,2,1,0]};
+            0}
+%         3,...
+%             [2,0], ...
+%             [3,2,1,0]};
         
         nStreams = {1,32,64};
         
         % Parameters for creating the volume and coordinate axes
-        VolumeSize = {64,128,256};       
-        n1_axes = {1,10,100},
+        VolumeSize = {64};       
+        n1_axes = {10},
         n2_axes = {50};
 
     end

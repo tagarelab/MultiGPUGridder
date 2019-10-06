@@ -1,14 +1,14 @@
 #include "AbstractGridder.h"
 
 // Initialize static members
-HostMemory<float> *AbstractGridder::h_Volume;
-HostMemory<float> *AbstractGridder::h_CASVolume;
-HostMemory<float> *AbstractGridder::h_Imgs;
-HostMemory<float> *AbstractGridder::h_CASImgs;
-HostMemory<float> *AbstractGridder::h_CoordAxes;
-HostMemory<float> *AbstractGridder::h_KB_Table;
-HostMemory<float> *AbstractGridder::h_PlaneDensity;
-HostMemory<float> *AbstractGridder::h_KBPreComp;
+// HostMemory<float> *AbstractGridder::h_Volume;
+// HostMemory<float> *AbstractGridder::h_CASVolume;
+// HostMemory<float> *AbstractGridder::h_Imgs;
+// HostMemory<float> *AbstractGridder::h_CASImgs;
+// HostMemory<float> *AbstractGridder::h_CoordAxes;
+// HostMemory<float> *AbstractGridder::h_KB_Table;
+// HostMemory<float> *AbstractGridder::h_PlaneDensity;
+// HostMemory<float> *AbstractGridder::h_KBPreComp;
 
 AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
 {

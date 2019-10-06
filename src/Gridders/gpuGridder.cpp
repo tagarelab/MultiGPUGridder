@@ -343,6 +343,8 @@ void gpuGridder::InitilizeCUDAStreams()
 void gpuGridder::Allocate()
 {
     // Allocate the needed GPU memory
+    std::cout << "gpuGridder::Allocate()" << '\n';
+  std::cout << "this->h_Volume->GetSize(0): " << this->h_Volume->GetSize(0) << '\n';
 
     // Have the GPU arrays already been allocated?
     if (this->GPUArraysAllocatedFlag == false)

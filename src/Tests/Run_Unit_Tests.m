@@ -8,6 +8,10 @@ import matlab.unittest.plugins.TestRunProgressPlugin
 
 addpath(genpath('../Tests'))
 
+addpath(genpath('C:\GitRepositories\MultiGPUGridder\src\src\Matlab'))
+
+addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
+
 % Create the Matlab test suite object
 runner = TestRunner.withNoPlugins;
 p = TestRunProgressPlugin.withVerbosity(3);

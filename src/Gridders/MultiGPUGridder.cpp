@@ -81,9 +81,9 @@ MultiGPUGridder::CoordinateAxesPlan MultiGPUGridder::PlanCoordinateAxes()
                 std::cout << "GPU " << this->GPU_Devices[i] << " axes assigned: " << AxesPlan_obj.NumAxesPerGPU[i] << '\n';
             }
         }
-
-        return AxesPlan_obj;
     }
+
+    return AxesPlan_obj;
 }
 
 void MultiGPUGridder::ForwardProject()
@@ -99,21 +99,38 @@ void MultiGPUGridder::ForwardProject()
         std::cout << "MultiGPUGridder::ForwardProject()" << '\n';
     }
 
+    // HostMemory<float> * test = this->GetVolumeHostMemory();
+    std::cout << "this->h_Volume->GetSize(0): " << this->h_Volume->GetSize(0) << '\n';
+
     // Plan which GPU will process which coordinate axes
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
+
+    // Pass the host memory pointers to each of the gpu gridder objects
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
+        gpuGridder_vec[i]->h_Volume = this->h_Volume;
+        gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
+        gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
+        gpuGridder_vec[i]->h_KBPreComp = this->h_KBPreComp;
+        gpuGridder_vec[i]->h_CASVolume = this->h_CASVolume;
+        gpuGridder_vec[i]->h_CASImgs = this->h_CASImgs;
+        gpuGridder_vec[i]->h_PlaneDensity = this->h_PlaneDensity;
+    }
 
     // If this is the first time running allocate the needed GPU memory
     if (this->ProjectInitializedFlag == false)
     {
         for (int i = 0; i < Num_GPUs; i++)
         {
+            gpuGridder_vec[i]->h_Volume = this->h_Volume;
             gpuGridder_vec[i]->SetNumAxes(AxesPlan_obj.NumAxesPerGPU[i]);
             gpuGridder_vec[i]->Allocate();
         }
 
         this->ProjectInitializedFlag = true;
     }
-
+    
     // Update the mask radius parameter
     for (int i = 0; i < Num_GPUs; i++)
     {
@@ -148,6 +165,19 @@ void MultiGPUGridder::BackProject()
 
     // Plan which GPU will process which coordinate axes
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
+
+    // Pass the host memory pointers to each of the gpu gridder objects
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
+        gpuGridder_vec[i]->h_Volume = this->h_Volume;
+        gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
+        gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
+        gpuGridder_vec[i]->h_KBPreComp = this->h_KBPreComp;
+        gpuGridder_vec[i]->h_CASVolume = this->h_CASVolume;
+        gpuGridder_vec[i]->h_CASImgs = this->h_CASImgs;
+        gpuGridder_vec[i]->h_PlaneDensity = this->h_PlaneDensity;
+    }
 
     // If this is the first time running allocate the needed GPU memory
     if (this->ProjectInitializedFlag == false)
@@ -199,7 +229,7 @@ void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
                 // Can peer access be enabled?
                 int canAccessPeer;
                 cudaDeviceCanAccessPeer(&canAccessPeer, this->GPU_Devices[GPU_For_Reconstruction], this->GPU_Devices[i]);
-                
+
                 if (canAccessPeer == 1)
                 {
                     // The first GPU can now access GPU device number i
@@ -309,7 +339,7 @@ void MultiGPUGridder::ReconstructVolume()
 
 void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
 {
-    // Add the CASVolume from all the GPUs to the given GPU device
+    // Add the CASVolume from all the GPUs to the given GPU device (without needing to copy to host memory first)
     // This is needed for reconstructing the volume after back projection
 
     if (this->verbose == true)
@@ -343,15 +373,15 @@ void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
     delete AddFilter;
 
     // Copy the resulting array to the pinned host memory if the pointer exists
-    // if (this->h_CASVolume != NULL)
-    // {
-    //     gpuGridder_vec[GPU_Device]->CopyCASVolumeToHost();
-    // }
+    if (this->h_CASVolume != NULL)
+    {
+        gpuGridder_vec[GPU_For_Reconstruction]->CopyCASVolumeToHost();
+    }
 }
 
 void MultiGPUGridder::AddPlaneDensities(int GPU_For_Reconstruction)
 {
-    // Add the plane density from all the GPUs to the given GPU device
+    // Add the plane density from all the GPUs to the given GPU device (without needing to copy to host memory first)
     // This is needed for reconstructing the volume after back projection
 
     if (this->verbose == true)
@@ -385,10 +415,10 @@ void MultiGPUGridder::AddPlaneDensities(int GPU_For_Reconstruction)
     delete AddFilter;
 
     // Copy the resulting array to the pinned host memory if the pointer exists
-    // if (this->h_PlaneDensity != NULL)
-    // {
-    //     gpuGridder_vec[GPU_Device]->CopyPlaneDensityToHost();
-    // }
+    if (this->h_PlaneDensity != NULL)
+    {
+        gpuGridder_vec[GPU_For_Reconstruction]->CopyPlaneDensityToHost();
+    }
 }
 
 void MultiGPUGridder::GPU_Sync()
@@ -403,7 +433,7 @@ void MultiGPUGridder::GPU_Sync()
 
 void MultiGPUGridder::SumCASVolumes()
 {
-    // Get the CAS volume off each GPU and sum the arrays together
+    // Get the CAS volume off each GPU and sum the arrays together within host memory
     // This function is used to get the result after the back projection
 
     if (this->verbose == true)
@@ -443,7 +473,7 @@ void MultiGPUGridder::SumCASVolumes()
 
 void MultiGPUGridder::SumVolumes()
 {
-    // Get the volume off each GPU and sum the arrays together
+    // Get the volume off each GPU and sum the arrays together within host memory
 
     if (this->verbose == true)
     {
@@ -533,14 +563,6 @@ void MultiGPUGridder::FreeMemory()
 
         delete gpuGridder_vec[i];
     }
-
-    // Free all of the allocated CPU memory
-    // Let Matlab delete this instead for now
-    // delete this->Volume;
-    // delete this->CASVolume;
-    // delete this->imgs;
-    // delete this->CASimgs;
-    // delete this->coordAxes;
 }
 
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)

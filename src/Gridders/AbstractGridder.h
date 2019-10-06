@@ -106,24 +106,26 @@ public:
     /// Get the pointer to the volume.
     float *GetVolume() { return this->h_Volume->GetPointer(); };
 
+    HostMemory<float> *GetVolumeHostMemory() { return this->h_Volume; };
+
     /// Get the pointer to the CAS volume.
     float *GetCASVolume() { return this->h_CASVolume->GetPointer(); }
 
     /// Get the mask radius parameter.
     float GetMaskRadius() { return this->maskRadius; }
 
-protected:
     // Create one instance of the following arrays to shared between objects of type AbstractGridder (and child objects)
     // All of these are on the CPU
-    static HostMemory<float> *h_Imgs;
-    static HostMemory<float> *h_Volume;
-    static HostMemory<float> *h_CoordAxes;
-    static HostMemory<float> *h_KB_Table;
-    static HostMemory<float> *h_KBPreComp;    // Kaiser Bessel precompensation array (currently set using Matlab getPreComp())
-    static HostMemory<float> *h_CASVolume;    // Optional inputs
-    static HostMemory<float> *h_CASImgs;      // Optional inputs
-    static HostMemory<float> *h_PlaneDensity; // Optional inputs
+    HostMemory<float> *h_Imgs;
+    HostMemory<float> *h_Volume;
+    HostMemory<float> *h_CoordAxes;
+    HostMemory<float> *h_KB_Table;
+    HostMemory<float> *h_KBPreComp;    // Kaiser Bessel precompensation array (currently set using Matlab getPreComp())
+    HostMemory<float> *h_CASVolume;    // Optional inputs
+    HostMemory<float> *h_CASImgs;      // Optional inputs
+    HostMemory<float> *h_PlaneDensity; // Optional inputs
 
+protected:
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;
 

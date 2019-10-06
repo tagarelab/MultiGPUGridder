@@ -24,5 +24,63 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // Return a handle to a new C++ instance
     plhs[0] = convertPtr2Mat<MultiGPUGridder>(new MultiGPUGridder(*VolumeSize, *numCoordAxes, *interpFactor, Num_GPUs, GPU_Device, RunFFTOnDevice, verboseFlag));
-
 }
+
+// If we're on a Windows operating system including the following code
+// On Matlab in Windows, std::cout does not output to the Matlab console
+// So this class redirects the std::cout messages to mexPrintf
+#if defined(_MSC_VER)
+
+class mystream : public std::streambuf
+{
+protected:
+    virtual std::streamsize xsputn(const char *s, std::streamsize n)
+    {
+        mexPrintf("%.*s", n, s);
+        return n;
+    }
+    virtual int overflow(int c = EOF)
+    {
+        if (c != EOF)
+        {
+            mexPrintf("%.1s", &c);
+        }
+        return 1;
+    }
+};
+
+// Redirect the std::cout to the Matlab console
+class scoped_redirect_cout
+{
+public:
+    scoped_redirect_cout()
+    {
+        old_buf = std::cout.rdbuf();
+        std::cout.rdbuf(&mout);
+    }
+    ~scoped_redirect_cout() { std::cout.rdbuf(old_buf); }
+
+private:
+    mystream mout;
+    std::streambuf *old_buf;
+};
+static scoped_redirect_cout mycout_redirect;
+
+// Redirect the std::cerr to the Matlab console
+class scoped_redirect_cerr
+{
+public:
+    scoped_redirect_cerr()
+    {
+        old_buf = std::cerr.rdbuf();
+        std::cerr.rdbuf(&mout);
+    }
+    ~scoped_redirect_cerr() { std::cerr.rdbuf(old_buf); }
+
+private:
+    mystream mout;
+    std::streambuf *old_buf;
+};
+static scoped_redirect_cerr mycerr_redirect;
+
+#endif
