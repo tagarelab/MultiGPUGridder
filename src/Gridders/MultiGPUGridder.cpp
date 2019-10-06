@@ -99,9 +99,6 @@ void MultiGPUGridder::ForwardProject()
         std::cout << "MultiGPUGridder::ForwardProject()" << '\n';
     }
 
-    // HostMemory<float> * test = this->GetVolumeHostMemory();
-    std::cout << "this->h_Volume->GetSize(0): " << this->h_Volume->GetSize(0) << '\n';
-
     // Plan which GPU will process which coordinate axes
     CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
 
