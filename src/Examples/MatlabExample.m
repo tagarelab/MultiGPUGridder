@@ -5,14 +5,16 @@ clear all
 % Add the required Matlab file paths
 mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
 addpath(genpath(fullfile(mfilepath)));
-addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
-addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
+% addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
+% addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
+
+addpath(genpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj'))
 
 % Parameters for creating the volume and coordinate axes
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 50;
-n2_axes = 100;
+n1_axes = 500;
+n2_axes = 10;
 
 % Create the volume
 load mri;

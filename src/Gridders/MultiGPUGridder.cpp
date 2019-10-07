@@ -126,7 +126,7 @@ void MultiGPUGridder::ForwardProject()
 
         this->ProjectInitializedFlag = true;
     }
-    
+
     // Update the mask radius parameter
     for (int i = 0; i < Num_GPUs; i++)
     {

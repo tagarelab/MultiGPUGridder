@@ -9,8 +9,9 @@ import matlab.unittest.plugins.TestRunProgressPlugin
 addpath(genpath('../Tests'))
 
 addpath(genpath('C:\GitRepositories\MultiGPUGridder\src\src\Matlab'))
-
 addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
+
+addpath(genpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj'))
 
 % Create the Matlab test suite object
 runner = TestRunner.withNoPlugins;

@@ -241,7 +241,7 @@ public:
         return this->Allocated;
     }
 
-    /// Flag to determine whether the array was initilized already. AllocateArray() and CopyPointer() will both set this flag to true.
+    /// Flag to determine whether the array was Initialized already. AllocateArray() and CopyPointer() will both set this flag to true.
     bool IsInitialized()
     {
         return this->Initialized;

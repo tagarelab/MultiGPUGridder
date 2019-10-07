@@ -111,7 +111,7 @@ public:
     /// Get the mask radius parameter.
     float GetMaskRadius() { return this->maskRadius; }
 
-    // Create one instance of the following arrays to shared between objects of type AbstractGridder (and child objects)
+    // Create one instance of the following arrays
     // All of these are on the CPU
     HostMemory<float> *h_Imgs;
     HostMemory<float> *h_Volume;
