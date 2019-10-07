@@ -35,6 +35,9 @@ wrapper for calling all the functions from within Matlab or from within Python.
 
 ### Step 7: Optionally, run the units tests within Matlab and / or Python to check everything is functioning correctly.
 
+\section Video Tutorial
+
+[Please see the video tutorial for further details and examples of the software](https://youtu.be/gO2kiizHO4g)
 
 \section Example
 

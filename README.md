@@ -87,4 +87,4 @@ Here is a simple example on running the multi-GPU gridder from within Matlab:
 
 ## Video Tutorial
 
-[Please see the video tutorial for a detailed explanation and example of the software](https://youtu.be/a73PfdUAwIc)
+[Please see the video tutorial for a detailed explanation and example of the software](https://youtu.be/gO2kiizHO4g)
