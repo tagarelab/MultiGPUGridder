@@ -10,7 +10,6 @@ message(STATUS "C++11 support has been enabled by default.")
 option(WITH_MATLAB   "Compile the Matlab mex wrapper  (requires MATLAB)" TRUE)
 option(BUILD_TESTS   "Build Matlab tests  (requires MATLAB)" TRUE)
 
-
 # Create the project using C++ and CUDA
 project(MultiGPUGridder LANGUAGES CXX CUDA)
 
@@ -26,8 +25,6 @@ endif()
 
 include_directories(${CUDA_INCLUDE_DIRS})
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cupti_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_npp_LIBRARY} ${CUDA_nppc_LIBRARY} ${CUDA_nppi_LIBRARY} ${CUDA_npps_LIBRARY})
-
-
 
 # Create a variable with all the source file names
 set(SOURCE_Files 
@@ -87,6 +84,7 @@ if(NOT WIN32)
 
 	# Include all the header files from each sub folder
 	target_include_directories(MultiGPUGridder PUBLIC ${CMAKE_SOURCE_DIR}/Filters ${CMAKE_SOURCE_DIR}/Gridders ${CMAKE_SOURCE_DIR}/Projection ${CMAKE_SOURCE_DIR}/Structs ${CMAKE_SOURCE_DIR}/Mex)
+
 endif()
 
 if(WITH_MATLAB)

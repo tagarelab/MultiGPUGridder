@@ -90,8 +90,7 @@ void MultiGPUGridder::ForwardProject()
 {
     // Run the forward projection kernel on each gpuGridder object
     // Each GPU will process a subset of the coordinate axes
-    // Since the axes array is static all objects share the same variable
-    // So we just need to pass an offset (in number of coordinate axes) from the beginng
+    // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
     if (this->verbose == true)
@@ -151,8 +150,7 @@ void MultiGPUGridder::BackProject()
 {
     // Run the back projection kernel on each gpuGridder object
     // Each GPU will process a subset of the coordinate axes
-    // Since the axes array is static all objects share the same variable
-    // So we just need to pass an offset (in number of coordinate axes) from the beginng
+    // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
     if (this->verbose == true)

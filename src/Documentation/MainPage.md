@@ -122,10 +122,6 @@ Similarly to the memory transfers, we also use CUDA streams for calling the GPU 
 
 The CUDA stream is assigned by simply passing the reference to the stream (&stream) to the FFTShift2DFilter::Update function. The other filters work in the same way.
 
-\section memory Host Memory Pointers
-
-All gpuGridder objects should share the same host memory pointers. For example, the volume array should be assesible to all the gpuGridder objects. To simplify this, the AbstractGridder, the parent class of both the MultiGPUGridder and gpuGridder classes, has static members for each array of HostMemory class type.
-
 \section matlab_wrapper Matlab Wrapper - Memory Persistance
 
 First, we need to have the host memory persistant when going back to Matlab in order to only need to allocate both the host and device memory once.
