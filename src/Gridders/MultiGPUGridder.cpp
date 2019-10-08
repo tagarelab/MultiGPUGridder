@@ -242,6 +242,9 @@ void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
 
         this->PeerAccessEnabled = true;
     }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::CASVolumeToVolume()
@@ -277,6 +280,9 @@ void MultiGPUGridder::CASVolumeToVolume()
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
     }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::ReconstructVolume()

@@ -14,7 +14,7 @@ addpath(genpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj'))
 VolumeSize = 128;
 interpFactor = 2;
 n1_axes = 500;
-n2_axes = 10;
+n2_axes = 20;
 
 % Create the volume
 load mri;
