@@ -271,6 +271,10 @@ void MultiGPUGridder::CASVolumeToVolume()
         // Reconstruct the volume using the GPU_For_Reconstruction GPU
         gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
         gpuGridder_vec[GPU_For_Reconstruction]->CASVolumeToVolume();
+
+        // Synchronize all of the GPUs
+        GPU_Sync();
+
         gpuGridder_vec[GPU_For_Reconstruction]->CopyVolumeToHost();
     }
     else
@@ -324,6 +328,10 @@ void MultiGPUGridder::ReconstructVolume()
 
         // Reconstruct the volume using the GPU_For_Reconstruction GPU
         gpuGridder_vec[GPU_For_Reconstruction]->ReconstructVolume();
+
+        // Synchronize all of the GPUs
+        GPU_Sync();
+
         gpuGridder_vec[GPU_For_Reconstruction]->CopyVolumeToHost();
     }
     else
@@ -336,6 +344,9 @@ void MultiGPUGridder::ReconstructVolume()
         // Combine the plane density arrays from each GPU and copy back to the host
         SumPlaneDensity();
     }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)

@@ -13,8 +13,8 @@ addpath(genpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj'))
 % Parameters for creating the volume and coordinate axes
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 500;
-n2_axes = 20;
+n1_axes = 100;
+n2_axes = 100;
 
 % Create the volume
 load mri;
