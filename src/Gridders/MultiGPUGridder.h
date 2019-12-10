@@ -70,7 +70,11 @@ public:
 		this->Num_GPUs = Num_GPUs;
 
 		// Save the GPU device numbers
-		this->GPU_Devices = GPU_Devices;
+		this->GPU_Devices = new int[Num_GPUs];
+		for (int i = 0; i < Num_GPUs; i++)
+		{
+			this->GPU_Devices[i] = GPU_Devices[i];
+		}
 
 		// Set the flag to false
 		this->ProjectInitializedFlag = false;
@@ -153,7 +157,7 @@ private:
 
 	/// Allow the first GPU to access the memory of the other GPUs
 	/// This is needed for the reconstruct volume function
-	void EnablePeerAccess(int GPU_For_Reconstruction);
+	// void EnablePeerAccess(int GPU_For_Reconstruction);
 
 	bool PeerAccessEnabled;
 

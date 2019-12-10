@@ -34,6 +34,7 @@ public:
     {
         this->GPU_Device = GPU_Device;
         this->nStreams = nStreams;
+        this->nStreamsBP = 2;
         this->VolumeSize = VolumeSize;
         this->interpFactor = interpFactor;
         this->numCoordAxes = numCoordAxes;
@@ -133,6 +134,7 @@ private:
 
     int GPU_Device; // Which GPU to use?
     int nStreams;   // Streams to use on this GPU
+    int nStreamsBP; // Number of streams for the back projection operation
 
     int VolumeSize;
     float interpFactor;
@@ -150,6 +152,9 @@ private:
 
     // CUDA streams to use for forward / back projection
     cudaStream_t *streams;
+
+    // CUDA streams to use for back projection
+    cudaStream_t *BP_streams;
 
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;
@@ -195,7 +200,7 @@ private:
     cufftHandle inverseFFTImages;
 
     // Plan the pointer offset values for running the CUDA kernels
-    Offsets PlanOffsetValues(int coordAxesOffset, int nAxes);
+    Offsets PlanOffsetValues(int coordAxesOffset, int nAxes, int numStreams);
 
     // Convert CAS images to images using an inverse FFT
     void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);

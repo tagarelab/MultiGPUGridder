@@ -88,6 +88,17 @@ void gpuProjection::InitializeCUDAStreams()
     {
         gpuErrorCheck(cudaStreamCreate(&this->streams[i]));
     }
+
+    // Create the CUDA streams for the back projection
+    this->BP_streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreamsBP);
+
+    for (int i = 0; i < this->nStreamsBP; i++) // Loop through the streams
+    {
+        gpuErrorCheck(cudaStreamCreate(&this->BP_streams[i]));
+    }
+
+    
+
 }
 
 void gpuProjection::InitializeGPUArrays()
@@ -164,7 +175,7 @@ void gpuProjection::InitializeGPUArrays()
     delete[] axes_size;
 }
 
-gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int nAxes)
+gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int nAxes, int numStreams)
 {
     // Loop through all of the coordinate axes and calculate the corresponding pointer offset values
     // which are needed for running the CUDA kernels
@@ -201,12 +212,12 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
     if (nAxes <= this->MaxAxesToAllocate)
     {
         // The number of coordinate axes is less than or equal to the total number of axes to process
-        EstimatedNumAxesPerStream = ceil((double)nAxes / (double)this->nStreams);
+        EstimatedNumAxesPerStream = ceil((double)nAxes / (double)numStreams);
     }
     else
     {
         // Several batches will be needed so evenly split the MaxAxesToAllocate by the number of streams
-        EstimatedNumAxesPerStream = ceil((double)this->MaxAxesToAllocate / (double)this->nStreams);
+        EstimatedNumAxesPerStream = ceil((double)this->MaxAxesToAllocate / (double)numStreams);
     }
 
     if (this->verbose == true)
@@ -217,7 +228,7 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
 
     while (processed_nAxes < nAxes && batch < MaxBatches)
     {
-        for (int i = 0; i < this->nStreams; i++) // Loop through the streams
+        for (int i = 0; i < numStreams; i++) // Loop through the streams
         {
             // Make sure we have enough memory allocated to process this stream on the current batch
             if (numAxesGPU_Batch + EstimatedNumAxesPerStream > this->MaxAxesToAllocate)
@@ -472,7 +483,7 @@ void gpuProjection::CASVolumeToVolume()
     FFTShiftFilter->SetVolumeSize(CroppedCASVolumeSize);
     FFTShiftFilter->Update();
 
-    //  Plane and execute the inverse FFT on the 3D array
+    // Plane and execute the inverse FFT on the 3D array
     cufftHandle inverseFFTPlan;
     cufftPlan3d(&inverseFFTPlan, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, CUFFT_C2C);
     cufftExecC2C(inverseFFTPlan, (cufftComplex *)d_CASVolume_Cropped_Complex, (cufftComplex *)d_CASVolume_Cropped_Complex, CUFFT_INVERSE);
@@ -747,7 +758,7 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
     int CASVolSize = this->d_CASVolume->GetSize(0);
 
     // Plan the pointer offset values
-    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
+    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreams);
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
@@ -868,7 +879,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     int CASVolSize = this->d_CASVolume->GetSize(0);
 
     // Plan the pointer offset values
-    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
+    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreamsBP);
 
     // Reset the CAS volume on the device to all zeros before the back projection
     this->d_Imgs->Reset();
@@ -1000,7 +1011,7 @@ void gpuProjection::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
     int CASVolSize = this->d_CASVolume->GetSize(0);
 
     // Plan the pointer offset values
-    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
+    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreamsBP);
 
     // Reset the CAS volume on the device to all zeros before the back projection
     this->d_Imgs->Reset();

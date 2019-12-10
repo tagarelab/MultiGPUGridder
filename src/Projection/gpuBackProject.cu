@@ -36,7 +36,7 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *img, int im
 	vj = blockDim.y * blockIdx.y + threadIdx.y;
 	vk = blockDim.z * blockIdx.z + threadIdx.z;
 
-	// Are we inside the volume bounds?
+	// Are we outside the volume bounds?
 	if (vi < 0 || vi >= volSize || vj < 0 || vj >= volSize || vk < 0 || vk >= volSize)
 	{
 		return;
@@ -127,8 +127,14 @@ void gpuBackProject::RunKernel(
 {
 
 	// Define CUDA kernel dimensions
-	int GridSize = ceil(CASVolSize / 4);
 	int BlockSize = 4;
+	int GridSize = ceil((double)CASVolSize / (double)BlockSize);
+
+	// std::cout << " " << '\n';
+	// std::cout << "Back Project: " << '\n';
+	// std::cout << "CASVolSize: " << CASVolSize << '\n';
+	// std::cout << "GridSize: " << GridSize << '\n';
+	// std::cout << "BlockSize: " << BlockSize << '\n';
 
 	// Define CUDA kernel dimensions
 	dim3 dimGrid(GridSize, GridSize, GridSize);

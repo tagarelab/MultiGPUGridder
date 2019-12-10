@@ -24,7 +24,6 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
     int kerIndex;
 
     __shared__ float locKer[1000];
-    // __shared__ float locKer[501];
 
     if (threadIdx.x == 0)
     {
@@ -116,6 +115,11 @@ void gpuForwardProject::RunKernel(
     // Define CUDA kernel dimensions
     dim3 dimGrid(GridSize, GridSize, 1);
     dim3 dimBlock(BlockSize, BlockSize, 1);
+
+    // std::cout << " " << '\n';
+    // std::cout << "Forward Project: " << '\n';
+    // std::cout << "GridSize: " << GridSize << '\n';
+    // std::cout << "BlockSize: " << BlockSize << '\n';
 
     // Run the forward projection kernel
     if (stream != NULL)

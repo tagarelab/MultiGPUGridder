@@ -186,7 +186,14 @@ public:
     {
         if (this->IsAllocated() == true || this->IsInitialized() == true)
         {
-            cudaHostRegister(this->ptr, this->bytes(), 0);
+            // Check that the memory is not already registered by checking the cuda pointer attributes
+            // This will return cudaErrorInvalidValue if the pointer is not yet pinned
+            cudaPointerAttributes ptr_attr;
+            if (cudaPointerGetAttributes(&ptr_attr, this->ptr) == cudaErrorInvalidValue)
+            {
+                cudaGetLastError(); // Clear out the previous API error from the above cudaPointerGetAttributes()
+                cudaHostRegister(this->ptr, this->bytes(), cudaHostRegisterPortable);
+            }
         }
         else
         {

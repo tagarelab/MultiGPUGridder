@@ -15,7 +15,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         NumAxes;
         GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 64;
+        nStreams = 128; % For the forward projection
         
         % Single type variables        
         interpFactor;

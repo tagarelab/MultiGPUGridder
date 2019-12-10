@@ -11,121 +11,46 @@ addpath(genpath('/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj/'))
 VolumeSize = 128;
 interpFactor = 2;
 
-n1_axes = [1 10 50 100];
+n1_axes = [1 10 50 100 280];
 n2_axes = 100;
-
-
-
-% 
-% 
-% 
-% 
-%     % Parameters for creating the volume and coordinate axes
-%     VolumeSize = 128;
-%     interpFactor = 2;
-%     n1_axes = [1 10 50 100];
-%     n2_axes = 100;
-% 
-%     iter = 1;
-%         
-%     for i=1:length(n1_axes)
-%         
-%         % Create the volume
-%         load mri;
-%         MRI_volume = squeeze(D);
-%         MRI_volume = imresize3(MRI_volume,[VolumeSize, VolumeSize, VolumeSize]);
-%         
-%         % Define the projection directions
-%         coordAxes = create_uniform_axes(n1_axes(i),n2_axes,0,10);              
-%         
-%         % Run on the CPU
-%         M = size(MRI_volume, 3);
-%         rMax = floor(M/2-2);
-%         num_projdir = n1_axes(i) * n2_axes;
-%         
-%         tic
-%         CPU_Forward_Project = mex_forward_project(double(MRI_volume), M, coordAxes, num_projdir, rMax);
-%         time(iter,1) = toc;
-%         
-%         tic
-%         BackProjected_Volume = mex_back_project(double(CPU_Forward_Project), M, coordAxes, num_projdir, rMax);
-%         time(iter,2) = toc;       
-%         
-%         
-%         % Create the gridder object
-%         delete gridder
-%         
-%         gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes(i) * n2_axes, interpFactor);
-%         
-%         % Set the volume
-%         gridder.setVolume(MRI_volume);
-%         
-%         % Allocate the memory
-%         images = gridder.forwardProject(coordAxes);
-%         
-%         
-%         % Run the forward projection
-%         tic
-%         images = gridder.forwardProject(coordAxes);
-%         time(iter,3) = toc;
-%         
-%         % Run the back projection
-%         gridder.resetVolume();
-%         tic
-%         gridder.backProject(gridder.Images, coordAxes)
-%         time(iter,4) = toc;
-%         
-%         iter = iter + 1;
-%         
-%         delete gridder
-%         
-%         
-%     end
-% 
-% 
-% 
-% 
-% 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% return
-%%
-
-nStreams = 32%:5:20
+nStreams = 128;%[2:256]
 
 
 RunFFTOnGPU = true;
 times = [];
 for i = 1:length(n1_axes)
-%     for NumGPUs = 0:1
         [n1_axes(i)*n2_axes]
         new_time = MultiGridderTimingTest(VolumeSize, n1_axes(i), n2_axes, interpFactor, RunFFTOnGPU, nStreams);
         times = [times; new_time] 
-%     end
 end
 
+
+%%
+figure('Color', [1 1 1])
+% Forward Projection times
+plot(n1_axes*n2_axes, times(:,1), 'r*--')
+hold on
+
+plot(n1_axes*n2_axes, times(:,2), 'b*--')
+legend("Forward Projection", "Back Projection")
+
+return
+
+%%
+figure('Color', [1 1 1])
 % Forward Projection times
 plot(nStreams, times(:,1), 'r*--')
 hold on
 
 % Back Projection times
-plot(nStreams, times(:,2), 'b*--')
+% plot(nStreams, times(:,2), 'b*--')
 legend("Forward Projection", "Back Projection")
+xlabel("Number of CUDA Streams")
+ylabel("Computation Time (seconds)")
+title("Volume size = 128, 10K projections, Computation Time vs. nStreams")
 
+set(gca,'FontSize', 18)
+axis square
 %%
 
 
