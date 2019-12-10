@@ -5,17 +5,17 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = false;        
+        RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verbose = true;
+        verbose = false;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
         GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 2;
+        nStreams = 64;
         
         % Single type variables        
         interpFactor;
@@ -53,12 +53,24 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.interpFactor = single(varargin{3});                                  
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
             
-            if (length(varargin) == 4)
+            if (length(varargin) >= 4)
                 this.RunFFTOnGPU = varargin{4};
             end
 
+%             if (length(varargin) >= 5)
+%                 if varargin{5} == 1
+%                     this.GPUs = int32([0]);
+%                 elseif varargin{5} == 2
+%                     this.GPUs = int32([0,1]);
+%                 elseif varargin{5} == 3
+%                     this.GPUs = int32([0,1,2]);
+%                 elseif varargin{5} == 4
+%                     this.GPUs = int32([0,1,2,3]);
+%                 end
+%             end
+%             
             
-            gridder_Varargin = [];
+            gridder_Varargin = cell(7,1);
             gridder_Varargin{1} = int32(varargin{1});
             gridder_Varargin{2} = int32(varargin{2});
             gridder_Varargin{3} = single(varargin{3});
@@ -204,7 +216,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,:) = single(varargin{1});
+                this.Images(:,:,:) = single(varargin{1});            
                 
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
@@ -215,10 +227,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
                 % A new set of coordinate axes to use with the back projection was passed
                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-                this.coordAxes(:) = tempAxes(:);
+                if ~isempty(this.coordAxes)
+                    this.coordAxes(:) = tempAxes(:);
+                else
+                    this.coordAxes = tempAxes(:);
+                end
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed
+            this.Set();
+            this.Set();
             mexMultiGPUBackProject(this.objectHandle);
             
         end   

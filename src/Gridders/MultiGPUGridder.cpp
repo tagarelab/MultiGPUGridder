@@ -256,6 +256,9 @@ void MultiGPUGridder::CASVolumeToVolume()
         std::cout << "MultiGPUGridder::CASVolumeToVolume()" << '\n';
     }
 
+    // Synchronize all of the GPUs
+    GPU_Sync();
+
     if (this->RunFFTOnDevice == 1)
     {
         // We have to combine the output from each GPU in the frequency domain and not spatial domain
@@ -293,6 +296,9 @@ void MultiGPUGridder::ReconstructVolume()
 {
     // First calculate the plane density on each GPU
     // Then combine the CASVolume and plane density arrays and convert to volume
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 
     if (this->verbose == true)
     {
@@ -338,8 +344,14 @@ void MultiGPUGridder::ReconstructVolume()
     {
         // We're not running the FFT on the GPU so send the need arrays back to the CPU memory
 
+        // Synchronize all of the GPUs
+        GPU_Sync();
+
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
+
+        // Synchronize all of the GPUs
+        GPU_Sync();
 
         // Combine the plane density arrays from each GPU and copy back to the host
         SumPlaneDensity();
@@ -481,6 +493,9 @@ void MultiGPUGridder::SumCASVolumes()
 
     // Release the temporary memory
     delete[] SummedVolume;
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::SumVolumes()

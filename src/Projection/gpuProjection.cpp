@@ -746,8 +746,6 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int CASVolSize = this->d_CASVolume->GetSize(0);
 
-    std::cout << "CASVolSize: " << CASVolSize << '\n';
-
     // Plan the pointer offset values
     gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess);
 
