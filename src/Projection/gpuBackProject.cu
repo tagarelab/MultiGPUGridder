@@ -132,19 +132,12 @@ void gpuBackProject::RunKernel(
 	// int GridSize = ceil((double)CASVolSize / (double)BlockSize);
 
 	int VolSize = (CASVolSize - extraPadding * 2) / 2;
-	int BlockSize = 8;
+	int BlockSize = 4;
 	int GridSize = ceil((double)VolSize / (double)BlockSize);
 
 	// VolumeOffset is the amount to add to the x,y,z to get the first voxel in the unpadded volume
     // i.e. there is not value in iterating over voxels which will always be zero
 	int VolumeOffset = (CASVolSize - VolSize) / 2;
-
-	std::cout << " " << '\n';
-	std::cout << "Back Project: " << '\n';
-	// std::cout << "VolSize: " << VolSize << '\n';
-	std::cout << "CASVolSize: " << CASVolSize << '\n';
-	std::cout << "GridSize: " << GridSize << '\n';
-	std::cout << "BlockSize: " << BlockSize << '\n';
 
 	// Define CUDA kernel dimensions
 	dim3 dimGrid(GridSize, GridSize, GridSize);

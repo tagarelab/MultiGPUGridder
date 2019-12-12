@@ -38,7 +38,7 @@ images = gridder.forwardProject(coordAxes);
 tic
 images = gridder.forwardProject(coordAxes);    
 disp("Forward Project: " + toc + " seconds")
-% easyMontage(images, 1)
+easyMontage(images(:,:,1:100), 1)
 
 % Run the back projection
 gridder.resetVolume();
@@ -56,10 +56,10 @@ disp("Get volume: " + toc + " seconds")
 easyMontage(vol, 2)
 
 % Reconstruct the volume
-% tic
-% reconstructVol = gridder.reconstructVol();
-% disp("Reconstruct Volume: " + toc + " seconds")
-% easyMontage(reconstructVol, 3)
+tic
+reconstructVol = gridder.reconstructVol();
+disp("Reconstruct Volume: " + toc + " seconds")
+easyMontage(reconstructVol, 3)
 
 disp("Total time: " + toc(start))
 % quit
