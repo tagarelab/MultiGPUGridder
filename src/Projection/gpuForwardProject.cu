@@ -2,10 +2,10 @@
 #include <math.h> /* round, floor, ceil, trunc */
 
 __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *img, int imgSize, float *axes, int nAxes, float maskRadius,
-                                        float *ker, int kerSize, float kerHWidth)
+                                        float *ker, int kerSize, float kerHWidth, int ImageOffset)
 {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x + ImageOffset;
+    int j = blockIdx.y * blockDim.y + threadIdx.y + ImageOffset;
     int volCenter = volSize / 2;
     int imgCenter = imgSize / 2;
     float f_vol_i, f_vol_j, f_vol_k;
@@ -24,7 +24,6 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
     int kerIndex;
 
     __shared__ float locKer[1000];
-    // __shared__ float locKer[501];
 
     if (threadIdx.x == 0)
     {
@@ -104,14 +103,23 @@ void gpuForwardProject::RunKernel(
     float *d_CoordAxes,
     float kerHWidth,
     int nAxes,
-    int GridSize,
-    int BlockSize,
     int CASVolSize,
     int CASImgSize,
+    int extraPadding,
     int maskRadius,
     int KB_Table_Size,
     cudaStream_t *stream)
 {
+
+    // Calculate the block size for running the CUDA kernels
+    // NOTE: gridSize times blockSize needs to equal CASimgSize
+	int ImgSize = (CASImgSize - extraPadding * 2) / 2;
+    int GridSize = 32; 
+    int BlockSize = ceil(((double)ImgSize) / (double)GridSize);
+
+	// ImageOffset is the amount to add to the x,y to get the first voxel in the unpadded volume
+    // i.e. there is no value in iterating over voxels which will always be zero
+	int ImageOffset = (CASImgSize - ImgSize) / 2;
 
     // Define CUDA kernel dimensions
     dim3 dimGrid(GridSize, GridSize, 1);
@@ -122,13 +130,13 @@ void gpuForwardProject::RunKernel(
     {
         gpuForwardProjectKernel<<<dimGrid, dimBlock, 0, *stream>>>(
             d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
-            nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
+            nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth, ImageOffset);
     }
     else
     {
         gpuForwardProjectKernel<<<dimGrid, dimBlock>>>(
             d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
-            nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
+            nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth, ImageOffset);
     }
 
     gpuErrorCheck(cudaPeekAtLastError());

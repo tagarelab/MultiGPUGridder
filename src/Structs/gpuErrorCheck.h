@@ -7,5 +7,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    if (code != cudaSuccess) 
    {
       std::cerr << "CUDA Error: " << cudaGetErrorString(code) << " in file " << file << " on line " << line << '\n';
+      
+      cudaGetLastError(); // clear out the previous API error
    }
 }

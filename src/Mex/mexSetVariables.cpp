@@ -56,10 +56,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         MultiGPUGridderObj->SetMaxAxesToAllocate((int)mxGetScalar(prhs[2]));
     }
 
-    // Set the number of CUDA streams to use with each GPU
-    if (!strcmp("SetNumberStreams", cmd))
+    // Set the number of CUDA streams to use with each GPU for the forward projection
+    if (!strcmp("SetNumberStreamsFP", cmd))
     {
-        MultiGPUGridderObj->SetNumStreams((int)mxGetScalar(prhs[2]));
+        MultiGPUGridderObj->SetNumStreamsFP((int)mxGetScalar(prhs[2]));
+    }
+
+    // Set the number of CUDA streams to use with each GPU for the back projection
+    if (!strcmp("SetNumberStreamsBP", cmd))
+    {
+        MultiGPUGridderObj->SetNumStreamsBP((int)mxGetScalar(prhs[2]));
     }
 
     // Set the pointer to the output images

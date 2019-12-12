@@ -13,9 +13,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0]);
+        GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 32;
+        nStreamsFP = 6; % For the forward projection
+        nStreamsBP = 6; % For the back projection
         
         % Single type variables        
         interpFactor;
@@ -53,12 +54,24 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.interpFactor = single(varargin{3});                                  
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
             
-            if (length(varargin) == 4)
+            if (length(varargin) >= 4)
                 this.RunFFTOnGPU = varargin{4};
             end
 
+%             if (length(varargin) >= 5)
+%                 if varargin{5} == 1
+%                     this.GPUs = int32([0]);
+%                 elseif varargin{5} == 2
+%                     this.GPUs = int32([0,1]);
+%                 elseif varargin{5} == 3
+%                     this.GPUs = int32([0,1,2]);
+%                 elseif varargin{5} == 4
+%                     this.GPUs = int32([0,1,2,3]);
+%                 end
+%             end
+%             
             
-            gridder_Varargin = [];
+            gridder_Varargin = cell(7,1);
             gridder_Varargin{1} = int32(varargin{1});
             gridder_Varargin{2} = int32(varargin{2});
             gridder_Varargin{3} = single(varargin{3});
@@ -71,7 +84,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the gridder instance
             this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
                        
-            % Initilize the output projection images array
+            % Initialize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
             this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
             
@@ -115,7 +128,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function Set(this)
             
             if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.Images) ...
-                || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreams))
+                || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreamsFP) || isempty(this.nStreamsBP))
                 error("Error: Required array is missing in Set() function.")             
             end                    
             
@@ -124,7 +137,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
             [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
-            [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams));             
+            [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsFP', this.objectHandle, int32(this.nStreamsFP));             
+            [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsBP', this.objectHandle, int32(this.nStreamsBP));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
           
@@ -204,7 +218,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,:) = single(varargin{1});
+                this.Images(:,:,:) = single(varargin{1});            
                 
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
@@ -215,10 +229,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
                 % A new set of coordinate axes to use with the back projection was passed
                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-                this.coordAxes(:) = tempAxes(:);
+                if ~isempty(this.coordAxes)
+                    this.coordAxes(:) = tempAxes(:);
+                else
+                    this.coordAxes = tempAxes(:);
+                end
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed
+            this.Set();
+            this.Set();
             mexMultiGPUBackProject(this.objectHandle);
             
         end   

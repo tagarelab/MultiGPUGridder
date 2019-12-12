@@ -16,12 +16,21 @@
 #pragma warning Unknown dynamic link import / export semantics.
 #endif
 
-void MultiGPUGridder::SetNumStreams(int nStreams)
+void MultiGPUGridder::SetNumStreamsFP(int nStreamsFP)
 {
-    // Set the number of CUDA streams to use with each GPU
+    // Set the number of CUDA streams to use with each GPU for the forward projection
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->SetNumStreams(nStreams);
+        gpuGridder_vec[i]->SetNumStreamsFP(nStreamsFP);
+    }
+}
+
+void MultiGPUGridder::SetNumStreamsBP(int nStreamsBP)
+{
+    // Set the number of CUDA streams to use with each GPU for the back projection
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->SetNumStreamsBP(nStreamsBP);
     }
 }
 
@@ -93,6 +102,11 @@ void MultiGPUGridder::ForwardProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
+    // Create an array of CPU threads with one CPU thread for each GPU
+    // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
+    // Such as cudaMalloc or cudaDeviceSynchronize
+    std::thread *CPUThreads = new std::thread[Num_GPUs];
+
     if (this->verbose == true)
     {
         std::cout << "MultiGPUGridder::ForwardProject()" << '\n';
@@ -126,7 +140,7 @@ void MultiGPUGridder::ForwardProject()
 
         this->ProjectInitializedFlag = true;
     }
-    
+
     // Update the mask radius parameter
     for (int i = 0; i < Num_GPUs; i++)
     {
@@ -139,7 +153,16 @@ void MultiGPUGridder::ForwardProject()
     for (int i = 0; i < Num_GPUs; i++)
     {
         // Single thread version: gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+
+        // Multi thread version
+        CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+    }
+
+    // Join CPU threads together
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs
@@ -152,6 +175,11 @@ void MultiGPUGridder::BackProject()
     // Each GPU will process a subset of the coordinate axes
     // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
+
+    // Create an array of CPU threads with one CPU thread for each GPU
+    // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
+    // Such as cudaMalloc or cudaDeviceSynchronize
+    std::thread *CPUThreads = new std::thread[Num_GPUs];
 
     if (this->verbose == true)
     {
@@ -196,52 +224,21 @@ void MultiGPUGridder::BackProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // Single thread version
+        // gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+
+        // Multi thread version
+        CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+    }
+
+    // Join CPU threads together
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs
     GPU_Sync();
-}
-
-void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
-{
-    // Allow the first GPU to access the memory of the other GPUs
-    // This is needed for the reconstruct volume function
-
-    if (this->verbose == true)
-    {
-        std::cout << "MultiGPUGridder::EnablePeerAccess()" << '\n';
-        std::cout << "GPU_For_Reconstruction: " << this->GPU_Devices[GPU_For_Reconstruction] << '\n';
-    }
-
-    if (this->PeerAccessEnabled == false)
-    {
-        gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
-        for (int i = 0; i < this->Num_GPUs; i++)
-        {
-            if (i != GPU_For_Reconstruction)
-            {
-                // Can peer access be enabled?
-                int canAccessPeer;
-                cudaDeviceCanAccessPeer(&canAccessPeer, this->GPU_Devices[GPU_For_Reconstruction], this->GPU_Devices[i]);
-
-                if (canAccessPeer == 1)
-                {
-                    // The first GPU can now access GPU device number i
-                    gpuErrorCheck(cudaDeviceEnablePeerAccess(this->GPU_Devices[i], 0));
-                }
-                else
-                {
-                    std::cerr << "The GPUs appear to not support peer access for sharing memory. \
-                    ReconstructVolume() and CASVolumeToVolume() cannot run without this ability.Please try \
-                    reconstructing on the CPU instead of the GPU."
-                              << '\n';
-                }
-            }
-        }
-
-        this->PeerAccessEnabled = true;
-    }
 }
 
 void MultiGPUGridder::CASVolumeToVolume()
@@ -253,22 +250,33 @@ void MultiGPUGridder::CASVolumeToVolume()
         std::cout << "MultiGPUGridder::CASVolumeToVolume()" << '\n';
     }
 
+    // Synchronize all of the GPUs
+    GPU_Sync();
+
     if (this->RunFFTOnDevice == 1)
     {
         // We have to combine the output from each GPU in the frequency domain and not spatial domain
-        int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
+        // int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
 
         // Allow the first GPU to access the memory of the other GPUs
         // This is needed for the reconstruct volume function
-        EnablePeerAccess(GPU_For_Reconstruction);
+        // EnablePeerAccess(GPU_For_Reconstruction);
 
         // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
-        AddCASVolumes(GPU_For_Reconstruction);
+        // AddCASVolumes(GPU_For_Reconstruction);
 
-        // Reconstruct the volume using the GPU_For_Reconstruction GPU
-        gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
-        gpuGridder_vec[GPU_For_Reconstruction]->CASVolumeToVolume();
-        gpuGridder_vec[GPU_For_Reconstruction]->CopyVolumeToHost();
+        for (int i = 0; i < this->Num_GPUs; i++)
+        {
+            // Reconstruct the volume on each GPU
+            gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
+            gpuGridder_vec[i]->CASVolumeToVolume();
+        }
+
+        // Synchronize all of the GPUs
+        GPU_Sync();
+
+        // Combine the volume arrays from each GPU and copy back to the host
+        SumVolumes();
     }
     else
     {
@@ -277,12 +285,23 @@ void MultiGPUGridder::CASVolumeToVolume()
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
     }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::ReconstructVolume()
 {
     // First calculate the plane density on each GPU
     // Then combine the CASVolume and plane density arrays and convert to volume
+
+    // Create an array of CPU threads with one CPU thread for each GPU
+    // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
+    // Such as cudaMalloc or cudaDeviceSynchronize
+    std::thread *CPUThreads = new std::thread[Num_GPUs];
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 
     if (this->verbose == true)
     {
@@ -295,7 +314,16 @@ void MultiGPUGridder::ReconstructVolume()
     for (int i = 0; i < this->Num_GPUs; i++)
     {
         // Calculate the plane densities on each GPU
-        gpuGridder_vec[i]->CalculatePlaneDensity(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        // gpuGridder_vec[i]->CalculatePlaneDensity(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+
+        // Multi thread version
+        CPUThreads[i] = std::thread(&gpuGridder::CalculatePlaneDensity, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+    }
+
+    // Join CPU threads together
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        CPUThreads[i].join();
     }
 
     // Synchronize all of the GPUs
@@ -303,33 +331,38 @@ void MultiGPUGridder::ReconstructVolume()
 
     if (this->RunFFTOnDevice == 1)
     {
-        // We have to combine the output from each GPU in the frequency domain and not spatial domain
-        int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
+        for (int i = 0; i < this->Num_GPUs; i++)
+        {
+            // Reconstruct the volume on each GPU
+            gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
+            gpuGridder_vec[i]->ReconstructVolume();
+        }
 
-        // Allow the first GPU to access the memory of the other GPUs
-        // This is needed for the reconstruct volume function
-        EnablePeerAccess(GPU_For_Reconstruction);
-
-        // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
-        AddCASVolumes(GPU_For_Reconstruction);
-
-        // Add the plane densities from all the GPUs to the first GPU (for reconstructing the volume)
-        AddPlaneDensities(GPU_For_Reconstruction);
-
-        // Reconstruct the volume using the GPU_For_Reconstruction GPU
-        gpuGridder_vec[GPU_For_Reconstruction]->ReconstructVolume();
-        gpuGridder_vec[GPU_For_Reconstruction]->CopyVolumeToHost();
+        // Synchronize all of the GPUs
+        GPU_Sync();
+        
+        // Sum the reconstructed volumes on the CPU
+        SumVolumes();
     }
     else
     {
         // We're not running the FFT on the GPU so send the need arrays back to the CPU memory
 
+        // Synchronize all of the GPUs
+        GPU_Sync();
+
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
+
+        // Synchronize all of the GPUs
+        GPU_Sync();
 
         // Combine the plane density arrays from each GPU and copy back to the host
         SumPlaneDensity();
     }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
@@ -464,6 +497,9 @@ void MultiGPUGridder::SumCASVolumes()
 
     // Release the temporary memory
     delete[] SummedVolume;
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 }
 
 void MultiGPUGridder::SumVolumes()
@@ -480,7 +516,7 @@ void MultiGPUGridder::SumVolumes()
 
     for (int i = 0; i < this->h_Volume->length(); i++)
     {
-        SummedVolume[i] = 0; // TO DO: replace with memset
+        SummedVolume[i] = 0; // TO DO: Consider replacing with memset
     }
 
     for (int i = 0; i < Num_GPUs; i++)
