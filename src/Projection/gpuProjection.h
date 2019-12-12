@@ -110,7 +110,7 @@ protected:
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);
 
     /// Convert projection images to CAS images by running a forward FFT
-    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
+    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs);
 
 private:
     /// A structure for holding all of the pointer offset values when running the forward and back projection kernels.
@@ -176,8 +176,8 @@ private:
     HostMemory<float> *h_PlaneDensity; // Optional inputs
 
     // Initialize pointers for the allocated GPU memory
-    DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
-    DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
+    // DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
+    // DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
     DeviceMemory<float> *d_CASVolume;
     DeviceMemory<float> *d_PaddedVolume;
     DeviceMemory<float> *d_CASImgs;
@@ -203,7 +203,7 @@ private:
     Offsets PlanOffsetValues(int coordAxesOffset, int nAxes, int numStreams);
 
     // Convert CAS images to images using an inverse FFT
-    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, cufftComplex *CASImgsComplex, int numImgs);
+    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs);
 
     // Should we print status information to the console?
     bool verbose;
