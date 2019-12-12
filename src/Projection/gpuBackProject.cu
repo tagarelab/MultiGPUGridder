@@ -3,7 +3,7 @@
 
 __global__ void gpuBackProjectKernel(float *vol, int volSize, float *img, int imgSize,
 									 float *axes, int nAxes, float maskRadius,
-									 const float *ker, int kerSize, float kerHWidth)
+									 const float *ker, int kerSize, float kerHWidth, int VolumeOffset)
 
 {
 	float *img_ptr;
@@ -32,9 +32,9 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *img, int im
 	__syncthreads();
 
 	/* Get the volume indices */
-	vi = blockDim.x * blockIdx.x + threadIdx.x;
-	vj = blockDim.y * blockIdx.y + threadIdx.y;
-	vk = blockDim.z * blockIdx.z + threadIdx.z;
+	vi = blockDim.x * blockIdx.x + threadIdx.x + VolumeOffset;
+	vj = blockDim.y * blockIdx.y + threadIdx.y + VolumeOffset;
+	vk = blockDim.z * blockIdx.z + threadIdx.z + VolumeOffset;
 
 	// Are we outside the volume bounds?
 	if (vi < 0 || vi >= volSize || vj < 0 || vj >= volSize || vk < 0 || vk >= volSize)
@@ -123,18 +123,28 @@ void gpuBackProject::RunKernel(
 	int CASImgSize,
 	int maskRadius,
 	int KB_Table_Size,
+	int extraPadding,
 	cudaStream_t *stream)
 {
 
 	// Define CUDA kernel dimensions
-	int BlockSize = 4;
-	int GridSize = ceil((double)CASVolSize / (double)BlockSize);
+	// int BlockSize = 8;
+	// int GridSize = ceil((double)CASVolSize / (double)BlockSize);
 
-	// std::cout << " " << '\n';
-	// std::cout << "Back Project: " << '\n';
-	// std::cout << "CASVolSize: " << CASVolSize << '\n';
-	// std::cout << "GridSize: " << GridSize << '\n';
-	// std::cout << "BlockSize: " << BlockSize << '\n';
+	int VolSize = (CASVolSize - extraPadding * 2) / 2;
+	int BlockSize = 8;
+	int GridSize = ceil((double)VolSize / (double)BlockSize);
+
+	// VolumeOffset is the amount to add to the x,y,z to get the first voxel in the unpadded volume
+    // i.e. there is not value in iterating over voxels which will always be zero
+	int VolumeOffset = (CASVolSize - VolSize) / 2;
+
+	std::cout << " " << '\n';
+	std::cout << "Back Project: " << '\n';
+	// std::cout << "VolSize: " << VolSize << '\n';
+	std::cout << "CASVolSize: " << CASVolSize << '\n';
+	std::cout << "GridSize: " << GridSize << '\n';
+	std::cout << "BlockSize: " << BlockSize << '\n';
 
 	// Define CUDA kernel dimensions
 	dim3 dimGrid(GridSize, GridSize, GridSize);
@@ -145,13 +155,13 @@ void gpuBackProject::RunKernel(
 	{
 		gpuBackProjectKernel<<<dimGrid, dimBlock, 0, *stream>>>(
 			d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
-			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
+			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth, VolumeOffset);
 	}
 	else
 	{
 		gpuBackProjectKernel<<<dimGrid, dimBlock>>>(
 			d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
-			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
+			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth, VolumeOffset);
 	}
 
 	gpuErrorCheck(cudaPeekAtLastError());

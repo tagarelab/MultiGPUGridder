@@ -14,8 +14,9 @@ function time = MultiGridderTimingTest(VolumeSize, n1_axes, n2_axes, interpFacto
     gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes * n2_axes, interpFactor, RunFFTOnGPU);
     
     % Set the number of streams
-    gridder.nStreams = nStreams;
-    
+    gridder.nStreamsFP = nStreams;
+    gridder.nStreamsBP = nStreams;
+     
     % Set the volume
     gridder.setVolume(MRI_volume);    
     

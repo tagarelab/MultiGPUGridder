@@ -96,9 +96,6 @@ void gpuProjection::InitializeCUDAStreams()
     {
         gpuErrorCheck(cudaStreamCreate(&this->BP_streams[i]));
     }
-
-    
-
 }
 
 void gpuProjection::InitializeGPUArrays()
@@ -760,11 +757,6 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
     // Plan the pointer offset values
     gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreamsFP);
 
-    // Calculate the block size for running the CUDA kernels
-    // NOTE: gridSize times blockSize needs to equal CASimgSize
-    int gridSize = 32; // 32
-    int blockSize = ceil(((double)this->d_Imgs->GetSize(0) * (double)this->interpFactor) / (double)gridSize);
-
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
     {
         if (this->verbose == true)
@@ -809,10 +801,9 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->kerHWidth,
             Offsets_obj.numAxesPerStream[i],
-            gridSize,
-            blockSize,
             CASVolSize,
             CASImgSize,
+            this->extraPadding,
             this->maskRadius,
             this->d_KB_Table->GetSize(0),
             &FP_streams[Offsets_obj.stream_ID[i]]);
@@ -990,6 +981,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
             CASImgSize,
             this->maskRadius,
             this->d_KB_Table->GetSize(0),
+            this->extraPadding,
             &BP_streams[Offsets_obj.stream_ID[i]]);
     }
 }
@@ -1067,6 +1059,7 @@ void gpuProjection::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             CASImgSize,
             this->maskRadius,
             this->d_KB_Table->GetSize(0),
+            this->extraPadding,
             &BP_streams[Offsets_obj.stream_ID[i]]);
     }
 }

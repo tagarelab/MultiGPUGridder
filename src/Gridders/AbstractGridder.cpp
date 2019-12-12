@@ -227,7 +227,6 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
         // Check to see if we need to pin the array again (if the pointer is different)
         if (coordAxes != this->h_CoordAxes->GetPointer())
         {
-            std::cout << "PINNING coordAxes: " << '\n';
             this->h_CoordAxes->PinArray();
         }
     }
