@@ -43,6 +43,10 @@ disp("Forward Project: " + toc + " seconds")
 % Run the back projection
 gridder.resetVolume();
 tic
+
+clear coordAxes 
+coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
+
 gridder.backProject(gridder.Images, coordAxes)
 disp("Back Project: " + toc + " seconds")
 

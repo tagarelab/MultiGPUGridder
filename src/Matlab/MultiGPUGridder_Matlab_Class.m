@@ -15,7 +15,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         NumAxes;
         GPUs = int32([0,1,2,3]);
         MaxAxesToAllocate;
-        nStreams = 128; % For the forward projection
+        nStreamsFP = 4; % For the forward projection
+        nStreamsBP = 1; % For the back projection
         
         % Single type variables        
         interpFactor;
@@ -127,7 +128,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function Set(this)
             
             if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.Images) ...
-                || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreams))
+                || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreamsFP) || isempty(this.nStreamsBP))
                 error("Error: Required array is missing in Set() function.")             
             end                    
             
@@ -136,7 +137,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
             [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
-            [varargout{1:nargout}] = mexSetVariables('SetNumberStreams', this.objectHandle, int32(this.nStreams));             
+            [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsFP', this.objectHandle, int32(this.nStreamsFP));             
+            [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsBP', this.objectHandle, int32(this.nStreamsBP));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
           

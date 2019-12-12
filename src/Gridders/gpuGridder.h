@@ -63,7 +63,8 @@ public:
         // Set default values
         this->VolumeToCASVolumeFlag = false;
         this->GPUArraysAllocatedFlag = false;
-        this->nStreams = 1;
+        this->nStreamsFP = 1;
+        this->nStreamsBP = 1;        
         this->VolumeSize = VolumeSize;
 
         this->RunFFTOnDevice = RunFFTOnDevice;
@@ -96,8 +97,11 @@ public:
     /// 1,000 coordinate axes, and we wanted the to process axes 500 to 700 then simply set the AxesOffset to 500 and the nAxesToProcess to 200.
     void BackProject(int AxesOffset, int nAxesToProcess);
 
-    /// Set the number of CUDA streams to use for the forward and back projection kernels.
-    void SetNumStreams(int nStreams) { this->nStreams = nStreams; }
+    /// Set the number of CUDA streams to use for the forward projection kernel.
+    void SetNumStreamsFP(int nStreamsFP) { this->nStreamsFP = nStreamsFP; }
+
+    /// Set the number of CUDA streams to use for the back projection kernel.
+    void SetNumStreamsBP(int nStreamsBP) { this->nStreamsBP = nStreamsBP; }
 
     /// Set the GPU device number starting at 0. For example, if a computer has 4 GPUs the GPU_Device number could be 0, 1, 2, or 3 and determines
     /// which GPU to use for processing.
@@ -155,7 +159,8 @@ private:
     gpuProjection *gpuProjection_Obj;
 
     int GPU_Device; // Which GPU to use?
-    int nStreams;   // Streams to use on this GPU
+    int nStreamsFP; // Streams to use on this GPU for the forward projection
+    int nStreamsBP; // Streams to use on this GPU for the back projection
 
     int VolumeSize;
 

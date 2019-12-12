@@ -89,8 +89,11 @@ public:
 		FreeMemory();
 	}
 
-	/// Set the number of CUDA streams to use with each GPU
-	void SetNumStreams(int nStreams);
+	/// Set the number of CUDA streams to use with each GPU for the forward projection
+	void SetNumStreamsFP(int nStreams);
+
+	/// Set the number of CUDA streams to use with each GPU for the back projection
+	void SetNumStreamsBP(int nStreams);
 
 	/// Run the forward projection kernel on each gpuGridder object
 	void ForwardProject();

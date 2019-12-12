@@ -82,11 +82,11 @@ void gpuProjection::InitializeCUDAStreams()
     cudaSetDevice(this->GPU_Device);
 
     // Create the CUDA streams
-    this->streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreams);
+    this->FP_streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * this->nStreamsFP);
 
-    for (int i = 0; i < this->nStreams; i++) // Loop through the streams
+    for (int i = 0; i < this->nStreamsFP; i++) // Loop through the streams
     {
-        gpuErrorCheck(cudaStreamCreate(&this->streams[i]));
+        gpuErrorCheck(cudaStreamCreate(&this->FP_streams[i]));
     }
 
     // Create the CUDA streams for the back projection
@@ -758,7 +758,7 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
     int CASVolSize = this->d_CASVolume->GetSize(0);
 
     // Plan the pointer offset values
-    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreams);
+    gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreamsFP);
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
@@ -786,20 +786,20 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
             Offsets_obj.gpuCASImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]));
+            FP_streams[Offsets_obj.stream_ID[i]]));
 
         gpuErrorCheck(cudaMemsetAsync(
             this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
             0,
             Offsets_obj.gpuImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]));
+            FP_streams[Offsets_obj.stream_ID[i]]));
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         gpuErrorCheck(cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
-            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]));
+            cudaMemcpyHostToDevice, FP_streams[Offsets_obj.stream_ID[i]]));
 
         // Run the forward projection kernel
         gpuForwardProject::RunKernel(
@@ -815,7 +815,7 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
             CASImgSize,
             this->maskRadius,
             this->d_KB_Table->GetSize(0),
-            &streams[Offsets_obj.stream_ID[i]]);
+            &FP_streams[Offsets_obj.stream_ID[i]]);
 
         // If running the inverse FFT on the device
         if (this->RunFFTOnDevice == 1)
@@ -824,11 +824,11 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 0,
                 2 * Offsets_obj.gpuCASImgs_streamBytes[i], // cufftComplex type so multiply the bytes by 2
-                streams[Offsets_obj.stream_ID[i]]));
+                FP_streams[Offsets_obj.stream_ID[i]]));
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
             this->CASImgsToImgs(
-                streams[Offsets_obj.stream_ID[i]],
+                FP_streams[Offsets_obj.stream_ID[i]],
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
@@ -840,7 +840,7 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 Offsets_obj.gpuImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
-                streams[Offsets_obj.stream_ID[i]]));
+                FP_streams[Offsets_obj.stream_ID[i]]));
         }
         else
         {
@@ -850,7 +850,7 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyDeviceToHost,
-                streams[Offsets_obj.stream_ID[i]]));
+                FP_streams[Offsets_obj.stream_ID[i]]));
         }
 
         if (this->verbose == true)
@@ -928,14 +928,14 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
             this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
             0,
             Offsets_obj.gpuCASImgs_streamBytes[i],
-            streams[Offsets_obj.stream_ID[i]]));
+            BP_streams[Offsets_obj.stream_ID[i]]));
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         gpuErrorCheck(cudaMemcpyAsync(
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
-            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]));
+            cudaMemcpyHostToDevice, BP_streams[Offsets_obj.stream_ID[i]]));
 
         if (this->RunFFTOnDevice == 0)
         {
@@ -945,7 +945,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 this->h_CASImgs->GetPointer(Offsets_obj.CASImgs_CPU_Offset[i]),
                 Offsets_obj.gpuCASImgs_streamBytes[i],
                 cudaMemcpyHostToDevice,
-                streams[Offsets_obj.stream_ID[i]]));
+                BP_streams[Offsets_obj.stream_ID[i]]));
         }
         else
         {
@@ -953,13 +953,13 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 0,
                 Offsets_obj.gpuImgs_streamBytes[i],
-                streams[Offsets_obj.stream_ID[i]]));
+                BP_streams[Offsets_obj.stream_ID[i]]));
 
             gpuErrorCheck(cudaMemsetAsync(
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 0,
                 2 * Offsets_obj.gpuCASImgs_streamBytes[i],
-                streams[Offsets_obj.stream_ID[i]]));
+                BP_streams[Offsets_obj.stream_ID[i]]));
 
             // Copy the section of images to the GPU
             gpuErrorCheck(cudaMemcpyAsync(
@@ -967,11 +967,11 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 this->h_Imgs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
                 Offsets_obj.gpuImgs_streamBytes[i],
                 cudaMemcpyHostToDevice,
-                streams[Offsets_obj.stream_ID[i]]));
+                BP_streams[Offsets_obj.stream_ID[i]]));
 
             // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
             this->ImgsToCASImgs(
-                streams[Offsets_obj.stream_ID[i]],
+                BP_streams[Offsets_obj.stream_ID[i]],
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
@@ -990,7 +990,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
             CASImgSize,
             this->maskRadius,
             this->d_KB_Table->GetSize(0),
-            &streams[Offsets_obj.stream_ID[i]]);
+            &BP_streams[Offsets_obj.stream_ID[i]]);
     }
 }
 
@@ -1053,7 +1053,7 @@ void gpuProjection::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             this->d_CoordAxes->GetPointer(Offsets_obj.gpuCoordAxes_Stream_Offset[i]),
             this->h_CoordAxes->GetPointer(Offsets_obj.CoordAxes_CPU_Offset[i]),
             Offsets_obj.coord_Axes_CPU_streamBytes[i],
-            cudaMemcpyHostToDevice, streams[Offsets_obj.stream_ID[i]]));
+            cudaMemcpyHostToDevice, BP_streams[Offsets_obj.stream_ID[i]]));
 
         // Run the back projection kernel
         gpuBackProject::RunKernel(
@@ -1067,7 +1067,7 @@ void gpuProjection::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
             CASImgSize,
             this->maskRadius,
             this->d_KB_Table->GetSize(0),
-            &streams[Offsets_obj.stream_ID[i]]);
+            &BP_streams[Offsets_obj.stream_ID[i]]);
     }
 }
 

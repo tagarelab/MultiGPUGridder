@@ -186,19 +186,21 @@ public:
     {
         if (this->IsAllocated() == true || this->IsInitialized() == true)
         {
-            // Check that the memory is not already registered by checking the cuda pointer attributes
-            // This will return cudaErrorInvalidValue if the pointer is not yet pinned
-            cudaPointerAttributes ptr_attr;
-            if (cudaPointerGetAttributes(&ptr_attr, this->ptr) == cudaErrorInvalidValue)
-            {
-                cudaGetLastError(); // Clear out the previous API error from the above cudaPointerGetAttributes()
+            // // Check that the memory is not already registered by checking the cuda pointer attributes
+            // // This will return cudaErrorInvalidValue if the pointer is not yet pinned
+            // cudaPointerAttributes ptr_attr;
+            // if (cudaPointerGetAttributes(&ptr_attr, this->ptr) == cudaErrorInvalidValue)
+            // {
+            //     cudaGetLastError(); // Clear out the previous API error from the above cudaPointerGetAttributes()
                 cudaHostRegister(this->ptr, this->bytes(), cudaHostRegisterPortable);
-            }
+            // }
         }
         else
         {
             std::cerr << "PinArray: Array must be Initialized or allocated before pinning to memory." << '\n';
         }
+
+        cudaGetLastError(); // Clear out any previous API errors from the above cudaPointerGetAttributes()
     }
 
     /// Free the memory if it was allocated by this class

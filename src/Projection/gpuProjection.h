@@ -30,11 +30,11 @@ class gpuProjection
 
 public:
     // gpuProjection Constructor
-    gpuProjection(int GPU_Device, int nStreams, int VolumeSize, float interpFactor, int numCoordAxes, int extraPadding, bool RunFFTOnDevice = true, bool verbose = false)
+    gpuProjection(int GPU_Device, int nStreamsFP, int nStreamsBP, int VolumeSize, float interpFactor, int numCoordAxes, int extraPadding, bool RunFFTOnDevice = true, bool verbose = false)
     {
         this->GPU_Device = GPU_Device;
-        this->nStreams = nStreams;
-        this->nStreamsBP = 2;
+        this->nStreamsFP = nStreamsFP;
+        this->nStreamsBP = nStreamsBP;
         this->VolumeSize = VolumeSize;
         this->interpFactor = interpFactor;
         this->numCoordAxes = numCoordAxes;
@@ -133,7 +133,7 @@ private:
     };
 
     int GPU_Device; // Which GPU to use?
-    int nStreams;   // Streams to use on this GPU
+    int nStreamsFP; // Streams to use on this GPU for the forward projection operation
     int nStreamsBP; // Number of streams for the back projection operation
 
     int VolumeSize;
@@ -151,7 +151,7 @@ private:
     float maskRadius;
 
     // CUDA streams to use for forward / back projection
-    cudaStream_t *streams;
+    cudaStream_t *FP_streams;
 
     // CUDA streams to use for back projection
     cudaStream_t *BP_streams;

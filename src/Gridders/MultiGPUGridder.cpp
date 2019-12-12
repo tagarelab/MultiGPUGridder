@@ -16,12 +16,21 @@
 #pragma warning Unknown dynamic link import / export semantics.
 #endif
 
-void MultiGPUGridder::SetNumStreams(int nStreams)
+void MultiGPUGridder::SetNumStreamsFP(int nStreamsFP)
 {
-    // Set the number of CUDA streams to use with each GPU
+    // Set the number of CUDA streams to use with each GPU for the forward projection
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->SetNumStreams(nStreams);
+        gpuGridder_vec[i]->SetNumStreamsFP(nStreamsFP);
+    }
+}
+
+void MultiGPUGridder::SetNumStreamsBP(int nStreamsBP)
+{
+    // Set the number of CUDA streams to use with each GPU for the back projection
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->SetNumStreamsBP(nStreamsBP);
     }
 }
 

@@ -136,7 +136,7 @@ void gpuGridder::Allocate()
 
         // Create a new projection object for running the forward and back projection on the GPU
         this->gpuProjection_Obj = new gpuProjection(
-            GPU_Device, nStreams, VolumeSize, interpFactor, numCoordAxes,
+            GPU_Device, nStreamsFP, nStreamsBP, VolumeSize, interpFactor, numCoordAxes,
             extraPadding, RunFFTOnDevice, verbose);
 
         this->GPUArraysAllocatedFlag = true;
