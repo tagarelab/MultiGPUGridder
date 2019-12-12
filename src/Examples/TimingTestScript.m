@@ -25,6 +25,8 @@ for i = 1:length(n1_axes)
     times = [times; new_time] 
 end
 
+x = times'
+open x
 
 %%
 figure('Color', [1 1 1])

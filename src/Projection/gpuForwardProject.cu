@@ -118,7 +118,7 @@ void gpuForwardProject::RunKernel(
     int BlockSize = ceil(((double)ImgSize) / (double)GridSize);
 
 	// ImageOffset is the amount to add to the x,y to get the first voxel in the unpadded volume
-    // i.e. there is not value in iterating over voxels which will always be zero
+    // i.e. there is no value in iterating over voxels which will always be zero
 	int ImageOffset = (CASImgSize - ImgSize) / 2;
 
     // Define CUDA kernel dimensions

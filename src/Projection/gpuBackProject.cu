@@ -128,15 +128,12 @@ void gpuBackProject::RunKernel(
 {
 
 	// Define CUDA kernel dimensions
-	// int BlockSize = 8;
-	// int GridSize = ceil((double)CASVolSize / (double)BlockSize);
-
 	int VolSize = (CASVolSize - extraPadding * 2) / 2;
 	int BlockSize = 4;
 	int GridSize = ceil((double)VolSize / (double)BlockSize);
 
 	// VolumeOffset is the amount to add to the x,y,z to get the first voxel in the unpadded volume
-    // i.e. there is not value in iterating over voxels which will always be zero
+    // i.e. there is no value in iterating over voxels which will always be zero
 	int VolumeOffset = (CASVolSize - VolSize) / 2;
 
 	// Define CUDA kernel dimensions

@@ -43,10 +43,6 @@ easyMontage(images(:,:,1:100), 1)
 % Run the back projection
 gridder.resetVolume();
 tic
-
-clear coordAxes 
-coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
-
 gridder.backProject(gridder.Images, coordAxes)
 disp("Back Project: " + toc + " seconds")
 
@@ -62,4 +58,4 @@ disp("Reconstruct Volume: " + toc + " seconds")
 easyMontage(reconstructVol, 3)
 
 disp("Total time: " + toc(start))
-% quit
+% quit % Needed if running the NVIDIA profiler
