@@ -128,9 +128,8 @@ void gpuBackProject::RunKernel(
 {
 
 	// Define CUDA kernel dimensions
-	int VolSize = (CASVolSize - extraPadding * 2) / 2;
 	int BlockSize = 4;
-	int GridSize = ceil((double)VolSize / (double)BlockSize);
+	int GridSize = ceil((double)CASVolSize / (double)BlockSize);
 
 	// Define CUDA kernel dimensions
 	dim3 dimGrid(GridSize, GridSize, GridSize);
