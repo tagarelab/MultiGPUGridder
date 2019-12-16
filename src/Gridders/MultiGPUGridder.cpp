@@ -102,10 +102,14 @@ void MultiGPUGridder::ForwardProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
-    // Create an array of CPU threads with one CPU thread for each GPU
-    // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
-    // Such as cudaMalloc or cudaDeviceSynchronize
-    std::thread *CPUThreads = new std::thread[Num_GPUs];
+    std::thread *CPUThreads;
+    if (this->UseMultiThread == true)
+    {
+        // Create an array of CPU threads with one CPU thread for each GPU
+        // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
+        // Such as cudaMalloc or cudaDeviceSynchronize
+        CPUThreads = new std::thread[Num_GPUs];
+    }
 
     if (this->verbose == true)
     {
@@ -152,17 +156,25 @@ void MultiGPUGridder::ForwardProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        // Single thread version: gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        // gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-
-        // Multi thread version
-        CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        if (this->UseMultiThread == true)
+        {
+            // Multi thread version
+            CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        }
+        else
+        {
+            // Single thread version: gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+            gpuGridder_vec[i]->ForwardProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        }
     }
 
-    // Join CPU threads together
-    for (int i = 0; i < Num_GPUs; i++)
+    if (this->UseMultiThread == true)
     {
-        CPUThreads[i].join();
+        // Join CPU threads together
+        for (int i = 0; i < Num_GPUs; i++)
+        {
+            CPUThreads[i].join();
+        }
     }
 
     // Synchronize all of the GPUs
@@ -176,10 +188,14 @@ void MultiGPUGridder::BackProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
-    // Create an array of CPU threads with one CPU thread for each GPU
-    // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
-    // Such as cudaMalloc or cudaDeviceSynchronize
-    std::thread *CPUThreads = new std::thread[Num_GPUs];
+     std::thread *CPUThreads;
+    if (this->UseMultiThread == true)
+    {
+        // Create an array of CPU threads with one CPU thread for each GPU
+        // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
+        // Such as cudaMalloc or cudaDeviceSynchronize
+        CPUThreads = new std::thread[Num_GPUs];
+    }
 
     if (this->verbose == true)
     {
@@ -224,17 +240,25 @@ void MultiGPUGridder::BackProject()
 
     for (int i = 0; i < Num_GPUs; i++)
     {
-        // Single thread version
-        // gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-
-        // Multi thread version
-        CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        if (this->UseMultiThread == true)
+        {
+            // Multi thread version
+            CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        }
+        else
+        {
+            // Single thread version
+            gpuGridder_vec[i]->BackProject(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        }
     }
 
-    // Join CPU threads together
-    for (int i = 0; i < Num_GPUs; i++)
+    if (this->UseMultiThread == true)
     {
-        CPUThreads[i].join();
+        // Join CPU threads together
+        for (int i = 0; i < Num_GPUs; i++)
+        {
+            CPUThreads[i].join();
+        }
     }
 
     // Synchronize all of the GPUs
@@ -298,7 +322,11 @@ void MultiGPUGridder::ReconstructVolume()
     // Create an array of CPU threads with one CPU thread for each GPU
     // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
     // Such as cudaMalloc or cudaDeviceSynchronize
-    std::thread *CPUThreads = new std::thread[Num_GPUs];
+     std::thread *CPUThreads;
+    if (this->UseMultiThread == true)
+    {
+        CPUThreads = new std::thread[Num_GPUs];
+    }
 
     // Synchronize all of the GPUs
     GPU_Sync();
@@ -313,17 +341,25 @@ void MultiGPUGridder::ReconstructVolume()
 
     for (int i = 0; i < this->Num_GPUs; i++)
     {
-        // Calculate the plane densities on each GPU
-        // gpuGridder_vec[i]->CalculatePlaneDensity(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-
-        // Multi thread version
-        CPUThreads[i] = std::thread(&gpuGridder::CalculatePlaneDensity, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        if (this->UseMultiThread == true)
+        {
+            // Multi thread version
+            CPUThreads[i] = std::thread(&gpuGridder::CalculatePlaneDensity, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        }
+        else
+        {
+            // Calculate the plane densities on each GPU
+            gpuGridder_vec[i]->CalculatePlaneDensity(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+        }
     }
 
-    // Join CPU threads together
-    for (int i = 0; i < Num_GPUs; i++)
+    if (this->UseMultiThread == true)
     {
-        CPUThreads[i].join();
+        // Join CPU threads together
+        for (int i = 0; i < Num_GPUs; i++)
+        {
+            CPUThreads[i].join();
+        }
     }
 
     // Synchronize all of the GPUs
@@ -340,7 +376,7 @@ void MultiGPUGridder::ReconstructVolume()
 
         // Synchronize all of the GPUs
         GPU_Sync();
-        
+
         // Sum the reconstructed volumes on the CPU
         SumVolumes();
     }

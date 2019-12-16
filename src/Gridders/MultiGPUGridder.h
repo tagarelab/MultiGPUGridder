@@ -47,6 +47,15 @@ public:
 
 		this->verbose = verbose;
 
+		if (this->verbose == true)
+		{
+			this->UseMultiThread = false; // Don't do multi-thread of verbose is on. Otherwise the std::cout messages won't appear
+		}
+		else
+		{
+			this->UseMultiThread = true;
+		}
+
 		// Create an intance of the gpuGridder class for each GPU
 		for (int i = 0; i < Num_GPUs; i++)
 		{
@@ -166,4 +175,6 @@ private:
 
 	// Should we print status information to the console?
 	bool verbose;
+
+	bool UseMultiThread;
 };

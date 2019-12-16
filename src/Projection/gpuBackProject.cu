@@ -3,7 +3,7 @@
 
 __global__ void gpuBackProjectKernel(float *vol, int volSize, float *img, int imgSize,
 									 float *axes, int nAxes, float maskRadius,
-									 const float *ker, int kerSize, float kerHWidth, int VolumeOffset)
+									 const float *ker, int kerSize, float kerHWidth)
 
 {
 	float *img_ptr;
@@ -32,9 +32,9 @@ __global__ void gpuBackProjectKernel(float *vol, int volSize, float *img, int im
 	__syncthreads();
 
 	/* Get the volume indices */
-	vi = blockDim.x * blockIdx.x + threadIdx.x + VolumeOffset;
-	vj = blockDim.y * blockIdx.y + threadIdx.y + VolumeOffset;
-	vk = blockDim.z * blockIdx.z + threadIdx.z + VolumeOffset;
+	vi = blockDim.x * blockIdx.x + threadIdx.x;
+	vj = blockDim.y * blockIdx.y + threadIdx.y;
+	vk = blockDim.z * blockIdx.z + threadIdx.z;
 
 	// Are we outside the volume bounds?
 	if (vi < 0 || vi >= volSize || vj < 0 || vj >= volSize || vk < 0 || vk >= volSize)
@@ -132,10 +132,6 @@ void gpuBackProject::RunKernel(
 	int BlockSize = 4;
 	int GridSize = ceil((double)VolSize / (double)BlockSize);
 
-	// VolumeOffset is the amount to add to the x,y,z to get the first voxel in the unpadded volume
-    // i.e. there is no value in iterating over voxels which will always be zero
-	int VolumeOffset = (CASVolSize - VolSize) / 2;
-
 	// Define CUDA kernel dimensions
 	dim3 dimGrid(GridSize, GridSize, GridSize);
 	dim3 dimBlock(BlockSize, BlockSize, BlockSize);
@@ -145,13 +141,13 @@ void gpuBackProject::RunKernel(
 	{
 		gpuBackProjectKernel<<<dimGrid, dimBlock, 0, *stream>>>(
 			d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
-			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth, VolumeOffset);
+			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
 	}
 	else
 	{
 		gpuBackProjectKernel<<<dimGrid, dimBlock>>>(
 			d_CASVolume, CASVolSize, d_CASImgs, CASImgSize, d_CoordAxes,
-			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth, VolumeOffset);
+			nAxes, maskRadius, d_KB_Table, KB_Table_Size, kerHWidth);
 	}
 
 	gpuErrorCheck(cudaPeekAtLastError());

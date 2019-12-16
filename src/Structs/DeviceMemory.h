@@ -215,7 +215,7 @@ public:
     {
         std::cout << "DeallocateGPUArray():" << '\n';
         gpuErrorCheck(cudaSetDevice(this->GPU_Device));
-        gpuErrorCheck(cudaFree(this->ptr));
+        // gpuErrorCheck(cudaFree(this->ptr));
 
         this->Allocated = false;
     }

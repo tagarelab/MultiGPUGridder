@@ -144,8 +144,8 @@ public:
 
 private:
     // Initialize pointers for allocating memory on the GPU
-    DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
-    DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
+    // DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
+    // DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
     DeviceMemory<float> *d_CASVolume;
     DeviceMemory<float> *d_PaddedVolume;
     DeviceMemory<float> *d_CASImgs;
