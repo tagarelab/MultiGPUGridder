@@ -113,9 +113,8 @@ void gpuForwardProject::RunKernel(
 
     // Calculate the block size for running the CUDA kernels
     // NOTE: gridSize times blockSize needs to equal CASimgSize
-	int ImgSize = (CASImgSize - extraPadding * 2) / 2;
     int GridSize = 32; 
-    int BlockSize = ceil(((double)ImgSize) / (double)GridSize);
+    int BlockSize = ceil(((double)CASImgSize) / (double)GridSize);
 
     // Define CUDA kernel dimensions
     dim3 dimGrid(GridSize, GridSize, 1);
