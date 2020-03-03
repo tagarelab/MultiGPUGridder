@@ -512,7 +512,6 @@ void gpuProjection::CASVolumeToVolume()
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-    int normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;
 
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
     ComplexToReal->SetComplexInput(d_CASVolume_Cropped_Complex);
@@ -528,6 +527,7 @@ void gpuProjection::CASVolumeToVolume()
     CropFilter->SetCropZ((CroppedCASVolumeSize - VolumeSize) / 2);
     CropFilter->Update();
 
+    float normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;
     DivideScalarFilter *DivideScalar = new DivideScalarFilter();
     DivideScalar->SetInput(this->d_Volume->GetPointer());
     DivideScalar->SetScalar(float(normalizationFactor));
@@ -631,7 +631,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     CropFilter->Update(&stream);
 
     // Normalize for the scaling introduced during the FFT
-    int normalizationFactor = CASImgSize * CASImgSize;
+    float normalizationFactor = (CASImgSize - 6) * (CASImgSize - 6);
 
     DivideScalarFilter *DivideScalar = new DivideScalarFilter();
     DivideScalar->SetInput(Imgs);
