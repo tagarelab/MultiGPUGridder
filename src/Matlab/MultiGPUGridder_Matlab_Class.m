@@ -80,6 +80,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
             gridder_Varargin{6} = int32(this.RunFFTOnGPU);
             gridder_Varargin{7} = this.verbose;            
             
+            % Check that the GPU index vector is valid given the number of available GPUs on the computer
+            if length(this.GPUs) > gpuDeviceCount
+                error("Requested more GPUs than are available. Please change the GPUs vector in MultiGPUGridder class.")
+            elseif max(this.GPUs(:)) - 1 > gpuDeviceCount
+                error("GPU index must range from 0 to the number of available GPUs. Please change the GPUs vector in MultiGPUGridder class.")
+            end
 
             % Create the gridder instance
             this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
@@ -130,7 +136,24 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.Images) ...
                 || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreamsFP) || isempty(this.nStreamsBP))
                 error("Error: Required array is missing in Set() function.")             
-            end                    
+            end              
+            
+            % Check the sizes of the input variables
+            if unique(size(this.Volume)) ~= size(this.Volume,1)
+                error("Volume must be a square")
+            elseif unique(size(this.Images(:,:,1))) ~= size(this.Images(:,:,1),1)
+                error("Images must be a square")
+            elseif size(this.Images(:,:,1),1) ~= size(this.Volume,1)
+                error("Images must be the same size as Volume")
+            elseif size(this.Images(:,:,1),1) <= this.MaskRadius
+                error("Images must be larger than the MaskRadius")
+            elseif size(this.Volume,1) <= this.MaskRadius
+                error("Volume must be larger than the MaskRadius")
+            elseif size(this.coordAxes,1) ~= 9
+                error("The first dimension of coordAxes must be equal to 9")
+            elseif size(this.coordAxes,2) ~= size(this.Images,3)
+                error("The second dimension of coordAxes must be equal to the number of images")
+            end
             
             [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));                                 
