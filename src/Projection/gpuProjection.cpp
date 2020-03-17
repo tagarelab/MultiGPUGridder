@@ -190,7 +190,9 @@ void gpuProjection::InitializeGPUArrays()
     //cufftComplex *d_CASVolume_Cropped_Complex;
     //gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
-
+    // // Allocate the complex CAS images array
+    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
+    // CASImgsComplex->AllocateGPUArray();
 
         // Allocate the complex CAS images array
         this->d_CASImgsComplex = new DeviceMemory<cufftComplex>(3, CASimgs_size, this->GPU_Device);
@@ -502,6 +504,10 @@ void gpuProjection::CASVolumeToVolume()
     // delete[] KB_PreComp_size;
 
 
+    this->d_CASVolume_Cropped->Reset();
+    this->d_CASVolume_Cropped_Complex->Reset();
+
+
     int CroppedCASVolumeSize = CASVolumeSize - extraPadding * 2;
     int VolumeSize = (CASVolumeSize - extraPadding * 2) / interpFactor;
 
@@ -697,9 +703,9 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
 
-    // Allocate the complex CAS images array
-    DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
-    CASImgsComplex->AllocateGPUArray();
+    // // Allocate the complex CAS images array
+    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
+    // CASImgsComplex->AllocateGPUArray();
 
     if (this->verbose == true)
     {
@@ -709,6 +715,8 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
 
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);
+
+    this->d_CASImgsComplex->Reset();
 
     // Has the forward FFT been planned? If not create one now
     if (this->forwardFFTImagesFlag == false)
@@ -732,14 +740,14 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     // Convert the images to complex cufft type
     RealToComplexFilter *RealFilter = new RealToComplexFilter();
     RealFilter->SetRealInput(CASImgs);
-    RealFilter->SetComplexOutput(CASImgsComplex->GetPointer());
+    RealFilter->SetComplexOutput(this->d_CASImgsComplex->GetPointer());
     RealFilter->SetVolumeSize(CASImgSize);
     RealFilter->SetNumberOfSlices(numImgs);
     RealFilter->Update(&stream);
 
     // Run FFTShift on each 2D slice
     FFTShift2DFilter<cufftComplex> *FFTShiftFilter = new FFTShift2DFilter<cufftComplex>();
-    FFTShiftFilter->SetInput(CASImgsComplex->GetPointer());
+    FFTShiftFilter->SetInput(this->d_CASImgsComplex->GetPointer());
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
@@ -754,27 +762,27 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     for (int i = 0; i < numImgs; i++)
     {
         cufftExecC2C(this->forwardFFTImages,
-                     CASImgsComplex->GetPointer(i * CASImgSize * CASImgSize),
-                     CASImgsComplex->GetPointer(i * CASImgSize * CASImgSize),
+                     this->d_CASImgsComplex->GetPointer(i * CASImgSize * CASImgSize),
+                     this->d_CASImgsComplex->GetPointer(i * CASImgSize * CASImgSize),
                      CUFFT_FORWARD);
     }
 
     // Run the 2D FFTShift again
-    FFTShiftFilter->SetInput(CASImgsComplex->GetPointer());
+    FFTShiftFilter->SetInput(this->d_CASImgsComplex->GetPointer());
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
 
     // Convert the complex result of the forward FFT to a CAS img type
     ComplexToCASFilter *ComplexToCAS = new ComplexToCASFilter();
-    ComplexToCAS->SetComplexInput(CASImgsComplex->GetPointer());
+    ComplexToCAS->SetComplexInput(this->d_CASImgsComplex->GetPointer());
     ComplexToCAS->SetCASVolumeOutput(CASImgs);
     ComplexToCAS->SetVolumeSize(CASImgSize);
     ComplexToCAS->SetNumberOfSlices(numImgs);
     ComplexToCAS->Update(&stream);
 
-    cudaFree(CASImgsComplex->GetPointer());
-    delete CASImgsComplex;
+    //cudaFree(CASImgsComplex->GetPointer());
+    //delete CASImgsComplex;
 }
 
 void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
