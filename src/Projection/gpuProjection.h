@@ -176,8 +176,8 @@ private:
     HostMemory<float> *h_PlaneDensity; // Optional inputs
 
     // Initialize pointers for the allocated GPU memory
-    // DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
-    // DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
+    DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
+    DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
     DeviceMemory<float> *d_CASVolume;
     DeviceMemory<float> *d_PaddedVolume;
     DeviceMemory<float> *d_CASImgs;
@@ -186,6 +186,11 @@ private:
     DeviceMemory<float> *d_CoordAxes;
     DeviceMemory<float> *d_PlaneDensity;
     DeviceMemory<float> *d_Volume;
+    DeviceMemory<float> *d_CASVolume_Cropped;
+    DeviceMemory<cufftComplex> *d_CASVolume_Cropped_Complex; // For converting volume to CAS volume
+    DeviceMemory<float> *d_KBPreComp;
+
+
 
     // For converting the volume to CAS volume
     bool forwardFFTVolumePlannedFlag;
@@ -203,7 +208,7 @@ private:
     Offsets PlanOffsetValues(int coordAxesOffset, int nAxes, int numStreams);
 
     // Convert CAS images to images using an inverse FFT
-    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs);
+    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex* CASImgsComplex);
 
     // Should we print status information to the console?
     bool verbose;

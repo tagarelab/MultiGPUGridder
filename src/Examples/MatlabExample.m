@@ -9,10 +9,10 @@ mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
 addpath(genpath(fullfile(mfilepath)));
 % addpath('C:\GitRepositories\MultiGPUGridder\bin\Debug')
 addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
-addpath(genpath("/home/brent/Documents/MATLAB/simple_gpu_gridder_Obj"))
+addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 256;
+VolumeSize = 128;
 interpFactor = 2;
 n1_axes = 100;
 n2_axes = 100;
@@ -24,6 +24,7 @@ MRI_volume = imresize3(MRI_volume,[VolumeSize, VolumeSize, VolumeSize]);
 
 % Define the projection directions
 coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
+coordAxes = coordAxes(:,1:n1_axes*n2_axes);
 
 % Create the gridder object
 gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes * n2_axes, interpFactor);
@@ -53,9 +54,9 @@ easyMontage(vol, 2)
 
 % Reconstruct the volume
 % tic
-% reconstructVol = gridder.reconstructVol();
+reconstructVol = gridder.reconstructVol();
 % disp("Reconstruct Volume: " + toc + " seconds")
-% easyMontage(reconstructVol, 3)
+easyMontage(reconstructVol, 3)
 
 disp("Total time: " + toc(start))
 % quit % Needed if running the NVIDIA profiler
