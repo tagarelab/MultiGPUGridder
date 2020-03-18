@@ -8,7 +8,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verbose = false;
+        verbose = true;
         
         % Int 32 type variables        
         VolumeSize;        
@@ -117,7 +117,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
-            InterpVolSize = this.VolumeSize * int32(this.interpFactor);
+            InterpVolSize = single(this.VolumeSize) * single(this.interpFactor);
             this.KBPreComp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');    
            
             preComp=getPreComp(InterpVolSize,this.kerHWidth);
@@ -221,7 +221,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         
             if (this.RunFFTOnGPU == false)
                 [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
+                this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
@@ -287,12 +287,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
-                
                 % Normalize by the plane density               
                 this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
 
-                this.Volume = volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);            
+                this.Volume=volFromCAS(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);          
                 
                 this.Volume = this.Volume  / single(this.VolumeSize * this.VolumeSize );
                 
@@ -308,9 +306,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
            
             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-
-                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+                this.Volume=volFromCAS(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
             end
 
            Volume = single(this.Volume); 
