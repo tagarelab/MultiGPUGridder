@@ -151,8 +151,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 error("Volume must be larger than the MaskRadius")
             elseif size(this.coordAxes,1) ~= 9
                 error("The first dimension of coordAxes must be equal to 9")
-            elseif size(this.coordAxes,2) ~= size(this.Images,3)
-                error("The second dimension of coordAxes must be equal to the number of images")
             end
             
             [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
