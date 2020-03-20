@@ -394,6 +394,9 @@ void gpuProjection::VolumeToCASVolume()
     this->d_CASVolume->Reset();
     this->d_PaddedVolume->Reset();
 
+    // First, copy the Kaiser Bessel precompensation filter to the GPU
+    this->d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer());
+
     // Copy the volume to the corresponding GPU array
     this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
 
@@ -407,6 +410,13 @@ void gpuProjection::VolumeToCASVolume()
     PadFilter->SetPaddingZ((PaddedVolumeSize - this->VolumeSize) / 2);
     PadFilter->Update();
 
+    // Multiply by the Kaiser Bessel precompensation array
+    MultiplyVolumeFilter<float> *MultiplyFilter = new MultiplyVolumeFilter<float>();
+    MultiplyFilter->SetVolumeSize(this->d_PaddedVolume->GetSize(1));
+    MultiplyFilter->SetVolumeOne(this->d_PaddedVolume->GetPointer());
+    MultiplyFilter->SetVolumeTwo(this->d_KBPreComp->GetPointer());
+    MultiplyFilter->Update();
+    
     // Allocate a complex version of the padded volume (needed for the forward and inverse FFT)
     //DeviceMemory<cufftComplex> *d_PaddedVolumeComplex = new DeviceMemory<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
     //d_PaddedVolumeComplex->AllocateGPUArray();
@@ -557,21 +567,20 @@ void gpuProjection::CASVolumeToVolume()
     FFTShiftFilter->SetVolumeSize(CroppedCASVolumeSize);
     FFTShiftFilter->Update();
 
-    // Multiply by the Kaiser Bessel precompensation array
-    MultiplyVolumeFilter<cufftComplex> *MultiplyFilter = new MultiplyVolumeFilter<cufftComplex>();
-    MultiplyFilter->SetVolumeSize(CroppedCASVolumeSize);
-    MultiplyFilter->SetVolumeOne(this->d_CASVolume_Cropped_Complex->GetPointer());
-    MultiplyFilter->SetVolumeTwo(this->d_KBPreComp->GetPointer());
-    MultiplyFilter->Update();
-
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
-
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
     ComplexToReal->SetComplexInput(this->d_CASVolume_Cropped_Complex->GetPointer());
     ComplexToReal->SetRealOutput(this->d_CASVolume_Cropped->GetPointer());
     ComplexToReal->SetVolumeSize(CroppedCASVolumeSize);
     ComplexToReal->Update();
+
+    // Multiply by the Kaiser Bessel precompensation array
+    MultiplyVolumeFilter<float> *MultiplyFilter = new MultiplyVolumeFilter<float>();
+    MultiplyFilter->SetVolumeSize(this->d_CASVolume_Cropped->GetSize(1));
+    MultiplyFilter->SetVolumeOne(this->d_CASVolume_Cropped->GetPointer());
+    MultiplyFilter->SetVolumeTwo(this->d_KBPreComp->GetPointer());
+    MultiplyFilter->Update();
 
     CropFilter->SetInput(this->d_CASVolume_Cropped->GetPointer());
     CropFilter->SetInputSize(CroppedCASVolumeSize);
@@ -581,7 +590,8 @@ void gpuProjection::CASVolumeToVolume()
     CropFilter->SetCropZ((CroppedCASVolumeSize - VolumeSize) / 2);
     CropFilter->Update();
 
-    float normalizationFactor = CroppedCASVolumeSize * CroppedCASVolumeSize;
+    float normalizationFactor = this->d_Volume->GetSize(1) * interpFactor;
+    normalizationFactor = normalizationFactor * normalizationFactor * normalizationFactor;
     DivideScalarFilter *DivideScalar = new DivideScalarFilter();
     DivideScalar->SetInput(this->d_Volume->GetPointer());
     DivideScalar->SetScalar(float(normalizationFactor));
@@ -595,7 +605,7 @@ void gpuProjection::CASVolumeToVolume()
     // gpuErrorCheck(cudaFree(d_CASVolume_Cropped));
     //gpuErrorCheck(cudaFree(d_CASVolume_Cropped_Complex));
 
-    delete DivideScalar;
+    // delete DivideScalar;
     delete ComplexToReal;
     delete MultiplyFilter;
     delete FFTShiftFilter;
@@ -685,7 +695,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     CropFilter->Update(&stream);
 
     // Normalize for the scaling introduced during the FFT
-    float normalizationFactor = (CASImgSize - 6) * (CASImgSize - 6);
+    float normalizationFactor = ImgSize * ImgSize * interpFactor * interpFactor;
 
     DivideScalarFilter *DivideScalar = new DivideScalarFilter();
     DivideScalar->SetInput(Imgs);

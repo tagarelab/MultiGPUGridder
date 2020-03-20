@@ -218,8 +218,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
         
             if (this.RunFFTOnGPU == false)
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
+                this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
@@ -288,10 +288,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 % Normalize by the plane density               
                 this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
 
-                this.Volume=volFromCAS(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);          
+                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);          
                 
-                this.Volume = this.Volume  / single(this.VolumeSize * this.VolumeSize );
+%                 this.Volume = this.Volume  / single(this.VolumeSize * this.VolumeSize );
                 
+            else
+                this.Volume = this.Volume ./ 4;
             end
 
             Volume = single(this.Volume);         
@@ -304,10 +306,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
            
             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
-                this.Volume=volFromCAS(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
+                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
             end
 
            Volume = single(this.Volume); 
+           
+%            Volume = Volume  / single(this.VolumeSize * this.VolumeSize );
         end
     end
 end
