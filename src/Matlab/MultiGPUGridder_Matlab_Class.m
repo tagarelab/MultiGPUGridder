@@ -153,6 +153,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 error("The first dimension of coordAxes must be equal to 9")
             end
             
+            this.CheckParameters();
+            
             [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));                                 
             [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
@@ -216,7 +218,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     return
                 end
             end
-        
+
             if (this.RunFFTOnGPU == false)
                 [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
                 this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
@@ -313,5 +315,25 @@ classdef MultiGPUGridder_Matlab_Class < handle
            
 %            Volume = Volume  / single(this.VolumeSize * this.VolumeSize );
         end
+        %% CheckParameters - check that all the parameters and variables are valid
+        function CheckParameters(this)
+            
+            % Each x, y, and z component of the coordinate axes needs to have a norm of one
+            for i = 1:size(this.coordAxes,2)
+                for j = 1:3                    
+                    if norm(this.coordAxes((j-1)*3+1:j*3),2) ~= 1
+                        error("Invalid coordAxes parameter: Each x, y, and z component of the coordinate axes needs to have a norm of one")
+                    end
+                end
+            end
+                
+            
+            if this.interpFactor <= 0
+                error("Invalid Interp Factor parameter: must be a non-negative value")
+            end
+            
+            
+        end
+        
     end
 end
