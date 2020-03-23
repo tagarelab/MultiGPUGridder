@@ -31,7 +31,7 @@ public:
 	/// MultiGPUGridder constructor. The GPU_Devices array is a vector of Num_GPUs size which contains the NVIDIA device number for the GPUs to use which
 	/// ranges from 0 to the number of GPUs minus 1 on the current computer. RunFFTOnDevice is a flag to either run the forward and inverse Fourier transforms
 	/// on the GPUs (value of 1) or to run them on the host (value of 0) such as within Matlab or Python.
-	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice, bool verbose = false) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+	MultiGPUGridder(int VolumeSize, int numCoordAxes, float interpFactor, int extraPadding, int Num_GPUs, int *GPU_Devices, int RunFFTOnDevice, bool verbose = false) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor, extraPadding)
 	{
 
 		// Check the input parameters: Number of GPUs
@@ -69,7 +69,7 @@ public:
 			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
 			cudaDeviceReset();
 
-			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, RunFFTOnDevice, GPU_Devices[i], verbose);
+			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, extraPadding,RunFFTOnDevice, GPU_Devices[i], verbose);
 
 			// Save the new object to the vector of gpuGridder objects
 			gpuGridder_vec.push_back(gpuGridder_obj);

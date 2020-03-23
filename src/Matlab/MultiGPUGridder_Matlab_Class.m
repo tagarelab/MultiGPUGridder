@@ -51,8 +51,28 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
-            this.interpFactor = single(varargin{3});                                  
+            this.interpFactor = single(varargin{3});   
+            
+            % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
+            if(this.VolumeSize < 64)
+                this.interpFactor = 128 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
+                this.interpFactor = 256 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
+                this.interpFactor = 512 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
+                this.interpFactor = 1024 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            end
+            
+            
+                
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
+            
+%             this.extraPadding = 1% 256 - this.VolumeSize
             
             if (length(varargin) >= 4)
                 this.RunFFTOnGPU = varargin{4};
@@ -69,16 +89,17 @@ classdef MultiGPUGridder_Matlab_Class < handle
 %                     this.GPUs = int32([0,1,2,3]);
 %                 end
 %             end
-%             
+%               
             
-            gridder_Varargin = cell(7,1);
-            gridder_Varargin{1} = int32(varargin{1});
-            gridder_Varargin{2} = int32(varargin{2});
-            gridder_Varargin{3} = single(varargin{3});
-            gridder_Varargin{4} = int32(length(this.GPUs));
-            gridder_Varargin{5} = int32(this.GPUs);
-            gridder_Varargin{6} = int32(this.RunFFTOnGPU);
-            gridder_Varargin{7} = this.verbose;            
+            gridder_Varargin = cell(8,1);
+            gridder_Varargin{1} = int32(this.VolumeSize);
+            gridder_Varargin{2} = int32(this.NumAxes);
+            gridder_Varargin{3} = single(this.interpFactor);
+            gridder_Varargin{4} = int32(this.extraPadding);            
+            gridder_Varargin{5} = int32(length(this.GPUs));
+            gridder_Varargin{6} = int32(this.GPUs);
+            gridder_Varargin{7} = int32(this.RunFFTOnGPU);
+            gridder_Varargin{8} = this.verbose;            
             
             % Check that the GPU index vector is valid given the number of available GPUs on the computer
             if length(this.GPUs) > gpuDeviceCount
@@ -88,7 +109,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
 
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:8});           
                        
             % Initialize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
@@ -101,7 +122,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');              
         
             % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
-            if (this.RunFFTOnGPU == false)
+            if (this.RunFFTOnGPU == false) || this.verbose == true
  
                 % Create the CASImages array
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
@@ -146,11 +167,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             elseif size(this.Images(:,:,1),1) ~= size(this.Volume,1)
                 error("Images must be the same size as Volume")
             elseif size(this.Images(:,:,1),1) <= this.MaskRadius
-                error("Images must be larger than the MaskRadius")
+%                 error("Images must be larger than the MaskRadius")
             elseif size(this.Volume,1) <= this.MaskRadius
                 error("Volume must be larger than the MaskRadius")
-            elseif size(this.coordAxes,1) ~= 9
-                error("The first dimension of coordAxes must be equal to 9")
             end
             
             this.CheckParameters();

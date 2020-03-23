@@ -1,6 +1,6 @@
 #include "AbstractGridder.h"
 
-AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor)
+AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor, int extraPadding)
 {
     // Constructor for the abstract gridder class
     // Initialize parameters to default values
@@ -8,7 +8,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->interpFactor = interpFactor;
     this->kerSize = 501;
     this->kerHWidth = 2;
-    this->extraPadding = 3;
+    this->extraPadding = extraPadding;
     this->ErrorFlag = false;
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
     this->h_CASImgs = NULL;      // Optional input

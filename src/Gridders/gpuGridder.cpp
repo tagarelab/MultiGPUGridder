@@ -164,7 +164,7 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     this->gpuProjection_Obj->SetHostImages(this->h_Imgs);
     this->gpuProjection_Obj->SetHostKBPreCompArray(this->h_KBPreComp);
 
-    if (this->RunFFTOnDevice == false)
+    if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         this->gpuProjection_Obj->SetHostCASVolume(this->h_CASVolume);
         this->gpuProjection_Obj->SetHostCASImages(this->h_CASImgs);
@@ -194,7 +194,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     this->gpuProjection_Obj->SetHostImages(this->h_Imgs);
     this->gpuProjection_Obj->SetHostKBPreCompArray(this->h_KBPreComp);
 
-    if (this->RunFFTOnDevice == false)
+    if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         this->gpuProjection_Obj->SetHostCASVolume(this->h_CASVolume);
         this->gpuProjection_Obj->SetHostCASImages(this->h_CASImgs);

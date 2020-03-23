@@ -34,7 +34,7 @@ public:
      * for forward and back projection, and the interpolation factor for upsampling the volume for the forward and 
      * inverse Fourier transform.
      */
-    AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor);
+    AbstractGridder(int VolumeSize, int numCoordAxes, float interpFactor, int extraPadding);
 
     // Deconstructor
     ~AbstractGridder();
