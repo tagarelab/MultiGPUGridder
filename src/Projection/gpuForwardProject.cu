@@ -86,8 +86,12 @@ __global__ void gpuForwardProjectKernel(const float *vol, int volSize, float *im
                         wk = *(locKer + kerIndex);
                         w = wi * wj * wk;
 
-                        *(img_ptr + j * imgSize + i) = *(img_ptr + j * imgSize + i) +
-                                                       w * (*(vol + k1 * volSize * volSize + j1 * volSize + i1));
+                        // Make sure we are within the bounds of the volume
+                        if (k1 * volSize * volSize + j1 * volSize + i1 < volSize * volSize * volSize)
+                        {
+                            *(img_ptr + j * imgSize + i) = *(img_ptr + j * imgSize + i) +
+                                                           w * (*(vol + k1 * volSize * volSize + j1 * volSize + i1));
+                        }
 
                     } //End k1
                 }     //End j1
