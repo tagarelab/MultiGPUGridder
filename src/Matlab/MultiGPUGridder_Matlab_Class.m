@@ -8,12 +8,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verbose = true;
+        verbose = false;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0,1,2,3]);
+        GPUs = int32([]);
         MaxAxesToAllocate;
         nStreamsFP = 10; % For the forward projection
         nStreamsBP = 4; % For the back projection
@@ -56,40 +56,29 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
             if(this.VolumeSize < 64)
                 this.interpFactor = 128 / single(this.VolumeSize);
-                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
                 this.interpFactor = 256 / single(this.VolumeSize);
-                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
                 this.interpFactor = 512 / single(this.VolumeSize);
-                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
                 this.interpFactor = 1024 / single(this.VolumeSize);
-                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             end
             
-            
+            % If the GPUs to use was not given use all the available GPUs
+            if isempty(this.GPUs)
+                this.GPUs = int32([1:gpuDeviceCount]) - 1; % CUDA GPU device numbers need to start at zero
+            end            
                 
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
             
-%             this.extraPadding = 1% 256 - this.VolumeSize
             
             if (length(varargin) >= 4)
                 this.RunFFTOnGPU = varargin{4};
             end
-
-%             if (length(varargin) >= 5)
-%                 if varargin{5} == 1
-%                     this.GPUs = int32([0]);
-%                 elseif varargin{5} == 2
-%                     this.GPUs = int32([0,1]);
-%                 elseif varargin{5} == 3
-%                     this.GPUs = int32([0,1,2]);
-%                 elseif varargin{5} == 4
-%                     this.GPUs = int32([0,1,2,3]);
-%                 end
-%             end
-%               
             
             gridder_Varargin = cell(8,1);
             gridder_Varargin{1} = int32(this.VolumeSize);
@@ -311,7 +300,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
                 this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);          
                 
-%                 this.Volume = this.Volume  / single(this.VolumeSize * this.VolumeSize );
                 
             else
                 this.Volume = this.Volume ./ 4;
@@ -340,8 +328,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Each x, y, and z component of the coordinate axes needs to have a norm of one
             for i = 1:size(this.coordAxes,2)
                 for j = 1:3                    
-                    if norm(this.coordAxes((j-1)*3+1:j*3),2) ~= 1
-                        error("Invalid coordAxes parameter: Each x, y, and z component of the coordinate axes needs to have a norm of one")
+                    if norm(this.coordAxes((j-1)*3+1:j*3),2) - 1 > 0.0001 % Account for rounding errors
+                        warning("Invalid coordAxes parameter: Each x, y, and z component of the coordinate axes needs to have a norm of one")
                     end
                 end
             end

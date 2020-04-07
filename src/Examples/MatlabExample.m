@@ -32,14 +32,14 @@ gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes * n2_axes, interpFact
 % Set the volume
 gridder.setVolume(MRI_volume);
 
-% Run the forward projection once to allocate the memory
+% Run the forward projection once to allocate the memory (to get a more accurate timing below)
 images = gridder.forwardProject(coordAxes);    
 
 % Run the forward projection
 tic
 images = gridder.forwardProject(coordAxes);    
 disp("Forward Project: " + toc + " seconds")
-easyMontage(images(:,:,1:100), 1)
+easyMontage(images(:,:,1:min(100, size(images,3))), 1)
 
 % Run the back projection
 gridder.resetVolume();
@@ -53,9 +53,9 @@ disp("Get volume: " + toc + " seconds")
 easyMontage(vol, 2)
 
 % Reconstruct the volume
-% tic
+tic
 reconstructVol = gridder.reconstructVol();
-% disp("Reconstruct Volume: " + toc + " seconds")
+disp("Reconstruct Volume: " + toc + " seconds")
 easyMontage(reconstructVol, 3)
 
 disp("Total time: " + toc(start))
