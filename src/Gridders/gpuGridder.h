@@ -58,7 +58,7 @@ class gpuGridder : public AbstractGridder
 
 public:
     // / gpuGridder Constructor. Set RunFFTOnDevice to 1 for true and 0 for false. GPU_Device is the NVIDIA GPU device number and starts at 0.
-    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int RunFFTOnDevice, int GPU_Device, bool verbose = false) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor)
+    gpuGridder(int VolumeSize, int numCoordAxes, float interpFactor, int extraPadding, int RunFFTOnDevice, int GPU_Device, bool verbose = false) : AbstractGridder(VolumeSize, numCoordAxes, interpFactor, extraPadding)
     {
         // Set default values
         this->VolumeToCASVolumeFlag = false;

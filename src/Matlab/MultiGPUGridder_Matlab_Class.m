@@ -13,7 +13,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([0,1,2,3]);
+        GPUs = int32([]);
         MaxAxesToAllocate;
         nStreamsFP = 10; % For the forward projection
         nStreamsBP = 4; % For the back projection
@@ -51,38 +51,54 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
-            this.interpFactor = single(varargin{3});                                  
+            this.interpFactor = single(varargin{3});   
+            
+            % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
+            if(this.VolumeSize < 64)
+                this.interpFactor = 128 / single(this.VolumeSize);
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
+                this.interpFactor = 256 / single(this.VolumeSize);
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
+                this.interpFactor = 512 / single(this.VolumeSize);
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
+                this.interpFactor = 1024 / single(this.VolumeSize);
+%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            end
+            
+            % If the GPUs to use was not given use all the available GPUs
+            if isempty(this.GPUs)
+                this.GPUs = int32([1:gpuDeviceCount]) - 1; % CUDA GPU device numbers need to start at zero
+            end            
+                
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
+            
             
             if (length(varargin) >= 4)
                 this.RunFFTOnGPU = varargin{4};
             end
-
-%             if (length(varargin) >= 5)
-%                 if varargin{5} == 1
-%                     this.GPUs = int32([0]);
-%                 elseif varargin{5} == 2
-%                     this.GPUs = int32([0,1]);
-%                 elseif varargin{5} == 3
-%                     this.GPUs = int32([0,1,2]);
-%                 elseif varargin{5} == 4
-%                     this.GPUs = int32([0,1,2,3]);
-%                 end
-%             end
-%             
             
-            gridder_Varargin = cell(7,1);
-            gridder_Varargin{1} = int32(varargin{1});
-            gridder_Varargin{2} = int32(varargin{2});
-            gridder_Varargin{3} = single(varargin{3});
-            gridder_Varargin{4} = int32(length(this.GPUs));
-            gridder_Varargin{5} = int32(this.GPUs);
-            gridder_Varargin{6} = int32(this.RunFFTOnGPU);
-            gridder_Varargin{7} = this.verbose;            
+            gridder_Varargin = cell(8,1);
+            gridder_Varargin{1} = int32(this.VolumeSize);
+            gridder_Varargin{2} = int32(this.NumAxes);
+            gridder_Varargin{3} = single(this.interpFactor);
+            gridder_Varargin{4} = int32(this.extraPadding);            
+            gridder_Varargin{5} = int32(length(this.GPUs));
+            gridder_Varargin{6} = int32(this.GPUs);
+            gridder_Varargin{7} = int32(this.RunFFTOnGPU);
+            gridder_Varargin{8} = this.verbose;            
             
+            % Check that the GPU index vector is valid given the number of available GPUs on the computer
+            if length(this.GPUs) > gpuDeviceCount
+                error("Requested more GPUs than are available. Please change the GPUs vector in MultiGPUGridder class.")
+            elseif max(this.GPUs(:)) - 1 > gpuDeviceCount
+                error("GPU index must range from 0 to the number of available GPUs. Please change the GPUs vector in MultiGPUGridder class.")
+            end
 
             % Create the gridder instance
-            this.objectHandle = mexCreateGridder(gridder_Varargin{1:7});           
+            this.objectHandle = mexCreateGridder(gridder_Varargin{1:8});           
                        
             % Initialize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
@@ -95,7 +111,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');              
         
             % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
-            if (this.RunFFTOnGPU == false)
+            if (this.RunFFTOnGPU == false) || this.verbose == true
  
                 % Create the CASImages array
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
@@ -111,7 +127,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
-            InterpVolSize = this.VolumeSize * int32(this.interpFactor);
+            InterpVolSize = single(this.VolumeSize) * single(this.interpFactor);
             this.KBPreComp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');    
            
             preComp=getPreComp(InterpVolSize,this.kerHWidth);
@@ -130,7 +146,22 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if (isempty(this.coordAxes) || isempty(this.Volume) || isempty(this.Images) ...
                 || isempty(this.GPUs) || isempty(this.KBTable) || isempty(this.nStreamsFP) || isempty(this.nStreamsBP))
                 error("Error: Required array is missing in Set() function.")             
-            end                    
+            end              
+            
+            % Check the sizes of the input variables
+            if unique(size(this.Volume)) ~= size(this.Volume,1)
+                error("Volume must be a square")
+            elseif unique(size(this.Images(:,:,1))) ~= size(this.Images(:,:,1),1)
+                error("Images must be a square")
+            elseif size(this.Images(:,:,1),1) ~= size(this.Volume,1)
+                error("Images must be the same size as Volume")
+            elseif size(this.Images(:,:,1),1) <= this.MaskRadius
+%                 error("Images must be larger than the MaskRadius")
+            elseif size(this.Volume,1) <= this.MaskRadius
+                error("Volume must be larger than the MaskRadius")
+            end
+            
+            this.CheckParameters();
             
             [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));                                 
@@ -195,10 +226,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     return
                 end
             end
-        
+
             if (this.RunFFTOnGPU == false)
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                this.CASVolume = CASFromVol(this.Volume, this.kerHWidth, origBox, interpBox, CASBox, []);
+                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
+                this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
@@ -264,15 +295,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
-                
                 % Normalize by the plane density               
                 this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
 
-                this.Volume = volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);            
+                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);          
                 
-                this.Volume = this.Volume  / single(this.VolumeSize * this.VolumeSize );
                 
+            else
+                this.Volume = this.Volume ./ 4;
             end
 
             Volume = single(this.Volume);         
@@ -285,12 +315,32 @@ classdef MultiGPUGridder_Matlab_Class < handle
            
             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-
-                this.Volume=volFromCAS(this.CASVolume,CASBox,interpBox,origBox,this.kerHWidth);
+                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
             end
 
            Volume = single(this.Volume); 
+           
+%            Volume = Volume  / single(this.VolumeSize * this.VolumeSize );
         end
+        %% CheckParameters - check that all the parameters and variables are valid
+        function CheckParameters(this)
+            
+            % Each x, y, and z component of the coordinate axes needs to have a norm of one
+            for i = 1:size(this.coordAxes,2)
+                for j = 1:3                    
+                    if norm(this.coordAxes((j-1)*3+1:j*3),2) - 1 > 0.0001 % Account for rounding errors
+                        warning("Invalid coordAxes parameter: Each x, y, and z component of the coordinate axes needs to have a norm of one")
+                    end
+                end
+            end
+                
+            
+            if this.interpFactor <= 0
+                error("Invalid Interp Factor parameter: must be a non-negative value")
+            end
+            
+            
+        end
+        
     end
 end

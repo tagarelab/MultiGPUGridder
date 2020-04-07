@@ -302,7 +302,8 @@ void MultiGPUGridder::CASVolumeToVolume()
         // Combine the volume arrays from each GPU and copy back to the host
         SumVolumes();
     }
-    else
+
+    if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         // We're not running the FFT on the GPU so send the required arrays back to the CPU memory
 
@@ -380,7 +381,8 @@ void MultiGPUGridder::ReconstructVolume()
         // Sum the reconstructed volumes on the CPU
         SumVolumes();
     }
-    else
+    
+    if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         // We're not running the FFT on the GPU so send the need arrays back to the CPU memory
 
