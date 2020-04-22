@@ -14,7 +14,7 @@ addpath(genpath("/home/brent/cryo_EM/lib"))
 % Parameters for creating the volume and coordinate axes
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 100;
+n1_axes = 1000;
 n2_axes = 100;
 
 % Create the volume

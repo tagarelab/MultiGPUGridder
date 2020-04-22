@@ -47,11 +47,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
 %             mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
 %             addpath(fullfile(mfilepath,'./utils'));
 %             addpath(fullfile(mfilepath,'../../bin'));
+
  
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
             this.interpFactor = single(varargin{3});   
+            
+            % Create the Volume array
+            this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');
             
             % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
             if(this.VolumeSize < 64)
@@ -61,11 +65,18 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.interpFactor = 256 / single(this.VolumeSize);
 %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
-                this.interpFactor = 512 / single(this.VolumeSize);
+                this.interpFactor = single(512 / double(this.VolumeSize));
 %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
                 this.interpFactor = 1024 / single(this.VolumeSize);
 %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            end
+            
+            % Test whether the new interpFactor is valid or not
+            try
+                tmp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');
+            catch
+                this.interpFactor = single(2); % Reset to the default value of two
             end
             
             % If the GPUs to use was not given use all the available GPUs
@@ -105,10 +116,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
             
             % Load the Kaiser Bessel lookup table
-            this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize)); 
-
-            % Create the Volume array
-            this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');              
+            this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize));            
         
             % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
             if (this.RunFFTOnGPU == false) || this.verbose == true
