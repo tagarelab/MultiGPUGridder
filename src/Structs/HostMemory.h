@@ -11,6 +11,7 @@
  * */
 
 #include <cstdlib>
+#include <memory>
 #include <stdio.h>
 #include <cstring>
 #include <iostream>

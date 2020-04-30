@@ -213,9 +213,8 @@ public:
     /// Free the GPU memory
     void DeallocateGPUArray()
     {
-        std::cout << "DeallocateGPUArray():" << '\n';
         gpuErrorCheck(cudaSetDevice(this->GPU_Device));
-        // gpuErrorCheck(cudaFree(this->ptr));
+
 
         this->Allocated = false;
     }

@@ -102,13 +102,15 @@ void MultiGPUGridder::ForwardProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
-    std::thread *CPUThreads;
+    std::vector<std::thread> CPUThreads;
+
     if (this->UseMultiThread == true)
     {
-        // Create an array of CPU threads with one CPU thread for each GPU
+        // Reserve space for CPU threads with one CPU thread for each GPU
         // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
         // Such as cudaMalloc or cudaDeviceSynchronize
-        CPUThreads = new std::thread[Num_GPUs];
+        CPUThreads.reserve(Num_GPUs);
+
     }
 
     if (this->verbose == true)
@@ -159,7 +161,7 @@ void MultiGPUGridder::ForwardProject()
         if (this->UseMultiThread == true)
         {
             // Multi thread version
-            CPUThreads[i] = std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+            CPUThreads.push_back(std::thread(&gpuGridder::ForwardProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]));
         }
         else
         {
@@ -177,8 +179,12 @@ void MultiGPUGridder::ForwardProject()
         }
     }
 
+CPUThreads.clear();
+CPUThreads.shrink_to_fit();
+
     // Synchronize all of the GPUs
     GPU_Sync();
+
 }
 
 void MultiGPUGridder::BackProject()
@@ -188,13 +194,13 @@ void MultiGPUGridder::BackProject()
     // So we just need to pass an offset (in number of coordinate axes) from the beginning
     // To select the subset of axes to process
 
-     std::thread *CPUThreads;
+    std::vector<std::thread> CPUThreads;
     if (this->UseMultiThread == true)
     {
-        // Create an array of CPU threads with one CPU thread for each GPU
+        // Reserve space for CPU threads with one CPU thread for each GPU
         // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
         // Such as cudaMalloc or cudaDeviceSynchronize
-        CPUThreads = new std::thread[Num_GPUs];
+        CPUThreads.reserve(Num_GPUs);
     }
 
     if (this->verbose == true)
@@ -243,7 +249,7 @@ void MultiGPUGridder::BackProject()
         if (this->UseMultiThread == true)
         {
             // Multi thread version
-            CPUThreads[i] = std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+            CPUThreads.push_back(std::thread(&gpuGridder::BackProject, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]));
         }
         else
         {
@@ -258,8 +264,12 @@ void MultiGPUGridder::BackProject()
         for (int i = 0; i < Num_GPUs; i++)
         {
             CPUThreads[i].join();
+
         }
     }
+
+CPUThreads.clear();
+CPUThreads.shrink_to_fit();
 
     // Synchronize all of the GPUs
     GPU_Sync();
@@ -320,13 +330,13 @@ void MultiGPUGridder::ReconstructVolume()
     // First calculate the plane density on each GPU
     // Then combine the CASVolume and plane density arrays and convert to volume
 
-    // Create an array of CPU threads with one CPU thread for each GPU
-    // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
-    // Such as cudaMalloc or cudaDeviceSynchronize
-     std::thread *CPUThreads;
+    std::vector<std::thread> CPUThreads;
     if (this->UseMultiThread == true)
     {
-        CPUThreads = new std::thread[Num_GPUs];
+        // Reserve space for CPU threads with one CPU thread for each GPU
+        // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
+        // Such as cudaMalloc or cudaDeviceSynchronize
+        CPUThreads.reserve(Num_GPUs);
     }
 
     // Synchronize all of the GPUs
@@ -345,7 +355,7 @@ void MultiGPUGridder::ReconstructVolume()
         if (this->UseMultiThread == true)
         {
             // Multi thread version
-            CPUThreads[i] = std::thread(&gpuGridder::CalculatePlaneDensity, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
+            CPUThreads.push_back(std::thread(&gpuGridder::CalculatePlaneDensity, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]));
         }
         else
         {
@@ -381,7 +391,7 @@ void MultiGPUGridder::ReconstructVolume()
         // Sum the reconstructed volumes on the CPU
         SumVolumes();
     }
-    
+
     if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         // We're not running the FFT on the GPU so send the need arrays back to the CPU memory
@@ -416,7 +426,7 @@ void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
 
     gpuErrorCheck(cudaDeviceSynchronize());
     gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
-    AddVolumeFilter *AddFilter = new AddVolumeFilter();
+	std::unique_ptr<AddVolumeFilter> AddFilter(new AddVolumeFilter());
 
     int CASVolumeSize = this->h_Volume->GetSize(0) * this->interpFactor + this->extraPadding * 2;
 
@@ -435,8 +445,6 @@ void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
             }
         }
     }
-
-    delete AddFilter;
 
     // Copy the resulting array to the pinned host memory if the pointer exists
     if (this->h_CASVolume != NULL)
@@ -458,7 +466,8 @@ void MultiGPUGridder::AddPlaneDensities(int GPU_For_Reconstruction)
 
     gpuErrorCheck(cudaDeviceSynchronize());
     gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
-    AddVolumeFilter *AddFilter = new AddVolumeFilter();
+    std::unique_ptr<AddVolumeFilter> AddFilter(new AddVolumeFilter());
+
 
     int PlaneDensityVolumeSize = this->h_Volume->GetSize(0) * this->interpFactor + this->extraPadding * 2;
 
@@ -477,9 +486,7 @@ void MultiGPUGridder::AddPlaneDensities(int GPU_For_Reconstruction)
             }
         }
     }
-
-    delete AddFilter;
-
+    
     // Copy the resulting array to the pinned host memory if the pointer exists
     if (this->h_PlaneDensity != NULL)
     {
@@ -630,8 +637,10 @@ void MultiGPUGridder::FreeMemory()
             std::cout << "MultiGPUGridder::FreeMemory() on GPU " << this->GPU_Devices[i] << '\n';
         }
 
-        delete gpuGridder_vec[i];
     }
+
+    //delete [] gpuGridder_vec;
+
 }
 
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)
