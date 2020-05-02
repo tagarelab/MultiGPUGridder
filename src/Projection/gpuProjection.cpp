@@ -396,7 +396,6 @@ void gpuProjection::VolumeToCASVolume()
     this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
 
     // STEP 1: Pad the input volume with zeros
-    //PadVolumeFilter *PadFilter = new PadVolumeFilter();
     std::unique_ptr<PadVolumeFilter> PadFilter(new PadVolumeFilter());
     PadFilter->SetInput(this->d_Volume->GetPointer());
     PadFilter->SetOutput(this->d_PaddedVolume->GetPointer());
@@ -495,12 +494,6 @@ void gpuProjection::CASVolumeToVolume()
     int CroppedCASVolumeSize = CASVolumeSize - extraPadding * 2;
     int VolumeSize = this->d_Volume->GetSize(1);
 
-    // Allocate GPU memory for CAS volume without the extra padding
-    //float *d_CASVolume_Cropped;
-    //gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
-
-    // Allocate GPU memory for cufftComplex type of the cropped CAS volume (i.e. d_CASVolume_Cropped)
-
     // Remove the extraPadding from the CAS volume
     std::unique_ptr<CropVolumeFilter> CropFilter(new CropVolumeFilter());
     CropFilter->SetInput(this->d_CASVolume->GetPointer());
@@ -573,20 +566,12 @@ void gpuProjection::CASVolumeToVolume()
 
     gpuErrorCheck(cudaDeviceSynchronize());
 
-    // Free the temporary variables
-    // gpuErrorCheck(cudaFree(d_KBPreComp));
-    // gpuErrorCheck(cudaFree(d_CASVolume_Cropped));
-    //gpuErrorCheck(cudaFree(d_CASVolume_Cropped_Complex));
 }
 
 void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex *CASImgsComplex)
 {
     // Convert CAS images to images using an inverse FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
-
-    // // Allocate the complex CAS images array
-    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
-    // CASImgsComplex->AllocateGPUArray();
 
     if (this->verbose == true)
     {
@@ -670,18 +655,12 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     DivideScalar->SetNumberOfSlices(numImgs);
     DivideScalar->Update(&stream);
 
-    // cudaFree(CASImgsComplex->GetPointer());
-    // delete CASImgsComplex;
 }
 
 void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs)
 {
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
-
-    // // Allocate the complex CAS images array
-    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
-    // CASImgsComplex->AllocateGPUArray();
 
     if (this->verbose == true)
     {
@@ -757,8 +736,6 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     ComplexToCAS->SetNumberOfSlices(numImgs);
     ComplexToCAS->Update(&stream);
 
-    //cudaFree(CASImgsComplex->GetPointer());
-    //delete CASImgsComplex;
 }
 
 void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
