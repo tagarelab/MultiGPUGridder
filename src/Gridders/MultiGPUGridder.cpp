@@ -574,6 +574,8 @@ void MultiGPUGridder::SumVolumes()
         {
             SummedVolume[i] = SummedVolume[i] + tempVolume[i];
         }
+
+        delete[] tempVolume;
     }
 
     // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)

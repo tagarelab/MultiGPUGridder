@@ -257,7 +257,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,:) = single(varargin{1});            
+                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1});            
                 
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
@@ -268,11 +268,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
                 % A new set of coordinate axes to use with the back projection was passed
                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-                if ~isempty(this.coordAxes)
-                    this.coordAxes(:) = tempAxes(:);
-                else
+%                 if ~isempty(this.coordAxes)
+%                     this.coordAxes(1:length(tempAxes(:))) = tempAxes(:);
+%                 else
+                    clear this.coordAxes;
                     this.coordAxes = tempAxes(:);
-                end
+%                 end
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed

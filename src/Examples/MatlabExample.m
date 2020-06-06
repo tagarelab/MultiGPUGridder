@@ -14,7 +14,7 @@ addpath(genpath("/home/brent/cryo_EM/lib"))
 % Parameters for creating the volume and coordinate axes
 VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 1000;
+n1_axes = 100;
 n2_axes = 100;
 
 % Create the volume
@@ -54,9 +54,9 @@ easyMontage(vol, 2)
 
 % Reconstruct the volume
 tic
-reconstructVol = gridder.reconstructVol();
-disp("Reconstruct Volume: " + toc + " seconds")
-easyMontage(reconstructVol, 3)
+% reconstructVol = gridder.reconstructVol();
+% disp("Reconstruct Volume: " + toc + " seconds")
+% easyMontage(reconstructVol, 3)
 
 disp("Total time: " + toc(start))
 % quit % Needed if running the NVIDIA profiler
