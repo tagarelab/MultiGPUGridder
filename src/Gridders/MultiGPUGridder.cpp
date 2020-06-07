@@ -532,6 +532,8 @@ void MultiGPUGridder::SumCASVolumes()
         {
             SummedVolume[i] = SummedVolume[i] + tempVolume[i];
         }
+
+        delete[] tempVolume;
     }
 
     // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)
@@ -616,6 +618,9 @@ void MultiGPUGridder::SumPlaneDensity()
         {
             SummedVolume[i] = SummedVolume[i] + tempVolume[i];
         }
+
+        delete[] tempVolume;        
+
     }
 
     // Copy the resulting summed plane densities to the pinned CPU array (if a pointer was previously provided)
