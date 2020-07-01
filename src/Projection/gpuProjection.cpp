@@ -267,6 +267,7 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
 
         std::cout << "gpuProjection::PlanOffsetValues() "
                   << " number of axes to process on this GPU  " << nAxes << '\n';
+
         std::cout << "gpuProjection::PlanOffsetValues() "
                   << "number of streams for this GPU " << numStreams << '\n';
     }
@@ -281,6 +282,18 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
                 continue;
             }
 
+std::cout << "processed_nAxes: " << processed_nAxes << '\n';
+std::cout << "nAxes: " << nAxes << '\n';
+
+            // Have all the axes been processed?
+            if (processed_nAxes >= nAxes)
+            {
+                Offsets_obj.numAxesPerStream.push_back(0);
+
+                std::cout << "Offsets_obj.numAxesPerStream.push_back(0)" << '\n';
+                continue;
+            }
+            
             // Save the current batch number
             Offsets_obj.currBatch.push_back(batch);
 
@@ -347,12 +360,6 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
 
             // Remember which stream this is
             Offsets_obj.stream_ID.push_back(i);
-
-            // Have all the axes been processed?
-            if (processed_nAxes == nAxes)
-            {
-                break;
-            }
         }
 
         // Increment the batch number

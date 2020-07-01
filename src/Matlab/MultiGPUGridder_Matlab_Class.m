@@ -240,6 +240,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
             end
             
+            if size(this.coordAxes,2) < this.nStreamsFP
+                error("The number of projection directions must be >= the number of CUDA streams.")
+            end
+            
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);            
             
@@ -248,7 +252,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
             end
             
-            ProjectionImages = this.Images;           
+            % Consider if we forward project less number of images then we first allocated for
+            ProjectionImages = this.Images(:,:,1:size(this.coordAxes,2));            
             
         end         
         %% BackProject - Run the back projection function
