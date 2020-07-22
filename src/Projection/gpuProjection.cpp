@@ -1020,7 +1020,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 Offsets_obj.numAxesPerStream[i]);
         }
-        this->d_CASVolume->Reset(); // needed?
+        
         // Run the back projection kernel
         gpuBackProject::RunKernel(
             this->d_CASVolume->GetPointer(),
