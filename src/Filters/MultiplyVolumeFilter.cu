@@ -21,8 +21,8 @@ __global__ void MultiplyVolumesKernel(cufftComplex *VolumeOne, float *VolumeTwo,
         int ndx = i + j * VolumeSize + k * VolumeSize * VolumeSize;
 
         // Multiply together
-        // Only multiply the real component of the cufftComplex array for now
         VolumeOne[ndx].x = VolumeOne[ndx].x * VolumeTwo[ndx];
+        VolumeOne[ndx].y = VolumeOne[ndx].y * VolumeTwo[ndx];
     }
 }
 
@@ -61,8 +61,6 @@ void MultiplyVolumeFilter<T>::UpdateFilter(T *Input, float *Output, cudaStream_t
 {
     // Add two GPU arrays (of dimensions 3) together
     // Equation: VolumeOne = VolumeOne + VolumeTwo
-
-    // std::cout << "MultiplyVolumeFilter()..." << '\n';
 
     // Check the input parameters
     if (this->VolumeSize <= 0)

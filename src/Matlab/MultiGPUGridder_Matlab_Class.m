@@ -5,10 +5,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = false;        
+        RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verbose = false;
+        verbose = true;
         
         % Int 32 type variables        
         VolumeSize;        

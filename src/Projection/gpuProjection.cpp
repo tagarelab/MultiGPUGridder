@@ -192,6 +192,17 @@ void gpuProjection::InitializeGPUArrays()
         // Allocate the complex CAS images array
         this->d_CASImgsComplex = new DeviceMemory<cufftComplex>(3, CASimgs_size, this->GPU_Device);
         this->d_CASImgsComplex->AllocateGPUArray();
+
+        // Are we running the FFT on the device and applying the CTFs?
+        if (this->ApplyCTFs == true)
+        {
+            this->d_CTFsPadded = new DeviceMemory<float>(3, CASimgs_size, this->GPU_Device);
+            this->d_CTFsPadded->AllocateGPUArray();
+
+            // Allocate the images
+            this->d_CTFs = new DeviceMemory<float>(3, imgs_size, this->GPU_Device);
+            this->d_CTFs->AllocateGPUArray();
+        }
     }
 
     // Allocate the CAS images
@@ -680,7 +691,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     DivideScalar->Update(&stream);
 }
 
-void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, float *CTFs, int numImgs)
+void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, float *CTFs, float *CTFsPadded, int numImgs)
 {
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
@@ -694,7 +705,6 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftCom
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);
 
-    // this->d_CASImgsComplex->Reset();
 
     // Has the forward FFT been planned? If not create one now
     if (this->forwardFFTImagesFlag == false)
@@ -751,36 +761,29 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftCom
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
 
-    // if (this->ApplyCTF == true)
-    // {
-    //     // First pad the CTFs with zeros to be the same size as CASImgs
-    //     std::unique_ptr<PadVolumeFilter> PadFilter(new PadVolumeFilter());
-    //     PadFilter->SetInput(CTFs);
-    //     PadFilter->SetOutput(CTFS_Padded);
-    //     PadFilter->SetInputSize(ImgSize); // CTFs are the same size as the images
-    //     PadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
-    //     PadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
-    //     PadFilter->SetPaddingZ(0);
-    //     PadFilter->SetNumberOfSlices(numImgs);
-    //     PadFilter->Update(&stream);
+    if (this->ApplyCTFs == true)
+    {
+        // First pad the CTFs with zeros to be the same size as CASImgs
+        // std::unique_ptr<PadVolumeFilter> PadFilter(new PadVolumeFilter());
+        PadFilter->SetInput(CTFs);
+        PadFilter->SetOutput(CTFsPadded);
+        PadFilter->SetInputSize(ImgSize); // CTFs are the same size as the images
+        PadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
+        PadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
+        PadFilter->SetPaddingZ(0);
+        PadFilter->SetNumberOfSlices(numImgs);
+        PadFilter->Update(&stream);
 
-    //     // Convert the CTFs to complex cufft type
-    //     std::unique_ptr<RealToComplexFilter> RealFilter(new RealToComplexFilter());
-    //     RealFilter->SetRealInput(CTFS_Padded);
-    //     RealFilter->SetComplexOutput(CTFS_Padded->GetPointer());
-    //     RealFilter->SetVolumeSize(CASImgSize);
-    //     RealFilter->SetNumberOfSlices(numImgs);
-    //     RealFilter->Update(&stream);
+        // Multiply the CASImgsComplex with the CTFs
+        std::unique_ptr<MultiplyVolumeFilter<cufftComplex>> MultiplyFilter(new MultiplyVolumeFilter<cufftComplex>());
+        MultiplyFilter->SetVolumeSize(CASImgSize);
+        MultiplyFilter->SetVolumeOne(CASImgsComplex);
+        MultiplyFilter->SetVolumeTwo(CTFsPadded);
+        MultiplyFilter->SetNumberOfSlices(numImgs);
+        MultiplyFilter->Update(&stream);
 
-    //     // Multiply the d_CASImgsComplex with the CTFs
-    //     std::unique_ptr<MultiplyVolumeFilter<float>> MultiplyFilter(new MultiplyVolumeFilter<float>());
-    //     MultiplyFilter->SetVolumeSize(CTFS_Padded->GetSize(1));
-    //     MultiplyFilter->SetVolumeOne(this->d_CASImgsComplex->GetPointer());
-    //     MultiplyFilter->SetVolumeTwo(CTFS_Padded->GetPointer());
-    //     MultiplyFilter->Update();
-
-    //     aaa
-    // }
+        //     aaa
+    }
 
     // Convert the complex result of the forward FFT to a CAS img type
     std::unique_ptr<ComplexToCASFilter> ComplexToCAS(new ComplexToCASFilter());
@@ -958,7 +961,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     // Reset the CAS volume on the device to all zeros before the back projection
     this->d_Imgs->Reset();
     this->d_CASImgs->Reset();
-    this->d_CASVolume->Reset(); // needed?
+    this->d_CASVolume->Reset(); 
     this->d_CoordAxes->Reset();
     this->d_Volume->Reset();
 
@@ -1031,6 +1034,12 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 BP_streams[Offsets_obj.stream_ID[i]]));
 
             gpuErrorCheck(cudaMemsetAsync(
+                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                0,
+                Offsets_obj.gpuCASImgs_streamBytes[i],
+                BP_streams[Offsets_obj.stream_ID[i]]));
+
+            gpuErrorCheck(cudaMemsetAsync(
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 0,
                 2 * Offsets_obj.gpuCASImgs_streamBytes[i],
@@ -1044,7 +1053,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 cudaMemcpyHostToDevice,
                 BP_streams[Offsets_obj.stream_ID[i]]));
 
-            // if (this->ApplyCTF == true)
+            // if (this->ApplyCTFs == true)
             // {
             //     // Apply the CTFs to the images after taking the FFT
             //     // Copy the section of the CTFs to the GPU
@@ -1067,17 +1076,23 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
             // }
             // else
             // {
-                // Since we aren't applying the CTFs, pass a null pointer instead
-                // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
-                this->ImgsToCASImgs(
-                    BP_streams[Offsets_obj.stream_ID[i]],
-                    this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                    this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                    this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                    NULL,
-                    Offsets_obj.numAxesPerStream[i]);
+                
+                  this->d_CTFs->Reset();
+                  this->d_CTFsPadded->Reset();
+
+            // Since we aren't applying the CTFs, pass a null pointer instead
+            // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
+            this->ImgsToCASImgs(
+                BP_streams[Offsets_obj.stream_ID[i]],
+                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                this->d_CTFs->GetPointer(0),
+                this->d_CTFsPadded->GetPointer(0),
+                Offsets_obj.numAxesPerStream[i]);
             // }
             // aaa
+            
         }
 
         // Run the back projection kernel
@@ -1094,6 +1109,8 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
             this->d_KB_Table->GetSize(0),
             this->extraPadding,
             &BP_streams[Offsets_obj.stream_ID[i]]);
+
+            
     }
 }
 
