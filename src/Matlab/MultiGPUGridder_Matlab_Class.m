@@ -5,7 +5,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = true;        
+        RunFFTOnGPU = false;        
         
         % Flag for status output to the console
         verbose = false;
@@ -220,6 +220,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
                 if length(varargin) == 1
                     % A new set of coordinate axes was passed
+                    % (:,1:size(single(varargin{1}),2))
                     this.coordAxes = single(varargin{1});            
                     
                 elseif length(varargin) == 3
@@ -244,12 +245,18 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 error("The number of projection directions must be >= the number of CUDA streams.")
             end
             
+%             % Need to re-allocate since the number of axes may be different then last time it ran
+%             this.Images = single(zeros([this.VolumeSize this.VolumeSize size(this.coordAxes,2)]));
+%             if (this.RunFFTOnGPU == false)
+%                 this.CASImages = single(zeros([size(this.CASImages,1) size(this.CASImages,1) size(this.coordAxes,2)]));
+%             end
+            
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);            
             
             % Run the inverse FFT on the CAS images
             if (this.RunFFTOnGPU == false)
-                this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+                this.Images(:,:,1:size(this.coordAxes,2)) = imgsFromCASImgs(this.CASImages(:,:,1:size(this.coordAxes,2)), interpBox, []); 
             end
             
             % Consider if we forward project less number of images then we first allocated for
@@ -262,22 +269,31 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1});            
+                % (:,:,1:size(varargin{1},3))
+                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
                 
+%                 this.Images = single(varargin{1});  
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
                     [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    newCASImgs = CASImgsFromImgs(this.Images, interpBox, []);
-                    this.CASImages(:,:,:) = newCASImgs; % Avoid Matlab's copy-on-write
+                    if length(varargin) == 3 && ~isempty(varargin{3})
+                        % An array of CTFs were supplied so lets use them for the back projection
+                        ctfs = varargin{3};
+                        newCASImgs = CASImgsFromImgsCTFs(this.Images(:,:,1:size(varargin{1},3)), ctfs, interpBox, []);
+                    else
+                        newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);
+                    
+                    end
+                    this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed
-                tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
+%                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
 %                 if ~isempty(this.coordAxes)
-%                     this.coordAxes(1:length(tempAxes(:))) = tempAxes(:);
+                    this.coordAxes = single(varargin{2});
 %                 else
-                    clear this.coordAxes;
-                    this.coordAxes = tempAxes(:);
+%                     clear this.coordAxes;
+%                     this.coordAxes = tempAxes(:);
 %                 end
             end
 
