@@ -29,6 +29,12 @@ class gpuProjection
 {
 
 public:
+    // Deconstructor
+    ~gpuProjection()
+    {
+        FreeMemory();
+    }
+
     // gpuProjection Constructor
     gpuProjection(int GPU_Device, int nStreamsFP, int nStreamsBP, int VolumeSize, float interpFactor, int numCoordAxes, int extraPadding, bool RunFFTOnDevice = true, bool verbose = false)
     {
@@ -190,8 +196,6 @@ private:
     DeviceMemory<cufftComplex> *d_CASVolume_Cropped_Complex; // For converting volume to CAS volume
     DeviceMemory<float> *d_KBPreComp;
 
-
-
     // For converting the volume to CAS volume
     bool forwardFFTVolumePlannedFlag;
     cufftHandle forwardFFTVolume;
@@ -208,7 +212,7 @@ private:
     Offsets PlanOffsetValues(int coordAxesOffset, int nAxes, int numStreams);
 
     // Convert CAS images to images using an inverse FFT
-    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex* CASImgsComplex);
+    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex *CASImgsComplex);
 
     // Should we print status information to the console?
     bool verbose;
@@ -221,4 +225,7 @@ private:
 
     // Flag to run the forward and inverse FFT on the GPU
     int RunFFTOnDevice;
+
+    // Free all of the allocated memory
+    void FreeMemory();
 };

@@ -17,6 +17,8 @@
  * first GPU for reconstructing the final volume.
  * */
 
+#include <memory>
+
 #include "AbstractGridder.h"
 #include "gpuGridder.h"
 #include "AddVolumeFilter.h"
@@ -69,7 +71,10 @@ public:
 			// Delete any CUDA contexts on the current device (i.e. remove all memory allocations)
 			cudaDeviceReset();
 
-			gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, extraPadding,RunFFTOnDevice, GPU_Devices[i], verbose);
+			//gpuGridder *gpuGridder_obj = new gpuGridder(VolumeSize, numCoordAxes, interpFactor, extraPadding,RunFFTOnDevice, GPU_Devices[i], verbose);
+
+    		std::shared_ptr<gpuGridder> gpuGridder_obj(new gpuGridder(VolumeSize, numCoordAxes, interpFactor, extraPadding,RunFFTOnDevice, GPU_Devices[i], verbose));
+
 
 			// Save the new object to the vector of gpuGridder objects
 			gpuGridder_vec.push_back(gpuGridder_obj);
@@ -78,7 +83,7 @@ public:
 		// Save the number of GPUs
 		this->Num_GPUs = Num_GPUs;
 
-		// Save the GPU device numbers
+		// Save the GPU device numbers		
 		this->GPU_Devices = new int[Num_GPUs];
 		for (int i = 0; i < Num_GPUs; i++)
 		{
@@ -147,7 +152,7 @@ private:
 	CoordinateAxesPlan PlanCoordinateAxes();
 
 	// Vector to hold the gpuGridder objects (one for each GPU)
-	std::vector<gpuGridder *> gpuGridder_vec;
+	std::vector<std::shared_ptr<gpuGridder>> gpuGridder_vec;
 
 	// How many GPUs to use
 	int Num_GPUs;

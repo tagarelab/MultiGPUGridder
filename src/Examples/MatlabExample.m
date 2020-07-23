@@ -12,10 +12,10 @@ addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
 addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 128;
+VolumeSize = 64;
 interpFactor = 2;
-n1_axes = 100;
-n2_axes = 100;
+n1_axes = 10;
+n2_axes = 10;
 
 % Create the volume
 load mri;
@@ -54,9 +54,9 @@ easyMontage(vol, 2)
 
 % Reconstruct the volume
 tic
-reconstructVol = gridder.reconstructVol();
-disp("Reconstruct Volume: " + toc + " seconds")
-easyMontage(reconstructVol, 3)
+% reconstructVol = gridder.reconstructVol();
+% disp("Reconstruct Volume: " + toc + " seconds")
+% easyMontage(reconstructVol, 3)
 
 disp("Total time: " + toc(start))
 % quit % Needed if running the NVIDIA profiler

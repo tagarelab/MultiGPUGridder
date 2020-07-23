@@ -142,57 +142,52 @@ void gpuProjection::InitializeGPUArrays()
         this->d_PaddedVolume = new DeviceMemory<float>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
         this->d_PaddedVolume->AllocateGPUArray();
 
+        //      int CASVolumeSize = this->d_CASVolume->GetSize(0);
+        // int CASImgSize = this->d_CASImgs->GetSize(0);
+        // int ImgSize = this->d_Imgs->GetSize(0);
 
-    //      int CASVolumeSize = this->d_CASVolume->GetSize(0);
-    // int CASImgSize = this->d_CASImgs->GetSize(0);
-    // int ImgSize = this->d_Imgs->GetSize(0);
+        // First, copy the Kaiser Bessel precompensation filter to the GPU
+        // Size is volume times interp factor
+        int *KB_PreComp_size = new int[3];
+        KB_PreComp_size[0] = this->VolumeSize * this->interpFactor;
+        KB_PreComp_size[1] = this->VolumeSize * this->interpFactor;
+        KB_PreComp_size[2] = this->VolumeSize * this->interpFactor;
 
-    // First, copy the Kaiser Bessel precompensation filter to the GPU
-    // Size is volume times interp factor
-    int *KB_PreComp_size = new int[3];
-    KB_PreComp_size[0] = this->VolumeSize * this->interpFactor;
-    KB_PreComp_size[1] = this->VolumeSize * this->interpFactor;
-    KB_PreComp_size[2] = this->VolumeSize * this->interpFactor;
+        // float *d_KBPreComp;
+        // gpuErrorCheck(cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]));
+        // gpuErrorCheck(cudaMemcpy(d_KBPreComp, this->h_KBPreComp->GetPointer(), sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2], cudaMemcpyHostToDevice));
 
-    // float *d_KBPreComp;
-    // gpuErrorCheck(cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]));
-    // gpuErrorCheck(cudaMemcpy(d_KBPreComp, this->h_KBPreComp->GetPointer(), sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2], cudaMemcpyHostToDevice));
+        //  float *d_KBPreComp;
+        // gpuErrorCheck(cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]));
 
-//  float *d_KBPreComp;
-    // gpuErrorCheck(cudaMalloc(&d_KBPreComp, sizeof(float) * KB_PreComp_size[0] * KB_PreComp_size[1] * KB_PreComp_size[2]));
-   
+        this->d_KBPreComp = new DeviceMemory<float>(3, KB_PreComp_size, this->GPU_Device);
+        this->d_KBPreComp->AllocateGPUArray();
 
- this->d_KBPreComp = new DeviceMemory<float>(3, KB_PreComp_size, this->GPU_Device);
- this->d_KBPreComp->AllocateGPUArray();
-      
+        // delete[] KB_PreComp_size;
 
-    // delete[] KB_PreComp_size;
+        int CroppedCASVolumeSize = CASVolumeSize - extraPadding * 2;
+        // int VolumeSize = (CASVolumeSize - extraPadding * 2) / interpFactor;
 
-    int CroppedCASVolumeSize = CASVolumeSize - extraPadding * 2;
-    // int VolumeSize = (CASVolumeSize - extraPadding * 2) / interpFactor;
-
-    // Allocate GPU memory for CAS volume without the extra padding
-    // float *d_CASVolume_Cropped;
-    // gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
+        // Allocate GPU memory for CAS volume without the extra padding
+        // float *d_CASVolume_Cropped;
+        // gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
         this->d_CASVolume_Cropped = new DeviceMemory<float>(3, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, this->GPU_Device);
         this->d_CASVolume_Cropped->AllocateGPUArray();
-
 
         // Allocate a complex version of the padded volume (needed for the forward and inverse FFT)
         this->d_PaddedVolumeComplex = new DeviceMemory<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
         this->d_PaddedVolumeComplex->AllocateGPUArray();
 
-
         this->d_CASVolume_Cropped_Complex = new DeviceMemory<cufftComplex>(3, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, this->GPU_Device);
         this->d_CASVolume_Cropped_Complex->AllocateGPUArray();
 
-    //cufftComplex *d_CASVolume_Cropped_Complex;
-    //gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
+        //cufftComplex *d_CASVolume_Cropped_Complex;
+        //gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
-    // // Allocate the complex CAS images array
-    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
-    // CASImgsComplex->AllocateGPUArray();
+        // // Allocate the complex CAS images array
+        // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
+        // CASImgsComplex->AllocateGPUArray();
 
         // Allocate the complex CAS images array
         this->d_CASImgsComplex = new DeviceMemory<cufftComplex>(3, CASimgs_size, this->GPU_Device);
@@ -269,6 +264,12 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
     {
         std::cout << "gpuProjection::PlanOffsetValues() "
                   << "estimated number of axes to process on each stream = " << EstimatedNumAxesPerStream << '\n';
+
+        std::cout << "gpuProjection::PlanOffsetValues() "
+                  << " number of axes to process on this GPU  " << nAxes << '\n';
+
+        std::cout << "gpuProjection::PlanOffsetValues() "
+                  << "number of streams for this GPU " << numStreams << '\n';
     }
 
     while (processed_nAxes < nAxes && batch < MaxBatches)
@@ -281,6 +282,18 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
                 continue;
             }
 
+std::cout << "processed_nAxes: " << processed_nAxes << '\n';
+std::cout << "nAxes: " << nAxes << '\n';
+
+            // Have all the axes been processed?
+            if (processed_nAxes >= nAxes)
+            {
+                Offsets_obj.numAxesPerStream.push_back(0);
+
+                std::cout << "Offsets_obj.numAxesPerStream.push_back(0)" << '\n';
+                continue;
+            }
+            
             // Save the current batch number
             Offsets_obj.currBatch.push_back(batch);
 
@@ -347,12 +360,6 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
 
             // Remember which stream this is
             Offsets_obj.stream_ID.push_back(i);
-
-            // Have all the axes been processed?
-            if (processed_nAxes == nAxes)
-            {
-                break;
-            }
         }
 
         // Increment the batch number
@@ -401,7 +408,7 @@ void gpuProjection::VolumeToCASVolume()
     this->d_Volume->CopyToGPU(this->h_Volume->GetPointer(), this->h_Volume->bytes());
 
     // STEP 1: Pad the input volume with zeros
-    PadVolumeFilter *PadFilter = new PadVolumeFilter();
+    std::unique_ptr<PadVolumeFilter> PadFilter(new PadVolumeFilter());
     PadFilter->SetInput(this->d_Volume->GetPointer());
     PadFilter->SetOutput(this->d_PaddedVolume->GetPointer());
     PadFilter->SetInputSize(this->VolumeSize);
@@ -411,21 +418,21 @@ void gpuProjection::VolumeToCASVolume()
     PadFilter->Update();
 
     // Multiply by the Kaiser Bessel precompensation array
-    MultiplyVolumeFilter<float> *MultiplyFilter = new MultiplyVolumeFilter<float>();
+    std::unique_ptr<MultiplyVolumeFilter<float>> MultiplyFilter(new MultiplyVolumeFilter<float>());
     MultiplyFilter->SetVolumeSize(this->d_PaddedVolume->GetSize(1));
     MultiplyFilter->SetVolumeOne(this->d_PaddedVolume->GetPointer());
     MultiplyFilter->SetVolumeTwo(this->d_KBPreComp->GetPointer());
     MultiplyFilter->Update();
-    
+
     // Convert the padded volume to complex type (need cufftComplex type for the forward FFT)
-    RealToComplexFilter *RealToComplex = new RealToComplexFilter();
+    std::unique_ptr<RealToComplexFilter> RealToComplex(new RealToComplexFilter());
     RealToComplex->SetRealInput(this->d_PaddedVolume->GetPointer());
     RealToComplex->SetComplexOutput(this->d_PaddedVolumeComplex->GetPointer());
     RealToComplex->SetVolumeSize(PaddedVolumeSize);
     RealToComplex->Update();
 
     // STEP 2: Apply an in place 3D FFT Shift
-    FFTShift3DFilter<cufftComplex> *FFTShiftFilter = new FFTShift3DFilter<cufftComplex>();
+    std::unique_ptr<FFTShift3DFilter<cufftComplex>> FFTShiftFilter(new FFTShift3DFilter<cufftComplex>());
     FFTShiftFilter->SetInput(this->d_PaddedVolumeComplex->GetPointer());
     FFTShiftFilter->SetVolumeSize(PaddedVolumeSize);
     FFTShiftFilter->Update();
@@ -451,7 +458,7 @@ void gpuProjection::VolumeToCASVolume()
     FFTShiftFilter->Update();
 
     // STEP 5: Convert the complex result of the forward FFT to a CAS img type
-    ComplexToCASFilter *CASFilter = new ComplexToCASFilter();
+    std::unique_ptr<ComplexToCASFilter> CASFilter(new ComplexToCASFilter());
     CASFilter->SetComplexInput(this->d_PaddedVolumeComplex->GetPointer());
     CASFilter->SetCASVolumeOutput(this->d_PaddedVolume->GetPointer());
     CASFilter->SetVolumeSize(PaddedVolumeSize);
@@ -465,7 +472,6 @@ void gpuProjection::VolumeToCASVolume()
     PadFilter->SetPaddingY((PaddedVolumeSize_Extra - PaddedVolumeSize) / 2);
     PadFilter->SetPaddingZ((PaddedVolumeSize_Extra - PaddedVolumeSize) / 2);
     PadFilter->Update();
-
 }
 
 void gpuProjection::CASVolumeToVolume()
@@ -493,22 +499,15 @@ void gpuProjection::CASVolumeToVolume()
 
     this->d_KBPreComp->CopyToGPU(this->h_KBPreComp->GetPointer());
 
-
     this->d_Volume->Reset();
     this->d_CASVolume_Cropped->Reset();
     this->d_CASVolume_Cropped_Complex->Reset();
 
-
     int CroppedCASVolumeSize = CASVolumeSize - extraPadding * 2;
     int VolumeSize = this->d_Volume->GetSize(1);
 
-    // Allocate GPU memory for CAS volume without the extra padding
-    //float *d_CASVolume_Cropped;
-    //gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
-
-    // Allocate GPU memory for cufftComplex type of the cropped CAS volume (i.e. d_CASVolume_Cropped)
-
     // Remove the extraPadding from the CAS volume
+    // std::unique_ptr<CropVolumeFilter> CropFilter(new CropVolumeFilter());
     CropVolumeFilter *CropFilter = new CropVolumeFilter();
     CropFilter->SetInput(this->d_CASVolume->GetPointer());
     CropFilter->SetInputSize(CASVolumeSize);
@@ -520,6 +519,7 @@ void gpuProjection::CASVolumeToVolume()
     CropFilter->Update();
 
     // Convert the CAS volume to complex cufft type
+    // std::unique_ptr<CASToComplexFilter> CASFilter(new CASToComplexFilter());
     CASToComplexFilter *CASFilter = new CASToComplexFilter();
     CASFilter->SetCASVolume(this->d_CASVolume_Cropped->GetPointer());
     CASFilter->SetComplexOutput(this->d_CASVolume_Cropped_Complex->GetPointer());
@@ -527,6 +527,7 @@ void gpuProjection::CASVolumeToVolume()
     CASFilter->Update();
 
     // Run FFTShift on the 3D volume
+    //std::unique_ptr<FFTShift3DFilter<cufftComplex>> FFTShiftFilter(new FFTShift3DFilter<cufftComplex>());
     FFTShift3DFilter<cufftComplex> *FFTShiftFilter = new FFTShift3DFilter<cufftComplex>();
     FFTShiftFilter->SetInput(this->d_CASVolume_Cropped_Complex->GetPointer());
     FFTShiftFilter->SetVolumeSize(CroppedCASVolumeSize);
@@ -548,6 +549,7 @@ void gpuProjection::CASVolumeToVolume()
 
     // Run kernel to crop the d_CASVolume_Cropped_Complex (to remove the zero padding), extract the real value,
     // and normalize the scaling introduced during the FFT
+    // std::unique_ptr<ComplexToRealFilter> ComplexToReal(new ComplexToRealFilter());
     ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
     ComplexToReal->SetComplexInput(this->d_CASVolume_Cropped_Complex->GetPointer());
     ComplexToReal->SetRealOutput(this->d_CASVolume_Cropped->GetPointer());
@@ -555,6 +557,7 @@ void gpuProjection::CASVolumeToVolume()
     ComplexToReal->Update();
 
     // Multiply by the Kaiser Bessel precompensation array
+    // std::unique_ptr<MultiplyVolumeFilter<float>> MultiplyFilter(new MultiplyVolumeFilter<float>());
     MultiplyVolumeFilter<float> *MultiplyFilter = new MultiplyVolumeFilter<float>();
     MultiplyFilter->SetVolumeSize(this->d_CASVolume_Cropped->GetSize(1));
     MultiplyFilter->SetVolumeOne(this->d_CASVolume_Cropped->GetPointer());
@@ -571,35 +574,28 @@ void gpuProjection::CASVolumeToVolume()
 
     float normalizationFactor = this->d_Volume->GetSize(1) * interpFactor;
     normalizationFactor = normalizationFactor * normalizationFactor * normalizationFactor;
+
+    // std::unique_ptr<DivideScalarFilter> DivideScalar(new DivideScalarFilter());
     DivideScalarFilter *DivideScalar = new DivideScalarFilter();
     DivideScalar->SetInput(this->d_Volume->GetPointer());
     DivideScalar->SetScalar(float(normalizationFactor));
     DivideScalar->SetVolumeSize(VolumeSize);
     DivideScalar->Update();
 
-    gpuErrorCheck(cudaDeviceSynchronize());
-
-    // Free the temporary variables
-    // gpuErrorCheck(cudaFree(d_KBPreComp));
-    // gpuErrorCheck(cudaFree(d_CASVolume_Cropped));
-    //gpuErrorCheck(cudaFree(d_CASVolume_Cropped_Complex));
-
-    // delete DivideScalar;
-    delete ComplexToReal;
+    delete DivideScalar;
     delete MultiplyFilter;
+    delete ComplexToReal;
     delete FFTShiftFilter;
     delete CASFilter;
     delete CropFilter;
+
+    gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex* CASImgsComplex)
+void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex *CASImgsComplex)
 {
     // Convert CAS images to images using an inverse FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
-
-    // // Allocate the complex CAS images array
-    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
-    // CASImgsComplex->AllocateGPUArray();
 
     if (this->verbose == true)
     {
@@ -619,7 +615,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     }
 
     // Convert the CASImgs to complex cufft type
-    CASToComplexFilter *CASFilter = new CASToComplexFilter();
+    std::unique_ptr<CASToComplexFilter> CASFilter(new CASToComplexFilter());
     CASFilter->SetCASVolume(CASImgs);
     CASFilter->SetComplexOutput(CASImgsComplex);
     CASFilter->SetVolumeSize(CASImgSize);
@@ -627,7 +623,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     CASFilter->Update(&stream);
 
     // Run a FFTShift on each 2D slice
-    FFTShift2DFilter<cufftComplex> *FFTShiftFilter = new FFTShift2DFilter<cufftComplex>();
+    std::unique_ptr<FFTShift2DFilter<cufftComplex>> FFTShiftFilter(new FFTShift2DFilter<cufftComplex>());
     FFTShiftFilter->SetInput(CASImgsComplex);
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
@@ -655,7 +651,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     FFTShiftFilter->Update(&stream);
 
     // Extract the real component of the complex images
-    ComplexToRealFilter *ComplexToReal = new ComplexToRealFilter();
+    std::unique_ptr<ComplexToRealFilter> ComplexToReal(new ComplexToRealFilter());
     ComplexToReal->SetComplexInput(CASImgsComplex);
     ComplexToReal->SetRealOutput(CASImgs);
     ComplexToReal->SetVolumeSize(CASImgSize);
@@ -663,7 +659,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     ComplexToReal->Update(&stream);
 
     // Crop the images to remove the zero padding
-    CropVolumeFilter *CropFilter = new CropVolumeFilter();
+    std::unique_ptr<CropVolumeFilter> CropFilter(new CropVolumeFilter());
     CropFilter->SetInput(CASImgs);
     CropFilter->SetInputSize(CASImgSize);
     CropFilter->SetNumberOfSlices(numImgs);
@@ -676,25 +672,18 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     // Normalize for the scaling introduced during the FFT
     float normalizationFactor = ImgSize * ImgSize * interpFactor * interpFactor;
 
-    DivideScalarFilter *DivideScalar = new DivideScalarFilter();
+    std::unique_ptr<DivideScalarFilter> DivideScalar(new DivideScalarFilter());
     DivideScalar->SetInput(Imgs);
     DivideScalar->SetScalar(float(normalizationFactor));
     DivideScalar->SetVolumeSize(ImgSize);
     DivideScalar->SetNumberOfSlices(numImgs);
     DivideScalar->Update(&stream);
-
-    // cudaFree(CASImgsComplex->GetPointer());
-    // delete CASImgsComplex;
 }
 
 void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs)
 {
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
-
-    // // Allocate the complex CAS images array
-    // DeviceMemory<cufftComplex> * CASImgsComplex = new DeviceMemory<cufftComplex>(3, this->d_CASImgs->GetSize(0), this->d_CASImgs->GetSize(1), numImgs, this->GPU_Device);
-    // CASImgsComplex->AllocateGPUArray();
 
     if (this->verbose == true)
     {
@@ -716,7 +705,7 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     }
 
     // First pad the Imgs with zeros to be the same size as CASImgs
-    PadVolumeFilter *PadFilter = new PadVolumeFilter();
+    std::unique_ptr<PadVolumeFilter> PadFilter(new PadVolumeFilter());
     PadFilter->SetInput(Imgs);
     PadFilter->SetOutput(CASImgs);
     PadFilter->SetInputSize(ImgSize);
@@ -727,7 +716,7 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     PadFilter->Update(&stream);
 
     // Convert the images to complex cufft type
-    RealToComplexFilter *RealFilter = new RealToComplexFilter();
+    std::unique_ptr<RealToComplexFilter> RealFilter(new RealToComplexFilter());
     RealFilter->SetRealInput(CASImgs);
     RealFilter->SetComplexOutput(this->d_CASImgsComplex->GetPointer());
     RealFilter->SetVolumeSize(CASImgSize);
@@ -735,7 +724,7 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     RealFilter->Update(&stream);
 
     // Run FFTShift on each 2D slice
-    FFTShift2DFilter<cufftComplex> *FFTShiftFilter = new FFTShift2DFilter<cufftComplex>();
+    std::unique_ptr<FFTShift2DFilter<cufftComplex>> FFTShiftFilter(new FFTShift2DFilter<cufftComplex>());
     FFTShiftFilter->SetInput(this->d_CASImgsComplex->GetPointer());
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
@@ -763,22 +752,18 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     FFTShiftFilter->Update(&stream);
 
     // Convert the complex result of the forward FFT to a CAS img type
-    ComplexToCASFilter *ComplexToCAS = new ComplexToCASFilter();
+    std::unique_ptr<ComplexToCASFilter> ComplexToCAS(new ComplexToCASFilter());
     ComplexToCAS->SetComplexInput(this->d_CASImgsComplex->GetPointer());
     ComplexToCAS->SetCASVolumeOutput(CASImgs);
     ComplexToCAS->SetVolumeSize(CASImgSize);
     ComplexToCAS->SetNumberOfSlices(numImgs);
     ComplexToCAS->Update(&stream);
-
-    //cudaFree(CASImgsComplex->GetPointer());
-    //delete CASImgsComplex;
 }
 
 void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
 {
     // Run the forward projection on some subset of the coordinate axes (needed when using multiple GPUs)
     cudaSetDevice(this->GPU_Device);
-
     if (this->verbose == true)
     {
         std::cout << "gpuProjection::ForwardProject() on GPU " << this->GPU_Device << '\n';
@@ -911,7 +896,6 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
                 FP_streams[Offsets_obj.stream_ID[i]]));
         }
 
-
         if (this->verbose == true)
         {
             std::cout << "Stream completed" << '\n';
@@ -946,7 +930,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     this->d_CASVolume->Reset(); // needed?
     this->d_CoordAxes->Reset();
     this->d_Volume->Reset();
-    
+
     if (this->d_PlaneDensity != NULL)
     {
         this->d_PlaneDensity->Reset();
@@ -1036,7 +1020,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
                 Offsets_obj.numAxesPerStream[i]);
         }
- this->d_CASVolume->Reset(); // needed?
+        
         // Run the back projection kernel
         gpuBackProject::RunKernel(
             this->d_CASVolume->GetPointer(),
@@ -1052,8 +1036,6 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
             this->extraPadding,
             &BP_streams[Offsets_obj.stream_ID[i]]);
     }
-
-   
 }
 
 void gpuProjection::CalculatePlaneDensity(int AxesOffset, int nAxesToProcess)
@@ -1141,4 +1123,36 @@ void gpuProjection::PrintMemoryAvailable()
     size_t mem_free_0 = 0;
     gpuErrorCheck(cudaMemGetInfo(&mem_free_0, &mem_tot_0));
     std::cout << "Memory remaining on GPU " << this->GPU_Device << " " << mem_free_0 << " out of " << mem_tot_0 << '\n';
+}
+
+void gpuProjection::FreeMemory()
+{
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuProjection::FreeMemory()" << '\n';
+    }
+
+    // If running the FFT on the device deallocate the arrays
+    if (this->RunFFTOnDevice == 1)
+    {
+        delete d_PaddedVolume;
+        delete d_KBPreComp;
+        delete d_CASVolume_Cropped;
+        delete d_PaddedVolumeComplex;
+        delete d_CASVolume_Cropped_Complex;
+        delete d_CASImgsComplex;
+    }
+
+    delete d_CASVolume;
+    delete d_CASImgs;
+    delete d_Imgs;
+    delete d_KB_Table;
+    delete d_CoordAxes;
+    delete d_PlaneDensity;
+    delete d_Volume;
+
+    delete FP_streams;
+
+    delete BP_streams;
 }

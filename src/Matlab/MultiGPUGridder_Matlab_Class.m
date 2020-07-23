@@ -5,7 +5,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = true;        
+        RunFFTOnGPU = false;        
         
         % Flag for status output to the console
         verbose = false;
@@ -47,11 +47,15 @@ classdef MultiGPUGridder_Matlab_Class < handle
 %             mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
 %             addpath(fullfile(mfilepath,'./utils'));
 %             addpath(fullfile(mfilepath,'../../bin'));
+
  
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
             this.interpFactor = single(varargin{3});   
+            
+            % Create the Volume array
+            this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');
             
             % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
             if(this.VolumeSize < 64)
@@ -61,11 +65,18 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.interpFactor = 256 / single(this.VolumeSize);
 %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
-                this.interpFactor = 512 / single(this.VolumeSize);
+                this.interpFactor = single(512 / double(this.VolumeSize));
 %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
             elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
                 this.interpFactor = 1024 / single(this.VolumeSize);
 %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            end
+            
+            % Test whether the new interpFactor is valid or not
+            try
+                tmp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');
+            catch
+                this.interpFactor = single(2); % Reset to the default value of two
             end
             
             % If the GPUs to use was not given use all the available GPUs
@@ -105,10 +116,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
             
             % Load the Kaiser Bessel lookup table
-            this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize)); 
-
-            % Create the Volume array
-            this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');              
+            this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize));            
         
             % If we're running the FFTs on the CPU, allocate the CPU memory to return the arrays to
             if (this.RunFFTOnGPU == false) || this.verbose == true
@@ -212,6 +220,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
                 if length(varargin) == 1
                     % A new set of coordinate axes was passed
+                    % (:,1:size(single(varargin{1}),2))
                     this.coordAxes = single(varargin{1});            
                     
                 elseif length(varargin) == 3
@@ -232,15 +241,26 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
             end
             
+            if size(this.coordAxes,2) < this.nStreamsFP
+                error("The number of projection directions must be >= the number of CUDA streams.")
+            end
+            
+%             % Need to re-allocate since the number of axes may be different then last time it ran
+%             this.Images = single(zeros([this.VolumeSize this.VolumeSize size(this.coordAxes,2)]));
+%             if (this.RunFFTOnGPU == false)
+%                 this.CASImages = single(zeros([size(this.CASImages,1) size(this.CASImages,1) size(this.coordAxes,2)]));
+%             end
+            
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);            
             
             % Run the inverse FFT on the CAS images
             if (this.RunFFTOnGPU == false)
-                this.Images = imgsFromCASImgs(this.CASImages, interpBox, []); 
+                this.Images(:,:,1:size(this.coordAxes,2)) = imgsFromCASImgs(this.CASImages(:,:,1:size(this.coordAxes,2)), interpBox, []); 
             end
             
-            ProjectionImages = this.Images;           
+            % Consider if we forward project less number of images then we first allocated for
+            ProjectionImages = this.Images(:,:,1:size(this.coordAxes,2));            
             
         end         
         %% BackProject - Run the back projection function
@@ -249,22 +269,32 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,:) = single(varargin{1});            
+                % (:,:,1:size(varargin{1},3))
+                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
                 
+%                 this.Images = single(varargin{1});  
                 if (this.RunFFTOnGPU == false)
                     % Run the forward FFT and convert the images to CAS images
                     [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    newCASImgs = CASImgsFromImgs(this.Images, interpBox, []);
-                    this.CASImages(:,:,:) = newCASImgs; % Avoid Matlab's copy-on-write
+                    if length(varargin) == 3 && ~isempty(varargin{3})
+                        % An array of CTFs were supplied so lets use them for the back projection
+                        ctfs = varargin{3};
+                        newCASImgs = CASImgsFromImgsCTFs(this.Images(:,:,1:size(varargin{1},3)), ctfs, interpBox, []);
+                    else
+                        newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);
+                    
+                    end
+                    this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed
-                tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-                if ~isempty(this.coordAxes)
-                    this.coordAxes(:) = tempAxes(:);
-                else
-                    this.coordAxes = tempAxes(:);
-                end
+%                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
+%                 if ~isempty(this.coordAxes)
+                    this.coordAxes = single(varargin{2});
+%                 else
+%                     clear this.coordAxes;
+%                     this.coordAxes = tempAxes(:);
+%                 end
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed

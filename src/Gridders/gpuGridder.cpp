@@ -247,6 +247,13 @@ void gpuGridder::FreeMemory()
     // Free all of the allocated memory
     gpuErrorCheck(cudaSetDevice(this->GPU_Device));
     gpuErrorCheck(cudaDeviceReset()); // This deletes the CUDA context (i.e. deallocates all memory)
+
+    if (this->verbose == true)
+    {
+        std::cout << "gpuGridder::FreeMemory()" << '\n';
+    }
+
+    delete gpuProjection_Obj;
 }
 
 void gpuGridder::ReconstructVolume()
