@@ -54,6 +54,7 @@ public:
         this->kerSize = 501;
         this->kerHWidth = 2;
         this->ErrorFlag = 0;
+        this->ApplyCTF = false;
 
         this->inverseFFTImagesFlag = false;
         this->forwardFFTVolumePlannedFlag = false;
@@ -68,6 +69,7 @@ public:
     void SetHostCASVolume(HostMemory<float> *h_CASVolume) { this->h_CASVolume = h_CASVolume; }
     void SetHostImages(HostMemory<float> *h_Imgs) { this->h_Imgs = h_Imgs; }
     void SetHostCASImages(HostMemory<float> *h_CASImgs) { this->h_CASImgs = h_CASImgs; }
+    // void SetHostCTF(HostMemory<float> *h_CTF) { this->h_CTF = h_CTF; }
     void SetHostCoordinateAxes(HostMemory<float> *h_CoordAxes) { this->h_CoordAxes = h_CoordAxes; }
     void SetHostKBTable(HostMemory<float> *h_KB_Table) { this->h_KB_Table = h_KB_Table; }
     void SetHostKBPreCompArray(HostMemory<float> *h_KBPreComp) { this->h_KBPreComp = h_KBPreComp; }
@@ -116,7 +118,7 @@ protected:
     int EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor);
 
     /// Convert projection images to CAS images by running a forward FFT
-    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs);
+    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, float *CTFs, int numImgs);
 
 private:
     /// A structure for holding all of the pointer offset values when running the forward and back projection kernels.
@@ -225,6 +227,9 @@ private:
 
     // Flag to run the forward and inverse FFT on the GPU
     int RunFFTOnDevice;
+
+    // Should we apply the CTFs before backprojection?
+    bool ApplyCTF;
 
     // Free all of the allocated memory
     void FreeMemory();
