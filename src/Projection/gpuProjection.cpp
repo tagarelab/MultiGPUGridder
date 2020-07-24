@@ -63,8 +63,8 @@ int gpuProjection::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
         EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
     }
 
-    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
+    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 10% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.1);
 
     // Set a maximum value for this or else for small volume size this because too large and can cause errors
     EstimatedMaxAxes = std::min(EstimatedMaxAxes, 5000);
@@ -196,12 +196,12 @@ void gpuProjection::InitializeGPUArrays()
         // Are we running the FFT on the device and applying the CTFs?
         // if (this->ApplyCTFs == true)
         // {
-            this->d_CTFsPadded = new DeviceMemory<float>(3, CASimgs_size, this->GPU_Device);
-            this->d_CTFsPadded->AllocateGPUArray();
+        this->d_CTFsPadded = new DeviceMemory<float>(3, CASimgs_size, this->GPU_Device);
+        this->d_CTFsPadded->AllocateGPUArray();
 
-            // Allocate the images
-            this->d_CTFs = new DeviceMemory<float>(3, imgs_size, this->GPU_Device);
-            this->d_CTFs->AllocateGPUArray();
+        // Allocate the images
+        this->d_CTFs = new DeviceMemory<float>(3, imgs_size, this->GPU_Device);
+        this->d_CTFs->AllocateGPUArray();
         // }
     }
 
@@ -762,24 +762,31 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftCom
 
     // if (this->ApplyCTFs == true)
     // {
-        // First pad the CTFs with zeros to be the same size as CASImgs
-        std::unique_ptr<PadVolumeFilter> CTFPadFilter(new PadVolumeFilter());
-        CTFPadFilter->SetInput(CTFs);
-        CTFPadFilter->SetOutput(CTFsPadded);
-        CTFPadFilter->SetInputSize(ImgSize); // CTFs are the same size as the images
-        CTFPadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
-        CTFPadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
-        CTFPadFilter->SetPaddingZ(0);
-        CTFPadFilter->SetNumberOfSlices(numImgs);
-        CTFPadFilter->Update(&stream);
+    // FFTShift the CTFs
+    std::unique_ptr<FFTShift2DFilter<float>> FFTShiftFilterCTF(new FFTShift2DFilter<float>());
+    FFTShiftFilterCTF->SetInput(CTFs);
+    FFTShiftFilterCTF->SetImageSize(ImgSize);
+    FFTShiftFilterCTF->SetNumberOfSlices(numImgs);
+    FFTShiftFilterCTF->Update(&stream);
 
-        // Multiply the CASImgsComplex with the CTFs
-        std::unique_ptr<MultiplyVolumeFilter<cufftComplex>> MultiplyFilter(new MultiplyVolumeFilter<cufftComplex>());
-        MultiplyFilter->SetVolumeSize(CASImgSize);
-        MultiplyFilter->SetVolumeOne(CASImgsComplex);
-        MultiplyFilter->SetVolumeTwo(CTFsPadded);
-        MultiplyFilter->SetNumberOfSlices(numImgs);
-        MultiplyFilter->Update(&stream);
+    // First pad the CTFs with zeros to be the same size as CASImgs
+    std::unique_ptr<PadVolumeFilter> CTFPadFilter(new PadVolumeFilter());
+    CTFPadFilter->SetInput(CTFs);
+    CTFPadFilter->SetOutput(CTFsPadded);
+    CTFPadFilter->SetInputSize(ImgSize); // CTFs are the same size as the images
+    CTFPadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
+    CTFPadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
+    CTFPadFilter->SetPaddingZ(0);
+    CTFPadFilter->SetNumberOfSlices(numImgs);
+    CTFPadFilter->Update(&stream);
+
+    // Multiply the CASImgsComplex with the CTFs
+    std::unique_ptr<MultiplyVolumeFilter<cufftComplex>> MultiplyFilter(new MultiplyVolumeFilter<cufftComplex>());
+    MultiplyFilter->SetVolumeSize(CASImgSize);
+    MultiplyFilter->SetVolumeOne(CASImgsComplex);
+    MultiplyFilter->SetVolumeTwo(CTFsPadded);
+    MultiplyFilter->SetNumberOfSlices(numImgs);
+    MultiplyFilter->Update(&stream);
 
     // }
 
@@ -1053,7 +1060,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
 
             if (this->ApplyCTFs == true)
             {
-                
+
                 // Apply the CTFs to the images after taking the FFT
                 // Copy the section of the CTFs to the GPU
                 // CTFs have the same size as the images so we can safely reuse the pointer offsets from the images here
@@ -1087,7 +1094,6 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                     NULL,
                     Offsets_obj.numAxesPerStream[i]);
             }
-            
         }
 
         // Run the back projection kernel
