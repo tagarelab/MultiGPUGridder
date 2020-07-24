@@ -125,6 +125,7 @@ void MultiGPUGridder::ForwardProject()
     for (int i = 0; i < Num_GPUs; i++)
     {
         gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
+        gpuGridder_vec[i]->h_CTFs = this->h_CTFs;  
         gpuGridder_vec[i]->h_Volume = this->h_Volume;
         gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
         gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;

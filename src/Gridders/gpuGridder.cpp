@@ -194,31 +194,15 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     this->gpuProjection_Obj->SetHostImages(this->h_Imgs);
     this->gpuProjection_Obj->SetHostKBPreCompArray(this->h_KBPreComp);
 
+    if (this->ApplyCTFs == true)
+    {
+        this->gpuProjection_Obj->SetHostCTFs(this->h_CTFs);
+    }
+    
     if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         this->gpuProjection_Obj->SetHostCASVolume(this->h_CASVolume);
         this->gpuProjection_Obj->SetHostCASImages(this->h_CASImgs);
-
-        if (this->ApplyCTFs == true)
-        {
-            std::cout << "this->gpuProjection_Obj->SetHostCTFs(this->h_CTFs)" << '\n';
-            this->gpuProjection_Obj->SetHostCTFs(this->h_CTFs);
-
-            float * tmp = this->h_Imgs->GetPointer();
-    for (int i=0; i <10; i++){
-                    std::cout << i << '\n';
-                    std::cout << tmp[i] << '\n';
-                }
-
-            float * tmp2 = this->h_CTFs->GetPointer();
-
-            std::cout << "tmp2: " << '\n';
-    for (int i=0; i <10; i++){
-                    std::cout << i << '\n';
-                    std::cout << tmp2[i] << '\n';
-                }
-
-        }
     }
 
     // Pass the device pointers to the projection object

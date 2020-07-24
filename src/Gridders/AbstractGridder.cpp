@@ -15,6 +15,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->h_CASVolume = NULL;    // Optional input
     this->h_PlaneDensity = NULL; // Optional input
     this->h_CTFs = NULL;
+    this->ApplyCTFs = true;
     this->MaxAxesToAllocate = 1000;
     this->SetNumAxes(numCoordAxes);
 
@@ -32,7 +33,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->CASVolumeInitialized = false;
     this->CoordAxesInitialized = false;
     this->PlaneDensityInitialized = false;
-    this->ApplyCTFs = true;
+    
 }
 
 AbstractGridder::~AbstractGridder()
@@ -215,7 +216,7 @@ void AbstractGridder::SetCTFs(float *ctfs, int *ArraySize)
 {
 
    
-    std::cout << "h_CTFs: " << "size" << ArraySize[0] << " " << ArraySize[1] << " " << ArraySize[2] << '\n';
+    //std::cout << "h_CTFs: " << "size" << ArraySize[0] << " " << ArraySize[1] << " " << ArraySize[2] << '\n';
     // Set the images array
     if (this->CTFsInitialized == false)
     {

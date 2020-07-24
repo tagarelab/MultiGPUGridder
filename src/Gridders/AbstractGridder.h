@@ -126,7 +126,7 @@ public:
     HostMemory<float> *h_CASVolume;    // Optional inputs
     HostMemory<float> *h_CASImgs;      // Optional inputs
     HostMemory<float> *h_PlaneDensity; // Optional inputs
-    HostMemory<float> *h_CTFs;         // Option inputs
+    HostMemory<float> *h_CTFs;         // Optional inputs
 
 protected:
     // Flag to test that all arrays were allocated successfully
