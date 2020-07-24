@@ -29,7 +29,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         CASVolume;
         CASImages;
         Volume;
-        Images;                 
+        Images;  
+        CTFs;
         MaskRadius;
         KBPreComp;
         
@@ -115,6 +116,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
             this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
             
+            ApplyCTFs = true
+            
+            if ApplyCTFs == true
+                this.CTFs = ones(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
+            end
+            
             % Load the Kaiser Bessel lookup table
             this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize));            
         
@@ -173,7 +180,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             [varargout{1:nargout}] = mexSetVariables('SetCoordAxes', this.objectHandle, single(this.coordAxes(:)), int32(size(this.coordAxes(:))));
             [varargout{1:nargout}] = mexSetVariables('SetVolume', this.objectHandle, single(this.Volume), int32(size(this.Volume)));                                 
-            [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));
+            [varargout{1:nargout}] = mexSetVariables('SetImages', this.objectHandle, single(this.Images), int32(size(this.Images)));            
             [varargout{1:nargout}] = mexSetVariables('SetGPUs', this.objectHandle, int32(this.GPUs), int32(length(this.GPUs)));
             [varargout{1:nargout}] = mexSetVariables('SetKBTable', this.objectHandle, single(this.KBTable), int32(size(this.KBTable)));           
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsFP', this.objectHandle, int32(this.nStreamsFP));             
@@ -195,6 +202,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(this.MaxAxesToAllocate)
                 [varargout{1:nargout}] = mexSetVariables('SetMaxAxesToAllocate', this.objectHandle, int32(this.MaxAxesToAllocate));
             end            
+             if ~isempty(this.CTFs)
+                 [varargout{1:nargout}] = mexSetVariables('SetCTFs', this.objectHandle, single(this.CTFs), int32(size(this.CTFs)));
+             end
             
         end 
         %% GetVariables - Get the variables of the C++ class instance 
@@ -285,6 +295,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     
                     end
                     this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
+                else
+                   % A CTF array was passed 
+                     if length(varargin) == 3 && ~isempty(varargin{3})
+                        % An array of CTFs were supplied so lets use them for the back projection
+                        this.CTFs = single(varargin{3});
+                     end
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed

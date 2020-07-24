@@ -69,7 +69,7 @@ public:
     void SetHostCASVolume(HostMemory<float> *h_CASVolume) { this->h_CASVolume = h_CASVolume; }
     void SetHostImages(HostMemory<float> *h_Imgs) { this->h_Imgs = h_Imgs; }
     void SetHostCASImages(HostMemory<float> *h_CASImgs) { this->h_CASImgs = h_CASImgs; }
-    // void SetHostCTF(HostMemory<float> *h_CTF) { this->h_CTF = h_CTF; }
+    void SetHostCTFs(HostMemory<float> *h_CTFs) { this->h_CTFs = h_CTFs; }
     void SetHostCoordinateAxes(HostMemory<float> *h_CoordAxes) { this->h_CoordAxes = h_CoordAxes; }
     void SetHostKBTable(HostMemory<float> *h_KB_Table) { this->h_KB_Table = h_KB_Table; }
     void SetHostKBPreCompArray(HostMemory<float> *h_KBPreComp) { this->h_KBPreComp = h_KBPreComp; }
@@ -175,6 +175,7 @@ private:
 
     // Initialize pointers for the allocated CPU memory
     HostMemory<float> *h_Imgs;
+    HostMemory<float> *h_CTFs;    
     HostMemory<float> *h_Volume;
     HostMemory<float> *h_CoordAxes;
     HostMemory<float> *h_KB_Table;
