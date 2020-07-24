@@ -84,6 +84,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if isempty(this.GPUs)
                 this.GPUs = int32([1:gpuDeviceCount]) - 1; % CUDA GPU device numbers need to start at zero
             end            
+            
+            % Reset all the GPU devices
+            for i = 1:length(this.GPUs)
+                disp("Resetting GPU number "  + num2str(double(this.GPUs(i) + 1)))
+                reset(gpuDevice(double(this.GPUs(i) + 1)));
+            end
                 
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
             
