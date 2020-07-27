@@ -14,6 +14,8 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->h_CASImgs = NULL;      // Optional input
     this->h_CASVolume = NULL;    // Optional input
     this->h_PlaneDensity = NULL; // Optional input
+    this->h_CTFs = NULL;
+    this->ApplyCTFs = true;
     this->MaxAxesToAllocate = 1000;
     this->SetNumAxes(numCoordAxes);
 
@@ -23,6 +25,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
 
     // Set the initialization flags to false
     this->ImgsInitialized = false;
+    this->CTFsInitialized = false;
     this->VolumeInitialized = false;
     this->CASImgsInitialized = false;
     this->KB_TableInitialized = false;
@@ -30,6 +33,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->CASVolumeInitialized = false;
     this->CoordAxesInitialized = false;
     this->PlaneDensityInitialized = false;
+    
 }
 
 AbstractGridder::~AbstractGridder()
@@ -204,6 +208,33 @@ void AbstractGridder::SetCASImages(float *CASimgs, int *ArraySize)
         if (CASimgs != this->h_CASImgs->GetPointer())
         {
             this->h_CASImgs->PinArray();
+        }
+    }
+}
+
+void AbstractGridder::SetCTFs(float *ctfs, int *ArraySize)
+{
+
+   
+    //std::cout << "h_CTFs: " << "size" << ArraySize[0] << " " << ArraySize[1] << " " << ArraySize[2] << '\n';
+    // Set the images array
+    if (this->CTFsInitialized == false)
+    {
+        this->h_CTFs = new HostMemory<float>(3, ArraySize);
+        this->h_CTFs->CopyPointer(ctfs);
+        this->h_CTFs->PinArray();
+
+        this->CTFsInitialized = true;
+    }
+    else
+    {
+        // Just copy the pointer
+        this->h_CTFs->CopyPointer(ctfs);
+
+        // Check to see if we need to pin the array again (if the pointer is different)
+        if (ctfs != this->h_CTFs->GetPointer())
+        {
+            this->h_CTFs->PinArray();
         }
     }
 }

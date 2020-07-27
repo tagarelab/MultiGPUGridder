@@ -194,6 +194,11 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     this->gpuProjection_Obj->SetHostImages(this->h_Imgs);
     this->gpuProjection_Obj->SetHostKBPreCompArray(this->h_KBPreComp);
 
+    if (this->ApplyCTFs == true)
+    {
+        this->gpuProjection_Obj->SetHostCTFs(this->h_CTFs);
+    }
+    
     if (this->RunFFTOnDevice == false || this->verbose == true)
     {
         this->gpuProjection_Obj->SetHostCASVolume(this->h_CASVolume);

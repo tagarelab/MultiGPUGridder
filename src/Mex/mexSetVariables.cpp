@@ -82,6 +82,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         MultiGPUGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
+    // Set the pointer to the CTF images
+    if (!strcmp("SetCTFs", cmd))
+    {
+        // Pointer to the images array and the dimensions of the array
+        MultiGPUGridderObj->SetCTFs((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
+    }
+
     // Set the pointer to the Plane Density volume
     if (!strcmp("SetPlaneDensity", cmd))
     {

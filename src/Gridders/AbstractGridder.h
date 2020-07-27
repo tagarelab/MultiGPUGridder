@@ -61,6 +61,11 @@ public:
     /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetImages(float *h_Imgs, int *ArraySize);
 
+    /// Set the CTFs images array by passing a pointer to previously allocated memory
+    /// and an int vector (of size 3) which has the array dimensions.
+    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
+    void SetCTFs(float *h_CTFs, int *ArraySize);
+
     /// Set the coordinate axes array (i.e. for determining the projection angles) by passing a pointer to previously allocated memory
     /// and an int vector (of size 1) which has the array dimensions.
     /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
@@ -121,10 +126,14 @@ public:
     HostMemory<float> *h_CASVolume;    // Optional inputs
     HostMemory<float> *h_CASImgs;      // Optional inputs
     HostMemory<float> *h_PlaneDensity; // Optional inputs
+    HostMemory<float> *h_CTFs;         // Optional inputs
 
 protected:
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;
+
+    // Flag to apply the CTFs to the images before back projection
+    bool ApplyCTFs;
 
     // Mask radius for the forward / back projection kernel
     float maskRadius;
@@ -163,6 +172,7 @@ protected:
 private:
     // Flags to see if the host arrays have been initialized already
     bool ImgsInitialized;
+    bool CTFsInitialized;
     bool VolumeInitialized;
     bool CASImgsInitialized;
     bool KB_TableInitialized;

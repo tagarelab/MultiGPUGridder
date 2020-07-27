@@ -63,8 +63,8 @@ int gpuProjection::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
         EstimatedMaxAxes = (mem_free - Bytes_for_Volume - Bytes_for_CASVolume - Bytes_for_Plane_Density) / (Bytes_per_Img + Bytes_per_CASImg + Bytes_for_CoordAxes);
     }
 
-    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 30% of the maximum possible
-    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.3);
+    // Leave room on the GPU to run the FFTs and CUDA kernels so only use 10% of the maximum possible
+    EstimatedMaxAxes = floor(EstimatedMaxAxes * 0.1);
 
     // Set a maximum value for this or else for small volume size this because too large and can cause errors
     EstimatedMaxAxes = std::min(EstimatedMaxAxes, 5000);
@@ -192,6 +192,17 @@ void gpuProjection::InitializeGPUArrays()
         // Allocate the complex CAS images array
         this->d_CASImgsComplex = new DeviceMemory<cufftComplex>(3, CASimgs_size, this->GPU_Device);
         this->d_CASImgsComplex->AllocateGPUArray();
+
+        // Are we running the FFT on the device and applying the CTFs?
+        // if (this->ApplyCTFs == true)
+        // {
+        this->d_CTFsPadded = new DeviceMemory<float>(3, CASimgs_size, this->GPU_Device);
+        this->d_CTFsPadded->AllocateGPUArray();
+
+        // Allocate the images
+        this->d_CTFs = new DeviceMemory<float>(3, imgs_size, this->GPU_Device);
+        this->d_CTFs->AllocateGPUArray();
+        // }
     }
 
     // Allocate the CAS images
@@ -282,8 +293,8 @@ gpuProjection::Offsets gpuProjection::PlanOffsetValues(int coordAxesOffset, int 
                 continue;
             }
 
-std::cout << "processed_nAxes: " << processed_nAxes << '\n';
-std::cout << "nAxes: " << nAxes << '\n';
+            std::cout << "processed_nAxes: " << processed_nAxes << '\n';
+            std::cout << "nAxes: " << nAxes << '\n';
 
             // Have all the axes been processed?
             if (processed_nAxes >= nAxes)
@@ -293,7 +304,7 @@ std::cout << "nAxes: " << nAxes << '\n';
                 std::cout << "Offsets_obj.numAxesPerStream.push_back(0)" << '\n';
                 continue;
             }
-            
+
             // Save the current batch number
             Offsets_obj.currBatch.push_back(batch);
 
@@ -680,7 +691,7 @@ void gpuProjection::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *I
     DivideScalar->Update(&stream);
 }
 
-void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs)
+void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, float *CTFs, float *CTFsPadded, int numImgs)
 {
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
@@ -693,8 +704,6 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
 
     int CASImgSize = this->d_CASImgs->GetSize(0);
     int ImgSize = this->d_Imgs->GetSize(0);
-
-    this->d_CASImgsComplex->Reset();
 
     // Has the forward FFT been planned? If not create one now
     if (this->forwardFFTImagesFlag == false)
@@ -718,14 +727,14 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
     // Convert the images to complex cufft type
     std::unique_ptr<RealToComplexFilter> RealFilter(new RealToComplexFilter());
     RealFilter->SetRealInput(CASImgs);
-    RealFilter->SetComplexOutput(this->d_CASImgsComplex->GetPointer());
+    RealFilter->SetComplexOutput(CASImgsComplex);
     RealFilter->SetVolumeSize(CASImgSize);
     RealFilter->SetNumberOfSlices(numImgs);
     RealFilter->Update(&stream);
 
     // Run FFTShift on each 2D slice
     std::unique_ptr<FFTShift2DFilter<cufftComplex>> FFTShiftFilter(new FFTShift2DFilter<cufftComplex>());
-    FFTShiftFilter->SetInput(this->d_CASImgsComplex->GetPointer());
+    FFTShiftFilter->SetInput(CASImgsComplex);
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
@@ -735,25 +744,55 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, float *I
 
     // Execute the forward FFT on each 2D array
     // cufftPlanMany is not feasible since the number of images changes and
-    // cufftDestroy is blocks the CPU and causes memory leaks if not called
+    // cufftDestroy blocks the CPU and causes memory leaks if not called
     // FFT on each 2D slice has similar computation speed as cufftPlanMany
     for (int i = 0; i < numImgs; i++)
     {
         cufftExecC2C(this->forwardFFTImages,
-                     this->d_CASImgsComplex->GetPointer(i * CASImgSize * CASImgSize),
-                     this->d_CASImgsComplex->GetPointer(i * CASImgSize * CASImgSize),
+                     &CASImgsComplex[i * CASImgSize * CASImgSize],
+                     &CASImgsComplex[i * CASImgSize * CASImgSize],
                      CUFFT_FORWARD);
     }
 
     // Run the 2D FFTShift again
-    FFTShiftFilter->SetInput(this->d_CASImgsComplex->GetPointer());
+    FFTShiftFilter->SetInput(CASImgsComplex);
     FFTShiftFilter->SetImageSize(CASImgSize);
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
 
+    // if (this->ApplyCTFs == true)
+    // {
+    // FFTShift the CTFs
+    std::unique_ptr<FFTShift2DFilter<float>> FFTShiftFilterCTF(new FFTShift2DFilter<float>());
+    FFTShiftFilterCTF->SetInput(CTFs);
+    FFTShiftFilterCTF->SetImageSize(ImgSize);
+    FFTShiftFilterCTF->SetNumberOfSlices(numImgs);
+    FFTShiftFilterCTF->Update(&stream);
+
+    // First pad the CTFs with zeros to be the same size as CASImgs
+    std::unique_ptr<PadVolumeFilter> CTFPadFilter(new PadVolumeFilter());
+    CTFPadFilter->SetInput(CTFs);
+    CTFPadFilter->SetOutput(CTFsPadded);
+    CTFPadFilter->SetInputSize(ImgSize); // CTFs are the same size as the images
+    CTFPadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
+    CTFPadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
+    CTFPadFilter->SetPaddingZ(0);
+    CTFPadFilter->SetNumberOfSlices(numImgs);
+    CTFPadFilter->Update(&stream);
+
+    // Multiply the CASImgsComplex with the CTFs
+    std::unique_ptr<MultiplyVolumeFilter<cufftComplex>> MultiplyFilter(new MultiplyVolumeFilter<cufftComplex>());
+    MultiplyFilter->SetVolumeSize(CASImgSize);
+    MultiplyFilter->SetVolumeOne(CASImgsComplex);
+    MultiplyFilter->SetVolumeTwo(CTFsPadded);
+    MultiplyFilter->SetNumberOfSlices(numImgs);
+    MultiplyFilter->Update(&stream);
+
+    // }
+
     // Convert the complex result of the forward FFT to a CAS img type
     std::unique_ptr<ComplexToCASFilter> ComplexToCAS(new ComplexToCASFilter());
-    ComplexToCAS->SetComplexInput(this->d_CASImgsComplex->GetPointer());
+    ComplexToCAS->SetComplexInput(CASImgsComplex);
     ComplexToCAS->SetCASVolumeOutput(CASImgs);
     ComplexToCAS->SetVolumeSize(CASImgSize);
     ComplexToCAS->SetNumberOfSlices(numImgs);
@@ -924,10 +963,10 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     // Plan the pointer offset values
     gpuProjection::Offsets Offsets_obj = PlanOffsetValues(AxesOffset, nAxesToProcess, this->nStreamsBP);
 
-    // Reset the CAS volume on the device to all zeros before the back projection
+    // Reset the arrays on the device to all zeros before the back projection
     this->d_Imgs->Reset();
     this->d_CASImgs->Reset();
-    this->d_CASVolume->Reset(); // needed?
+    this->d_CASVolume->Reset();
     this->d_CoordAxes->Reset();
     this->d_Volume->Reset();
 
@@ -1000,6 +1039,12 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 BP_streams[Offsets_obj.stream_ID[i]]));
 
             gpuErrorCheck(cudaMemsetAsync(
+                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                0,
+                Offsets_obj.gpuCASImgs_streamBytes[i],
+                BP_streams[Offsets_obj.stream_ID[i]]));
+
+            gpuErrorCheck(cudaMemsetAsync(
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 0,
                 2 * Offsets_obj.gpuCASImgs_streamBytes[i],
@@ -1013,14 +1058,44 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 cudaMemcpyHostToDevice,
                 BP_streams[Offsets_obj.stream_ID[i]]));
 
-            // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
-            this->ImgsToCASImgs(
-                BP_streams[Offsets_obj.stream_ID[i]],
-                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                Offsets_obj.numAxesPerStream[i]);
+            if (this->ApplyCTFs == true)
+            {
+
+                // Apply the CTFs to the images after taking the FFT
+                // Copy the section of the CTFs to the GPU
+                // CTFs have the same size as the images so we can safely reuse the pointer offsets from the images here
+                gpuErrorCheck(cudaMemcpyAsync(
+                    this->d_CTFs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                    this->h_CTFs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
+                    Offsets_obj.gpuImgs_streamBytes[i],
+                    cudaMemcpyHostToDevice,
+                    BP_streams[Offsets_obj.stream_ID[i]]));
+
+                // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
+                this->ImgsToCASImgs(
+                    BP_streams[Offsets_obj.stream_ID[i]],
+                    this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                    this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                    this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                    this->d_CTFs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                    this->d_CTFsPadded->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                    Offsets_obj.numAxesPerStream[i]);
+            }
+            else
+            {
+                // Since we aren't applying the CTFs, pass a null pointer instead
+                // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
+                this->ImgsToCASImgs(
+                    BP_streams[Offsets_obj.stream_ID[i]],
+                    this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                    this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+                    this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+                    NULL,
+                    NULL,
+                    Offsets_obj.numAxesPerStream[i]);
+            }
         }
-        
+
         // Run the back projection kernel
         gpuBackProject::RunKernel(
             this->d_CASVolume->GetPointer(),

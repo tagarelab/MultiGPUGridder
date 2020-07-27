@@ -44,7 +44,8 @@ easyMontage(images(:,:,1:min(100, size(images,3))), 1)
 % Run the back projection
 gridder.resetVolume();
 tic
-gridder.backProject(gridder.Images, coordAxes)
+tmpCTFs = ones(size(images));
+gridder.backProject(gridder.Images, coordAxes, tmpCTFs)
 disp("Back Project: " + toc + " seconds")
 
 tic
