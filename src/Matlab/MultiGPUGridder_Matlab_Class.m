@@ -5,13 +5,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = true;        
+        RunFFTOnGPU = false;        
         
         % Flag for status output to the console
         verbose = false;
-        
-        % Should we alloacte memory for applying the CTFs (to the images before back projection)?
-        ApplyCTFs = true;
         
         % Int 32 type variables        
         VolumeSize;        
@@ -33,7 +30,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
         CASImages;
         Volume;
         Images;  
-        CTFs;
         MaskRadius;
         KBPreComp;
         
@@ -125,9 +121,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
             this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');           
             
-            if this.ApplyCTFs == true
-                this.CTFs = ones(ImageSize(1), ImageSize(2), ImageSize(3), 'single');
-            end
             
             % Load the Kaiser Bessel lookup table
             this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize));            
@@ -209,9 +202,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(this.MaxAxesToAllocate)
                 [varargout{1:nargout}] = mexSetVariables('SetMaxAxesToAllocate', this.objectHandle, int32(this.MaxAxesToAllocate));
             end            
-             if this.ApplyCTFs == true && ~isempty(this.CTFs)
-                [varargout{1:nargout}] = mexSetVariables('SetCTFs', this.objectHandle, single(this.CTFs), int32(size(this.CTFs)));
-             end
             
         end 
         %% GetVariables - Get the variables of the C++ class instance 
@@ -260,13 +250,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             if size(this.coordAxes,2) < this.nStreamsFP
                 error("The number of projection directions must be >= the number of CUDA streams.")
-            end
-            
-%             % Need to re-allocate since the number of axes may be different then last time it ran
-%             this.Images = single(zeros([this.VolumeSize this.VolumeSize size(this.coordAxes,2)]));
-%             if (this.RunFFTOnGPU == false)
-%                 this.CASImages = single(zeros([size(this.CASImages,1) size(this.CASImages,1) size(this.coordAxes,2)]));
-%             end
+            end            
             
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUForwardProject(this.objectHandle);            
@@ -286,38 +270,20 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                % (:,:,1:size(varargin{1},3))
                 this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
                 
-%                 this.Images = single(varargin{1});  
                 if (this.RunFFTOnGPU == false)
+                    
                     % Run the forward FFT and convert the images to CAS images
                     [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    if length(varargin) == 3 && ~isempty(varargin{3}) && this.ApplyCTFs == true
-                        % An array of CTFs were supplied so lets use them for the back projection
-                        ctfs = varargin{3};
-                        newCASImgs = CASImgsFromImgsCTFs(this.Images(:,:,1:size(varargin{1},3)), ctfs, interpBox, []);
-                    else
-                        newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);
+                    newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);                    
                     
-                    end
                     this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
-                else
-                   % A CTF array was passed 
-                     if length(varargin) == 3 && ~isempty(varargin{3}) && this.ApplyCTFs == true
-                        % An array of CTFs were supplied so lets use them for the back projection
-                        this.CTFs(:,:,1:size(varargin{3},3)) = single(varargin{3});
-                     end
                 end
                 
-                % A new set of coordinate axes to use with the back projection was passed
-%                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-%                 if ~isempty(this.coordAxes)
-                    this.coordAxes = single(varargin{2});
-%                 else
-%                     clear this.coordAxes;
-%                     this.coordAxes = tempAxes(:);
-%                 end
+                % A new set of coordinate axes to use with the back projection was passed                
+                this.coordAxes = single(varargin{2});
+
             end
 
             this.Set(); % Run the set function in case one of the arrays has changed
@@ -326,6 +292,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             mexMultiGPUBackProject(this.objectHandle);
             
         end   
+    
         %% setVolume - Set the volume
         function setVolume(this, varargin)
             % The new volume will be copied to the GPUs during this.Set()
