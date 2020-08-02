@@ -5,7 +5,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         objectHandle; % Handle to the underlying C++ class instance
         
         % Flag to run the forward / inverse FFT on the device (i.e. the GPU)
-        RunFFTOnGPU = false;        
+        RunFFTOnGPU = true;        
         
         % Flag for status output to the console
         verbose = false;
@@ -46,9 +46,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Add the paths of the compiled Mex files and the util folder relative to this file
 %             mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
 %             addpath(fullfile(mfilepath,'./utils'));
-%             addpath(fullfile(mfilepath,'../../bin'));
-
- 
+%             addpath(fullfile(mfilepath,'../../bin')); 
             
             this.VolumeSize = int32(varargin{1});
             this.NumAxes = int32(varargin{2});
@@ -90,8 +88,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 reset(gpuDevice(double(this.GPUs(i) + 1)));
             end
                 
-            this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;
-            
+            this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;            
             
             if (length(varargin) >= 4)
                 this.RunFFTOnGPU = varargin{4};
@@ -270,19 +267,28 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
+                % If a complex image was given, we don't want to change the type of this.Images to complex 
+                % which would affect the memory pointers for the C++ class
+                if isreal(varargin{1}) == true
+                    this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
+                end
                 
                 if (this.RunFFTOnGPU == false)
                     
                     % Run the forward FFT and convert the images to CAS images
-                    [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);                    
+                    [~,interpBox,~] = getSizes(single(this.VolumeSize), this.interpFactor,3);
+                    newCASImgs = CASImgsFromImgs(single(varargin{1}), interpBox, []);                    
                     
                     this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed                
-                this.coordAxes = single(varargin{2});
+%                 this.coordAxes = single(varargin{2});
+
+      % A new set of coordinate axes to use with the back projection was passed
+                tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
+                    
+                    this.coordAxes(:,1:length(tempAxes(:))/9) = tempAxes;
 
             end
 
@@ -318,8 +324,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 % Normalize by the plane density               
                 this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
 
-                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);          
-                
+                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);         
                 
             else
                 this.Volume = this.Volume ./ 4;
@@ -339,8 +344,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
 
            Volume = single(this.Volume); 
-           
-%            Volume = Volume  / single(this.VolumeSize * this.VolumeSize );
+
         end
         %% CheckParameters - check that all the parameters and variables are valid
         function CheckParameters(this)
@@ -352,13 +356,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
                         warning("Invalid coordAxes parameter: Each x, y, and z component of the coordinate axes needs to have a norm of one")
                     end
                 end
-            end
-                
+            end                
             
             if this.interpFactor <= 0
                 error("Invalid Interp Factor parameter: must be a non-negative value")
-            end
-            
+            end            
             
         end
         

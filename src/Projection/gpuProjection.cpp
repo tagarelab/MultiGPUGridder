@@ -196,12 +196,12 @@ void gpuProjection::InitializeGPUArrays()
         // Are we running the FFT on the device and applying the CTFs?
         // if (this->ApplyCTFs == true)
         // {
-        this->d_CTFsPadded = new DeviceMemory<float>(3, CASimgs_size, this->GPU_Device);
-        this->d_CTFsPadded->AllocateGPUArray();
+        // this->d_CTFsPadded = new DeviceMemory<float>(3, CASimgs_size, this->GPU_Device);
+        // this->d_CTFsPadded->AllocateGPUArray();
 
-        // Allocate the images
-        this->d_CTFs = new DeviceMemory<float>(3, imgs_size, this->GPU_Device);
-        this->d_CTFs->AllocateGPUArray();
+        // // Allocate the images
+        // this->d_CTFs = new DeviceMemory<float>(3, imgs_size, this->GPU_Device);
+        // this->d_CTFs->AllocateGPUArray();
         // }
     }
 
@@ -760,8 +760,8 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftCom
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
 
-    // if (this->ApplyCTFs == true)
-    // {
+    if (this->ApplyCTFs == true)
+    {
     // FFTShift the CTFs
     std::unique_ptr<FFTShift2DFilter<float>> FFTShiftFilterCTF(new FFTShift2DFilter<float>());
     FFTShiftFilterCTF->SetInput(CTFs);
@@ -788,7 +788,7 @@ void gpuProjection::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftCom
     MultiplyFilter->SetNumberOfSlices(numImgs);
     MultiplyFilter->Update(&stream);
 
-    // }
+    }
 
     // Convert the complex result of the forward FFT to a CAS img type
     std::unique_ptr<ComplexToCASFilter> ComplexToCAS(new ComplexToCASFilter());

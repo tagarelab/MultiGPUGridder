@@ -15,7 +15,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->h_CASVolume = NULL;    // Optional input
     this->h_PlaneDensity = NULL; // Optional input
     this->h_CTFs = NULL;
-    this->ApplyCTFs = true;
+    this->ApplyCTFs = false;
     this->MaxAxesToAllocate = 1000;
     this->SetNumAxes(numCoordAxes);
 

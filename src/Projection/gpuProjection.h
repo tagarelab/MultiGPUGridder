@@ -54,7 +54,7 @@ public:
         this->kerSize = 501;
         this->kerHWidth = 2;
         this->ErrorFlag = 0;
-        this->ApplyCTFs = true;
+        this->ApplyCTFs = false;
 
         this->inverseFFTImagesFlag = false;
         this->forwardFFTVolumePlannedFlag = false;
