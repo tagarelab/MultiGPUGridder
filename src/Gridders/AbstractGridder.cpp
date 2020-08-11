@@ -263,7 +263,7 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
     }
 
     // Set the number of coordinate axes by dividing by the number of elements per axe (i.e. 9)
-    this->SetNumAxes(ArraySize[0] / 9);
+    // this->SetNumAxes(ArraySize[0] / 9);
 }
 
 void AbstractGridder::ResetVolume()

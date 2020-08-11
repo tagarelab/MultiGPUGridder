@@ -124,4 +124,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // KB Lookup table; Length of the table
         MultiGPUGridderObj->SetKerBesselVector((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
+
+    // Set the number of coordinate axes to use
+    if (!strcmp("SetNumAxes", cmd))
+    {
+        // KB Lookup table; Length of the table
+        MultiGPUGridderObj->SetNumAxes((int)mxGetScalar(prhs[2]));
+    }
+
+    
 }

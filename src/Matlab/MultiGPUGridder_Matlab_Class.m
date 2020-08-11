@@ -184,8 +184,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsBP', this.objectHandle, int32(this.nStreamsBP));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
-          
+            [varargout{1:nargout}] = mexSetVariables('SetNumAxes', this.objectHandle, int32(size(this.coordAxes,2))); 
            
+            
+            
             % Set the optional arrays
             if ~isempty(this.PlaneDensity)
                 [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
@@ -287,7 +289,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
 
       % A new set of coordinate axes to use with the back projection was passed
                 tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-                    
+%                     this.coordAxes = tempAxes;
                     this.coordAxes(:,1:length(tempAxes(:))/9) = tempAxes;
 
             end
