@@ -16,7 +16,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         GPUs = int32([]);
         MaxAxesToAllocate;
         nStreamsFP = 10; % For the forward projection
-        nStreamsBP = 4; % For the back projection
+        nStreamsBP = 1; % For the back projection
         
         % Single type variables        
         interpFactor;
@@ -56,26 +56,26 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');
             
             % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
-            if(this.VolumeSize < 64)
-                this.interpFactor = 128 / single(this.VolumeSize);
-%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-            elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
-                this.interpFactor = 256 / single(this.VolumeSize);
-%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-            elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
-                this.interpFactor = single(512 / double(this.VolumeSize));
-%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-            elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
-                this.interpFactor = 1024 / single(this.VolumeSize);
-%                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-            end
+%             if(this.VolumeSize < 64)
+%                 this.interpFactor = 128 / single(this.VolumeSize);
+% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%             elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
+%                 this.interpFactor = 256 / single(this.VolumeSize);
+% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%             elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
+%                 this.interpFactor = single(512 / double(this.VolumeSize));
+% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%             elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
+%                 this.interpFactor = 1024 / single(this.VolumeSize);
+% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+%             end
             
-            % Test whether the new interpFactor is valid or not
-            try
-                tmp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');
-            catch
-                this.interpFactor = single(2); % Reset to the default value of two
-            end
+%             % Test whether the new interpFactor is valid or not
+%             try
+%                 tmp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');
+%             catch
+%                 this.interpFactor = single(2); % Reset to the default value of two
+%             end
             
             % If the GPUs to use was not given use all the available GPUs
             if isempty(this.GPUs)
@@ -131,11 +131,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
                 % Create the PlaneDensity array
                 this.PlaneDensity = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');
-                                                            
-                % Create the CASVolume array
-                this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');                                                     
-           
             end
+            
+            % Create the CASVolume array
+            this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');
+           
+            
             
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
@@ -242,10 +243,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 end
             end
 
-            if (this.RunFFTOnGPU == false)
+%             if (this.RunFFTOnGPU == false)
                 [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
                 this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
-            end
+%             end
             
             if size(this.coordAxes,2) < this.nStreamsFP
                 error("The number of projection directions must be >= the number of CUDA streams.")
@@ -311,9 +312,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = single(0 * this.Volume); 
            
-           if (this.RunFFTOnGPU == false)
+%            if (this.RunFFTOnGPU == false)
                this.CASVolume= single(0 * this.CASVolume); 
-           end
+%            end
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)
@@ -321,16 +322,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUReconstructVolume(this.objectHandle);
             
-            if (this.RunFFTOnGPU == false)
+%             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
                 % Normalize by the plane density               
                 this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
 
                 this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);         
                 
-            else
-                this.Volume = this.Volume ./ 4;
-            end
+%             else
+%                 this.Volume = this.Volume ./ 4;
+%             end
 
             Volume = single(this.Volume);         
         end   
@@ -338,12 +339,16 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function Volume = getVol(this)
         
            this.Set(); % Run the set function in case one of the arrays has changed
+           tic
            mexMultiGPUGetVolume(this.objectHandle);
+           toc
            
-            if (this.RunFFTOnGPU == false)
+%             if (this.RunFFTOnGPU == false)
                 % Convert the CASVolume to Volume
+                tic
                 this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
-            end
+                toc
+%             end
 
            Volume = single(this.Volume); 
 

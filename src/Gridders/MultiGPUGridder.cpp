@@ -289,39 +289,39 @@ void MultiGPUGridder::CASVolumeToVolume()
     // Synchronize all of the GPUs
     GPU_Sync();
 
-    if (this->RunFFTOnDevice == 1)
-    {
-        // We have to combine the output from each GPU in the frequency domain and not spatial domain
-        // int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
+    // if (this->RunFFTOnDevice == 1)
+    // {
+    //     // We have to combine the output from each GPU in the frequency domain and not spatial domain
+    //     // int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
 
-        // Allow the first GPU to access the memory of the other GPUs
-        // This is needed for the reconstruct volume function
-        // EnablePeerAccess(GPU_For_Reconstruction);
+    //     // Allow the first GPU to access the memory of the other GPUs
+    //     // This is needed for the reconstruct volume function
+    //     // EnablePeerAccess(GPU_For_Reconstruction);
 
-        // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
-        // AddCASVolumes(GPU_For_Reconstruction);
+    //     // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
+    //     // AddCASVolumes(GPU_For_Reconstruction);
 
-        for (int i = 0; i < this->Num_GPUs; i++)
-        {
-            // Reconstruct the volume on each GPU
-            gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
-            gpuGridder_vec[i]->CASVolumeToVolume();
-        }
+    //     for (int i = 0; i < this->Num_GPUs; i++)
+    //     {
+    //         // Reconstruct the volume on each GPU
+    //         gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
+    //         gpuGridder_vec[i]->CASVolumeToVolume();
+    //     }
 
-        // Synchronize all of the GPUs
-        GPU_Sync();
+    //     // Synchronize all of the GPUs
+    //     GPU_Sync();
 
-        // Combine the volume arrays from each GPU and copy back to the host
-        SumVolumes();
-    }
+    //     // Combine the volume arrays from each GPU and copy back to the host
+    //     SumVolumes();
+    // }
 
-    if (this->RunFFTOnDevice == false || this->verbose == true)
-    {
+    // if (this->RunFFTOnDevice == false || this->verbose == true)
+    // {
         // We're not running the FFT on the GPU so send the required arrays back to the CPU memory
 
         // Combine the CAS volume arrays from each GPU and copy back to the host
         SumCASVolumes();
-    }
+    // }
 
     // Synchronize all of the GPUs
     GPU_Sync();

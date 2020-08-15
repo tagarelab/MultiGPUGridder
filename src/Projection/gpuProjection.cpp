@@ -139,8 +139,8 @@ void gpuProjection::InitializeGPUArrays()
     if (this->RunFFTOnDevice == 1)
     {
         // Allocate padded volume (used for converting the volume to CAS volume)
-        this->d_PaddedVolume = new DeviceMemory<float>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
-        this->d_PaddedVolume->AllocateGPUArray();
+        // this->d_PaddedVolume = new DeviceMemory<float>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
+        // this->d_PaddedVolume->AllocateGPUArray();
 
         //      int CASVolumeSize = this->d_CASVolume->GetSize(0);
         // int CASImgSize = this->d_CASImgs->GetSize(0);
@@ -172,15 +172,15 @@ void gpuProjection::InitializeGPUArrays()
         // float *d_CASVolume_Cropped;
         // gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped, sizeof(float) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
 
-        this->d_CASVolume_Cropped = new DeviceMemory<float>(3, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, this->GPU_Device);
-        this->d_CASVolume_Cropped->AllocateGPUArray();
+        // this->d_CASVolume_Cropped = new DeviceMemory<float>(3, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, this->GPU_Device);
+        // this->d_CASVolume_Cropped->AllocateGPUArray();
 
-        // Allocate a complex version of the padded volume (needed for the forward and inverse FFT)
-        this->d_PaddedVolumeComplex = new DeviceMemory<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
-        this->d_PaddedVolumeComplex->AllocateGPUArray();
+        // // Allocate a complex version of the padded volume (needed for the forward and inverse FFT)
+        // this->d_PaddedVolumeComplex = new DeviceMemory<cufftComplex>(3, PaddedVolumeSize, PaddedVolumeSize, PaddedVolumeSize, this->GPU_Device);
+        // this->d_PaddedVolumeComplex->AllocateGPUArray();
 
-        this->d_CASVolume_Cropped_Complex = new DeviceMemory<cufftComplex>(3, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, this->GPU_Device);
-        this->d_CASVolume_Cropped_Complex->AllocateGPUArray();
+        // this->d_CASVolume_Cropped_Complex = new DeviceMemory<cufftComplex>(3, CroppedCASVolumeSize, CroppedCASVolumeSize, CroppedCASVolumeSize, this->GPU_Device);
+        // this->d_CASVolume_Cropped_Complex->AllocateGPUArray();
 
         //cufftComplex *d_CASVolume_Cropped_Complex;
         //gpuErrorCheck(cudaMalloc(&d_CASVolume_Cropped_Complex, sizeof(cufftComplex) * CroppedCASVolumeSize * CroppedCASVolumeSize * CroppedCASVolumeSize));
@@ -812,17 +812,18 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
     this->d_KB_Table->CopyToGPU(this->h_KB_Table->GetPointer(), this->h_KB_Table->bytes());
 
     // Convert and copy the volume to CAS volume if we are running the FFT on the device
-    if (this->RunFFTOnDevice == 1)
-    {
-        // Run the volume to CAS volume function
-        VolumeToCASVolume();
-    }
-    else
-    {
+    // if (this->RunFFTOnDevice == 1)
+    // {
+    //     // Run the volume to CAS volume function
+    //     VolumeToCASVolume();
+    // }
+    // else
+    // {
+        
         // Copy the CAS volume to the corresponding GPU array
         this->d_CASVolume->Reset();
         this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
-    }
+    // }
 
     // Check the error flags to see if we had any issues during the initilization
     if (this->ErrorFlag == 1 ||
@@ -983,10 +984,10 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     // }
     // else
     // {
-    //     this->d_CASVolume->Reset();
+        this->d_CASVolume->Reset();
 
-    //     // Copy the CAS volume to the corresponding GPU array
-    //     this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+        // Copy the CAS volume to the corresponding GPU array
+        this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
     // }
 
     gpuErrorCheck(cudaDeviceSynchronize());
@@ -1211,11 +1212,11 @@ void gpuProjection::FreeMemory()
     // If running the FFT on the device deallocate the arrays
     if (this->RunFFTOnDevice == 1)
     {
-        delete d_PaddedVolume;
+       // delete d_PaddedVolume;
         delete d_KBPreComp;
-        delete d_CASVolume_Cropped;
-        delete d_PaddedVolumeComplex;
-        delete d_CASVolume_Cropped_Complex;
+       // delete d_CASVolume_Cropped;
+       // delete d_PaddedVolumeComplex;
+        //delete d_CASVolume_Cropped_Complex;
         delete d_CASImgsComplex;
     }
 

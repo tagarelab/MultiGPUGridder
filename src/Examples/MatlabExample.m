@@ -2,6 +2,7 @@
 close all
 clear all
 
+ 
 start = tic;
 
 % Add the required Matlab file paths
@@ -12,10 +13,10 @@ addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
 addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 64;
+VolumeSize = 400;
 interpFactor = 2;
-n1_axes = 10;
-n2_axes = 10;
+n1_axes = 100;
+n2_axes = 50;
 
 % Create the volume
 load mri;
@@ -44,8 +45,8 @@ easyMontage(images(:,:,1:min(100, size(images,3))), 1)
 % Run the back projection
 gridder.resetVolume();
 tic
-tmpCTFs = ones(size(images));
-gridder.backProject(gridder.Images, coordAxes, tmpCTFs)
+
+gridder.backProject(gridder.Images, coordAxes)
 disp("Back Project: " + toc + " seconds")
 
 tic
