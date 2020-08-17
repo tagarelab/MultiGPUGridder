@@ -8,12 +8,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verbose = false;
+        verbose = true;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([]);
+        GPUs = int32([1]);
         MaxAxesToAllocate;
         nStreamsFP = 10; % For the forward projection
         nStreamsBP = 1; % For the back projection
@@ -264,34 +264,24 @@ classdef MultiGPUGridder_Matlab_Class < handle
             ProjectionImages = this.Images(:,:,1:size(this.coordAxes,2));            
             
         end         
-        %% BackProject - Run the back projection function
-        function backProject(this, varargin)
+          function backProject(this, varargin)
 
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                % If a complex image was given, we don't want to change the type of this.Images to complex 
-                % which would affect the memory pointers for the C++ class
-                if isreal(varargin{1}) == true
-                    this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
-                end
+                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
                 
                 if (this.RunFFTOnGPU == false)
                     
                     % Run the forward FFT and convert the images to CAS images
-                    [~,interpBox,~] = getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    newCASImgs = CASImgsFromImgs(single(varargin{1}), interpBox, []);                    
+                    [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+                    newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);                    
                     
                     this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed                
-%                 this.coordAxes = single(varargin{2});
-
-      % A new set of coordinate axes to use with the back projection was passed
-                tempAxes = single(varargin{2}); % Avoid Matlab's copy-on-write
-%                     this.coordAxes = tempAxes;
-                    this.coordAxes(:,1:length(tempAxes(:))/9) = tempAxes;
+                this.coordAxes = single(varargin{2});
 
             end
 
@@ -301,6 +291,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             mexMultiGPUBackProject(this.objectHandle);
             
         end   
+    
     
         %% setVolume - Set the volume
         function setVolume(this, varargin)

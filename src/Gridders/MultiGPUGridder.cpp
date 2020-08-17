@@ -539,10 +539,10 @@ void MultiGPUGridder::SumCASVolumes()
     }
 
     // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)
-    if (this->h_CASVolume != NULL)
-    {
+    //if (this->h_CASVolume != NULL)
+    //{
         this->h_CASVolume->CopyArray(SummedVolume);
-    }
+    //}
 
     // Release the temporary memory
     delete[] SummedVolume;

@@ -54,6 +54,8 @@ vol=gridder.getVol();
 disp("Get volume: " + toc + " seconds")
 easyMontage(vol, 2)
 
+easyMontage(gridder.CASVolume)
+
 % Reconstruct the volume
 tic
 % reconstructVol = gridder.reconstructVol();

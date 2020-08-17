@@ -42,8 +42,8 @@ int gpuProjection::EstimateMaxAxesToAllocate(int VolumeSize, int interpFactor)
     int Bytes_per_CASImg = CASImg_Length * sizeof(float);
     int Bytes_per_ComplexCASImg = CASImg_Length * sizeof(cufftComplex);
     int Bytes_for_Volume = pow(VolumeSize, 3) * sizeof(float);
-    int Bytes_for_Padded_Volume = pow((VolumeSize * interpFactor), 3) * sizeof(float);
-    int Bytes_for_Padded_Volume_Complex = Bytes_for_Padded_Volume * 2;
+    int Bytes_for_Padded_Volume = 0;//pow((VolumeSize * interpFactor), 3) * sizeof(float);
+    int Bytes_for_Padded_Volume_Complex = 0;//Bytes_for_Padded_Volume * 2;
     int Bytes_for_CASVolume = pow((VolumeSize * interpFactor + this->extraPadding * 2), 3) * sizeof(float);
     int Bytes_for_Plane_Density = Bytes_for_CASVolume;
     int Bytes_for_CoordAxes = 9 * sizeof(float); // 9 elements per axes
@@ -1213,7 +1213,7 @@ void gpuProjection::FreeMemory()
     if (this->RunFFTOnDevice == 1)
     {
        // delete d_PaddedVolume;
-        delete d_KBPreComp;
+       // delete d_KBPreComp;
        // delete d_CASVolume_Cropped;
        // delete d_PaddedVolumeComplex;
         //delete d_CASVolume_Cropped_Complex;
