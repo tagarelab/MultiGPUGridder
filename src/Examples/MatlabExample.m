@@ -13,7 +13,7 @@ addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
 addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 256;
+VolumeSize = 64;
 interpFactor = 2;
 n1_axes = 10;
 n2_axes = 10;
@@ -28,7 +28,7 @@ coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
 coordAxes = coordAxes(:,1:n1_axes*n2_axes);
 
 % Create the gridder object
-gridder = MultiGPUGridder_Matlab_Class(VolumeSize, n1_axes * n2_axes, interpFactor);
+gridder = MultiGPUGridder_Matlab_Class('VolumeSize', VolumeSize, 'NumAxes',n1_axes * n2_axes);
 
 % Set the volume
 gridder.setVolume(MRI_volume);

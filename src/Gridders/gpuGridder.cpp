@@ -438,7 +438,7 @@ void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
 
     if (this->verbose == true)
     {
-        std::cout << "gpuProjection::CASImgsToImgs() on GPU " << this->GPU_Device << '\n';
+        std::cout << "gpuGridder::CASImgsToImgs() on GPU " << this->GPU_Device << '\n';
         PrintMemoryAvailable();
     }
 

@@ -31,7 +31,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
         Volume;
         Images;  
         MaskRadius;
-%         KBPreComp;
         
     end
     
@@ -43,40 +42,33 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % (2) nCoordAxes
             % (3) interpFactor        
             
-            % Add the paths of the compiled Mex files and the util folder relative to this file
-%             mfilepath=fileparts(which('MultiGPUGridder_Matlab_Class.m'));
-%             addpath(fullfile(mfilepath,'./utils'));
-%             addpath(fullfile(mfilepath,'../../bin')); 
             
-            this.VolumeSize = int32(varargin{1});
-            this.NumAxes = int32(varargin{2});
-            this.interpFactor = single(varargin{3});   
+            p = inputParser;
+            addOptional(p, 'VolumeSize', 0, @isnumeric);
+            addOptional(p, 'NumAxes', 0, @isnumeric);
+            addOptional(p, 'interpFactor', 2, @isnumeric);
+            addOptional(p, 'GPUs', [], @isnumeric);
+            addOptional(p, 'RunFFTOnGPU', 1, @isnumeric); % Offset of the ProjNdx index (if we want to project a subset of the images)
+            addOptional(p, 'verbose', 0, @isnumeric);
+            addOptional(p, 'nStreamsFP', 10, @isnumeric);
+            addOptional(p, 'nStreamsBP', 4, @isnumeric);
+            addOptional(p, 'MaxAxesToAllocate', 1000, @isnumeric);
+            
+            parse(p, varargin{:});
+            this.VolumeSize = int32(p.Results.VolumeSize);
+            this.NumAxes = int32(p.Results.NumAxes);
+            this.interpFactor = single(p.Results.interpFactor);
+            this.GPUs = p.Results.GPUs;
+            this.RunFFTOnGPU = int32(p.Results.RunFFTOnGPU);
+            this.verbose = p.Results.verbose;
+            this.nStreamsFP = p.Results.nStreamsFP;
+            this.nStreamsBP = p.Results.nStreamsBP;
+            this.MaxAxesToAllocate = p.Results.MaxAxesToAllocate;
+
             
             % Create the Volume array
             this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');
-            
-            % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
-%             if(this.VolumeSize < 64)
-%                 this.interpFactor = 128 / single(this.VolumeSize);
-% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-%             elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
-%                 this.interpFactor = 256 / single(this.VolumeSize);
-% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-%             elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
-%                 this.interpFactor = single(512 / double(this.VolumeSize));
-% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-%             elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
-%                 this.interpFactor = 1024 / single(this.VolumeSize);
-% %                 warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
-%             end
-            
-%             % Test whether the new interpFactor is valid or not
-%             try
-%                 tmp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');
-%             catch
-%                 this.interpFactor = single(2); % Reset to the default value of two
-%             end
-            
+                        
             % If the GPUs to use was not given use all the available GPUs
             if isempty(this.GPUs)
                 this.GPUs = int32([1:gpuDeviceCount]) - 1; % CUDA GPU device numbers need to start at zero
@@ -89,11 +81,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
                 
             this.MaskRadius = (single(this.VolumeSize) * this.interpFactor) / 2 - 1;            
-            
-            if (length(varargin) >= 4)
-                this.RunFFTOnGPU = varargin{4};
-            end
-            
+
             gridder_Varargin = cell(8,1);
             gridder_Varargin{1} = int32(this.VolumeSize);
             gridder_Varargin{2} = int32(this.NumAxes);
@@ -116,9 +104,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
                        
             % Initialize the output projection images array
             ImageSize = [this.VolumeSize, this.VolumeSize, this.NumAxes];
-            this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');           
-            
-            
+            this.Images = zeros(ImageSize(1), ImageSize(2), ImageSize(3), 'single');          
+
             % Load the Kaiser Bessel lookup table
             this.KBTable = single(getKernelFiltTable(this.kerHWidth, this.kerTblSize));            
         
@@ -129,22 +116,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
                 this.CASImages = zeros([CASImagesSize, CASImagesSize, this.NumAxes], 'single');  
                 
-             end
-            
+            end            
             % Create the CASVolume array
-            this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');
-           
-            
-            
-            % Create the Kaiser Bessel pre-compensation array
-            % After backprojection, the inverse FFT volume is divided by this array
-            InterpVolSize = single(this.VolumeSize) * single(this.interpFactor);
-%             this.KBPreComp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');    
-           
-%             preComp=getPreComp(InterpVolSize,this.kerHWidth);
-%             preComp=preComp';
-%             this.KBPreComp=single(reshape(kron(preComp,kron(preComp,preComp)),...
-%                          InterpVolSize,InterpVolSize,InterpVolSize));                    
+            this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');                  
 
         end        
         %% Deconstructor - Delete the C++ class instance 
@@ -233,16 +207,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-            this.CASVolume(:,:,1:end) = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
+            this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
             
             
             if size(this.coordAxes,2) < this.nStreamsFP
                 error("The number of projection directions must be >= the number of CUDA streams.")
-            end            
-            
+            end          
 
             this.Set(); % Run the set function in case one of the arrays has changed       
-            this.Set();
 
             mexMultiGPUForwardProject(this.objectHandle);            
             
@@ -260,15 +232,14 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
+                this.Images = single(varargin{1}); 
                 
                 if (this.RunFFTOnGPU == false)
                     
                     % Run the forward FFT and convert the images to CAS images
                     [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    newCASImgs = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);                    
-                    
-                    this.CASImages(:,:,1:size(newCASImgs,3)) = newCASImgs;
+                    this.CASImages = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);                    
+
                 end
                 
                 % A new set of coordinate axes to use with the back projection was passed                
@@ -277,8 +248,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
-            this.Set();
-            this.Set();
             mexMultiGPUBackProject(this.objectHandle);
             
         end   
@@ -291,11 +260,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end
         %% resetVolume - Reset the volume
         function resetVolume(this)
+            
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
-           this.Volume = single(0 * this.Volume); 
-           
+           this.Volume = single(0 * this.Volume);            
            this.CASVolume= single(0 * this.CASVolume);
-
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)
@@ -322,14 +290,10 @@ classdef MultiGPUGridder_Matlab_Class < handle
            this.Set(); % Run the set function in case one of the arrays has changed
            tic
            mexMultiGPUGetVolume(this.objectHandle);
-           toc
            
-%             if (this.RunFFTOnGPU == false)
-                % Convert the CASVolume to Volume
-                tic
-                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
-                toc
-%             end
+           
+           % Convert the CASVolume to Volume
+           this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
 
            Volume = single(this.Volume); 
 
