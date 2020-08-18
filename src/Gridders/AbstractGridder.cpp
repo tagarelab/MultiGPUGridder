@@ -13,7 +13,7 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->maskRadius = (VolumeSize * this->interpFactor) / 2 - 1;
     this->h_CASImgs = NULL;      // Optional input
     this->h_CASVolume = NULL;    // Optional input
-    this->h_PlaneDensity = NULL; // Optional input
+
     this->MaxAxesToAllocate = 1000;
     this->SetNumAxes(numCoordAxes);
 
@@ -26,10 +26,9 @@ AbstractGridder::AbstractGridder(int VolumeSize, int numCoordAxes, float interpF
     this->VolumeInitialized = false;
     this->CASImgsInitialized = false;
     this->KB_TableInitialized = false;
-    this->KBPreCompInitialized = false;
     this->CASVolumeInitialized = false;
     this->CoordAxesInitialized = false;
-    this->PlaneDensityInitialized = false;
+    
 }
 
 AbstractGridder::~AbstractGridder()
@@ -112,54 +111,6 @@ void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
     }
 }
 
-void AbstractGridder::SetPlaneDensity(float *PlaneDensity, int *ArraySize)
-{
-    // Set the plane density array (optional)
-    if (this->PlaneDensityInitialized == false)
-    {
-        this->h_PlaneDensity = new HostMemory<float>(3, ArraySize);
-        this->h_PlaneDensity->CopyPointer(PlaneDensity);
-        this->h_PlaneDensity->PinArray();
-
-        this->PlaneDensityInitialized = true;
-    }
-    else
-    {
-        // Just copy the pointer
-        this->h_PlaneDensity->CopyPointer(PlaneDensity);
-
-        // Check to see if we need to pin the array again (if the pointer is different)
-        if (PlaneDensity != this->h_PlaneDensity->GetPointer())
-        {
-            this->h_PlaneDensity->PinArray();
-        }
-    }
-}
-
-void AbstractGridder::SetKBPreCompArray(float *KBPreCompArray, int *ArraySize)
-{
-    // Set the Kaiser Bessel precompentation array (currently set using Matlab's getPreComp() function)
-    if (this->KBPreCompInitialized == false)
-    {
-        this->h_KBPreComp = new HostMemory<float>(3, ArraySize);
-        this->h_KBPreComp->CopyPointer(KBPreCompArray);
-        this->h_KBPreComp->PinArray();
-
-        this->KBPreCompInitialized = true;
-    }
-    else
-    {
-        // Just copy the pointer
-        this->h_KBPreComp->CopyPointer(KBPreCompArray);
-
-        // Check to see if we need to pin the array again (if the pointer is different)
-        if (KBPreCompArray != this->h_KBPreComp->GetPointer())
-        {
-            this->h_KBPreComp->PinArray();
-        }
-    }
-}
-
 void AbstractGridder::SetImages(float *imgs, int *ArraySize)
 {
     // Set the images array
@@ -232,7 +183,7 @@ void AbstractGridder::SetCoordAxes(float *coordAxes, int *ArraySize)
     }
 
     // Set the number of coordinate axes by dividing by the number of elements per axe (i.e. 9)
-    this->SetNumAxes(ArraySize[0] / 9);
+    // this->SetNumAxes(ArraySize[0] / 9);
 }
 
 void AbstractGridder::ResetVolume()

@@ -40,7 +40,7 @@ interpCAS=volCAS(volB:volE,volB:volE,volB:volE);
 
 %Precompensate
 interpFft=FromCAS(interpCAS);
-clear interpCAS
+% clear interpCAS
 interpVol=real(fftshift(ifftn(fftshift(interpFft))));
 
 preComp=getPreComp(interpSize,kernelHWidth);

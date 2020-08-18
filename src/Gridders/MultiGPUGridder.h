@@ -118,24 +118,11 @@ public:
 	/// Combine the CAS volumes on all the GPUs (the result from the back projection) and convert to volume using the first GPU and gpuGridder.
 	void CASVolumeToVolume();
 
-	/// Combine the CAS volumes on all the GPUs (the result from the back projection) and convert to volume using the first GPU and gpuGridder
-	/// and normalizing by the plane density array.
-	void ReconstructVolume();
-
-	/// Get the plane density arrays from each gpuGridder, sum them together, and copy the result back to the host memory.
-	void SumPlaneDensity();
-
-	/// Get the volume arrays from each gpuGridder, sum them together, and copy the result back to the host memory.
-	void SumVolumes();
-
 	/// Get the CAS volume arrays from each gpuGridder, sum them together, and copy the result back to the host memory.
 	void SumCASVolumes();
 
 	/// Sum the CAS volumes from each gpuGridder to the given device after running the back projection
 	void AddCASVolumes(int GPU_For_Reconstruction);
-
-	/// Sum the plane densities on the GPU devices to the given device after running the back projection
-	void AddPlaneDensities(int GPU_For_Reconstruction);
 
 private:
 	// Plan which GPU will process which coordinate axes
@@ -174,7 +161,7 @@ private:
 
 	/// Allow the first GPU to access the memory of the other GPUs
 	/// This is needed for the reconstruct volume function
-	// void EnablePeerAccess(int GPU_For_Reconstruction);
+	void EnablePeerAccess(int GPU_For_Reconstruction);
 
 	bool PeerAccessEnabled;
 

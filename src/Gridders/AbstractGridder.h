@@ -66,10 +66,6 @@ public:
     /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetCoordAxes(float *h_CoordAxes, int *ArraySize);
 
-    /// Set the Kaiser Bessel pre-compensation array by passing a pointer to previously allocated memory and an int vector (of size 3) which has the volume dimensions.
-    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
-    void SetKBPreCompArray(float *h_KBPreComp, int *ArraySize);
-
     /// OPTIONAL: Set the CAS volume array by passing a pointer to previously allocated memory and an int vector (of size 3) which has the volume dimensions.
     /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetCASVolume(float *h_CASVolume, int *ArraySize);
@@ -78,11 +74,6 @@ public:
     /// and an int vector (of size 3) which has the volume dimensions.
     /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
     void SetCASImages(float *h_CASImgs, int *ArraySize);
-
-    /// OPTIONAL: Set the plane density array by passing a pointer to previously allocated memory and an int vector (of size 3) which has the volume dimensions.
-    /// This is used for the back projection and represents the density of the projection directions and is used for compensating the back projection result.
-    /// The array is then pinned to CPU memory for asynchronous copying to the GPU.
-    void SetPlaneDensity(float *h_PlaneDensity, int *ArraySize);
 
     /// OPTIONAL: Set maximum number of coordinate axes (and corresponding number of intermediate arrays) for the forward and back projection.
     /// Although the projection classes estimate the number of coordinate axes based on available memory, this can be useful for limiting to a smaller number.
@@ -117,14 +108,15 @@ public:
     HostMemory<float> *h_Volume;
     HostMemory<float> *h_CoordAxes;
     HostMemory<float> *h_KB_Table;
-    HostMemory<float> *h_KBPreComp;    // Kaiser Bessel precompensation array (currently set using Matlab getPreComp())
-    HostMemory<float> *h_CASVolume;    // Optional inputs
+     HostMemory<float> *h_CASVolume;    // Optional inputs
     HostMemory<float> *h_CASImgs;      // Optional inputs
-    HostMemory<float> *h_PlaneDensity; // Optional inputs
 
 protected:
     // Flag to test that all arrays were allocated successfully
     bool ErrorFlag;
+
+    // Flag to apply the CTFs to the images before back projection
+    bool ApplyCTFs;
 
     // Mask radius for the forward / back projection kernel
     float maskRadius;
@@ -166,8 +158,7 @@ private:
     bool VolumeInitialized;
     bool CASImgsInitialized;
     bool KB_TableInitialized;
-    bool KBPreCompInitialized;
     bool CASVolumeInitialized;
     bool CoordAxesInitialized;
-    bool PlaneDensityInitialized;
+
 };

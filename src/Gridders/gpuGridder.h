@@ -27,8 +27,19 @@
 #include "gpuBackProject.h"
 #include "HostMemory.h"
 #include "DeviceMemory.h"
-#include "gpuProjection.h"
 #include "gpuErrorCheck.h"
+
+#include "CropVolumeFilter.h"
+#include "CASToComplexFilter.h"
+#include "FFTShift2DFilter.h"
+#include "FFTShift3DFilter.h"
+#include "PadVolumeFilter.h"
+#include "ComplexToCASFilter.h"
+#include "DivideVolumeFilter.h"
+#include "RealToComplexFilter.h"
+#include "ComplexToRealFilter.h"
+#include "MultiplyVolumeFilter.h"
+#include "DivideScalarFilter.h"
 
 #include <cstdlib>
 #include <stdio.h>
@@ -64,8 +75,9 @@ public:
         this->VolumeToCASVolumeFlag = false;
         this->GPUArraysAllocatedFlag = false;
         this->nStreamsFP = 1;
-        this->nStreamsBP = 1;        
+        this->nStreamsBP = 1;
         this->VolumeSize = VolumeSize;
+        this->KB_Table_Size = 501;
 
         this->RunFFTOnDevice = RunFFTOnDevice;
         this->maskRadius = this->VolumeSize * this->interpFactor / 2 - 1;
@@ -108,28 +120,16 @@ public:
     void SetGPU(int GPU_Device);
 
     /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
-    float *GetVolumeFromDevice();
-
-    /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
     float *GetCASVolumeFromDevice();
-
-    /// Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array.
-    float *GetPlaneDensityFromDevice();
 
     /// Get the pointer to the volume array on the GPU.
     float *GetCASVolumePtr();
-
-    /// Get the pointer to the plane density array on the GPU.
-    float *GetPlaneDensityPtr();
 
     /// Copy the volume array from the GPU back to the pinned host (i.e. CPU) memory. This is used to return the output of the back projection.
     void CopyVolumeToHost();
 
     /// Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if running the Fourier transform on the CPU (such as within Matlab or Python).
     void CopyCASVolumeToHost();
-
-    /// Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if running the Fourier transform on the CPU (such as within Matlab or Python).
-    void CopyPlaneDensityToHost();
 
     /// Reconstruct the volume by converting the CASVolume to Volume and running an inverse FFT. This volume is normalized by the plane density array and the
     /// Kaiser Bessel pre-compensation array.
@@ -138,11 +138,26 @@ public:
     /// Convert the CASVolume to volume by running an inverse FFT. This function does not normalize using the plane density.
     void CASVolumeToVolume();
 
-    /// Calculate the plane density by running the back projection kernel with the CASimages array equal to one. The plane density
-    /// is needed for normalizing the volume during reconstruction.
-    void CalculatePlaneDensity(int AxesOffset, int nAxesToProcess);
-
 private:
+    /// A structure for holding all of the pointer offset values when running the forward and back projection kernels.
+    struct Offsets
+    {
+        std::vector<int> numAxesPerStream;
+        std::vector<int> CoordAxes_CPU_Offset;
+        std::vector<int> coord_Axes_CPU_streamBytes;
+        std::vector<int> gpuImgs_Offset;
+        std::vector<int> gpuCASImgs_streamBytes;
+        std::vector<int> gpuCASImgs_Offset;
+        std::vector<int> gpuCoordAxes_Stream_Offset;
+        std::vector<unsigned long long> CASImgs_CPU_Offset;
+        std::vector<unsigned long long> Imgs_CPU_Offset;
+        std::vector<int> gpuImgs_streamBytes;
+        std::vector<int> stream_ID;
+        std::vector<int> currBatch;
+        int Batches;
+        int num_offsets;
+    };
+
     // Initialize pointers for allocating memory on the GPU
     // DeviceMemory<cufftComplex> *d_CASImgsComplex;      // For forward / inverse FFT
     // DeviceMemory<cufftComplex> *d_PaddedVolumeComplex; // For converting volume to CAS volume
@@ -152,11 +167,16 @@ private:
     DeviceMemory<float> *d_Imgs;     // Output images
     DeviceMemory<float> *d_KB_Table; // Kaiser bessel lookup table
     DeviceMemory<float> *d_CoordAxes;
-    DeviceMemory<float> *d_PlaneDensity;
-    DeviceMemory<float> *d_Volume;
+    DeviceMemory<cufftComplex> *d_CASImgsComplex; // For forward / inverse FFT
 
-    // Object for the foward and back projection
-    gpuProjection *gpuProjection_Obj;
+
+    // For converting images to CAS images
+    bool forwardFFTImagesFlag;
+    cufftHandle forwardFFTImages;
+
+    // For converting CAS images to images
+    bool inverseFFTImagesFlag;
+    cufftHandle inverseFFTImages;
 
     int GPU_Device; // Which GPU to use?
     int nStreamsFP; // Streams to use on this GPU for the forward projection
@@ -164,8 +184,14 @@ private:
 
     int VolumeSize;
 
+    // Length of the Kaiser Bessel look up table
+    int KB_Table_Size;
+
     // CUDA streams to use for forward / back projection
-    cudaStream_t *streams;
+    cudaStream_t *FP_streams;
+
+    // CUDA streams to use for back projection
+    cudaStream_t *BP_streams;
 
     // Array allocation flag
     bool GPUArraysAllocatedFlag;
@@ -178,9 +204,16 @@ private:
 
     // Initilization functions
     void InitializeGPUArrays();
+    void InitializeCUDAStreams();
 
     // Print to the console how much GPU memory is remaining
     void PrintMemoryAvailable();
+
+    // Plan the pointer offset values for running the CUDA kernels
+    Offsets PlanOffsetValues(int coordAxesOffset, int nAxes, int numStreams);
+
+    // Convert CAS images to images using an inverse FFT
+    void CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex *CASImgsComplex);
 
     // Free all of the allocated memory
     void FreeMemory();
@@ -188,4 +221,8 @@ private:
 protected:
     // Should we print status information to the console?
     bool verbose;
+
+      /// Convert projection images to CAS images by running a forward FFT
+    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, int numImgs);
+
 };
