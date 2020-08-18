@@ -13,10 +13,10 @@ addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
 addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 64;
+VolumeSize = 512;
 interpFactor = 2;
 n1_axes = 10;
-n2_axes = 10;
+n2_axes = 50;
 
 % Create the volume
 load mri;
@@ -28,23 +28,20 @@ coordAxes = create_uniform_axes(n1_axes,n2_axes,0,10);
 coordAxes = coordAxes(:,1:n1_axes*n2_axes);
 
 % Create the gridder object
-gridder = MultiGPUGridder_Matlab_Class('VolumeSize', VolumeSize, 'NumAxes',n1_axes * n2_axes);
+gridder = MultiGPUGridder_Matlab_Class('VolumeSize', VolumeSize, ...
+    'NumAxes', n1_axes * n2_axes, 'RunFFTOnGPU', 0, 'verbose', 1);
 
 % Set the volume
 gridder.setVolume(MRI_volume);
 
 % Run the forward projection once to allocate the memory (to get a more accurate timing below)
-% images = gridder.forwardProject(coordAxes);    
+images = gridder.forwardProject(coordAxes);    
 
 % Run the forward projection
 tic
 images = gridder.forwardProject(coordAxes);    
 disp("Forward Project: " + toc + " seconds")
 easyMontage(images(:,:,1:min(100, size(images,3))), 1)
-
-% x = load("images.mat");
-% gridder.Images = x.images;
-
 
 % Run the back projection
 gridder.resetVolume();
@@ -58,11 +55,9 @@ vol=gridder.getVol();
 disp("Get volume: " + toc + " seconds")
 easyMontage(vol, 2)
 
-% easyMontage(gridder.CASVolume)
-
 % Reconstruct the volume
 tic
-% reconstructVol = gridder.reconstructVol();
+% reconstructVol = gridder.reconstructVol(images, coordAxes);
 % disp("Reconstruct Volume: " + toc + " seconds")
 % easyMontage(reconstructVol, 3)
 

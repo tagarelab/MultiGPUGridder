@@ -206,11 +206,9 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
     {
         if (this->verbose == true)
         {
-            std::cout << '\n';
-            std::cout << '\n';
             std::cout << "GPU: " << this->GPU_Device << " forward projection stream " << Offsets_obj.stream_ID[i]
                       << " batch " << Offsets_obj.currBatch[i]
-                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes "
+                      << " processing " << Offsets_obj.numAxesPerStream[i] << " axes"
                       << " running FFT on device " << this->RunFFTOnDevice << '\n';
         }
 
@@ -220,17 +218,17 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         }
 
         // Reset the d_CASImgs and d_Imgs arrays back to zeros
-        gpuErrorCheck(cudaMemsetAsync(
-            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            0,
-            Offsets_obj.gpuCASImgs_streamBytes[i],
-            FP_streams[Offsets_obj.stream_ID[i]]));
+        // gpuErrorCheck(cudaMemsetAsync(
+        //     this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        //     0,
+        //     Offsets_obj.gpuCASImgs_streamBytes[i],
+        //     FP_streams[Offsets_obj.stream_ID[i]]));
 
-        gpuErrorCheck(cudaMemsetAsync(
-            this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-            0,
-            Offsets_obj.gpuImgs_streamBytes[i],
-            FP_streams[Offsets_obj.stream_ID[i]]));
+        // gpuErrorCheck(cudaMemsetAsync(
+        //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+        //     0,
+        //     Offsets_obj.gpuImgs_streamBytes[i],
+        //     FP_streams[Offsets_obj.stream_ID[i]]));
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         gpuErrorCheck(cudaMemcpyAsync(
@@ -270,11 +268,11 @@ void gpuGridder::ForwardProject(int AxesOffset, int nAxesToProcess)
         {
 
             // Reset the d_CASImgsComplex array back to zeros
-            gpuErrorCheck(cudaMemsetAsync(
-                this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                0,
-                2 * Offsets_obj.gpuCASImgs_streamBytes[i], // cufftComplex type so multiply the bytes by 2
-                FP_streams[Offsets_obj.stream_ID[i]]));
+            // gpuErrorCheck(cudaMemsetAsync(
+            //     this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            //     0,
+            //     2 * Offsets_obj.gpuCASImgs_streamBytes[i], // cufftComplex type so multiply the bytes by 2
+            //     FP_streams[Offsets_obj.stream_ID[i]]));
 
             // Convert the CAS projection images back to images using an inverse FFT and cropping out the zero padding
             this->CASImgsToImgs(
@@ -323,18 +321,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     this->d_CASVolume->Reset();
     this->d_CoordAxes->Reset();
 
-    // // Check the error flags to see if we had any issues during the initilization
-    // if (this->ErrorFlag == 1 ||
-    //     this->d_CASVolume->GetErrorFlag() == 1 ||
-    //     this->d_CASImgs->GetErrorFlag() == 1 ||
-    //     this->d_Imgs->GetErrorFlag() == 1 ||
-    //     this->d_CoordAxes->GetErrorFlag() == 1 ||
-    //     this->d_KB_Table->GetErrorFlag() == 1)
-    // {
-    //     std::cerr << "Error during initialization." << '\n';
-    //     return; // Don't run the kernel and return
-    // }
-
     gpuErrorCheck(cudaDeviceSynchronize());
 
     for (int i = 0; i < Offsets_obj.num_offsets; i++)
@@ -346,18 +332,16 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
 
         if (this->verbose == true)
         {
-            std::cout << '\n';
-            std::cout << '\n';
             std::cout << "GPU: " << this->GPU_Device << " back projection stream " << Offsets_obj.stream_ID[i]
                       << " batch " << Offsets_obj.currBatch[i]
                       << " processing " << Offsets_obj.numAxesPerStream[i] << " axes " << '\n';
         }
 
-        gpuErrorCheck(cudaMemsetAsync(
-            this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-            0,
-            Offsets_obj.gpuCASImgs_streamBytes[i],
-            BP_streams[Offsets_obj.stream_ID[i]]));
+        // gpuErrorCheck(cudaMemsetAsync(
+        //     this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+        //     0,
+        //     Offsets_obj.gpuCASImgs_streamBytes[i],
+        //     BP_streams[Offsets_obj.stream_ID[i]]));
 
         // Copy the section of gpuCoordAxes which this stream will process on the current GPU
         gpuErrorCheck(cudaMemcpyAsync(
@@ -378,24 +362,24 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
         }
         else
         {
-            // Reset the d_Imgs, d_CASImgs, and d_CASImgsComplex arrays back to all zeros
-            gpuErrorCheck(cudaMemsetAsync(
-                this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                0,
-                Offsets_obj.gpuImgs_streamBytes[i],
-                BP_streams[Offsets_obj.stream_ID[i]]));
+            // // Reset the d_Imgs, d_CASImgs, and d_CASImgsComplex arrays back to all zeros
+            // gpuErrorCheck(cudaMemsetAsync(
+            //     this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            //     0,
+            //     Offsets_obj.gpuImgs_streamBytes[i],
+            //     BP_streams[Offsets_obj.stream_ID[i]]));
 
-            gpuErrorCheck(cudaMemsetAsync(
-                this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                0,
-                Offsets_obj.gpuCASImgs_streamBytes[i],
-                BP_streams[Offsets_obj.stream_ID[i]]));
+            // gpuErrorCheck(cudaMemsetAsync(
+            //     this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            //     0,
+            //     Offsets_obj.gpuCASImgs_streamBytes[i],
+            //     BP_streams[Offsets_obj.stream_ID[i]]));
 
-            gpuErrorCheck(cudaMemsetAsync(
-                this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                0,
-                2 * Offsets_obj.gpuCASImgs_streamBytes[i],
-                BP_streams[Offsets_obj.stream_ID[i]]));
+            // gpuErrorCheck(cudaMemsetAsync(
+            //     this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            //     0,
+            //     2 * Offsets_obj.gpuCASImgs_streamBytes[i],
+            //     BP_streams[Offsets_obj.stream_ID[i]]));
 
             // Copy the section of host images to the GPU
             gpuErrorCheck(cudaMemcpyAsync(
@@ -650,7 +634,7 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes,
                   << "estimated number of axes to process on each stream = " << EstimatedNumAxesPerStream << '\n';
 
         std::cout << "gpuGridder::PlanOffsetValues() "
-                  << " number of axes to process on this GPU  " << nAxes << '\n';
+                  << "number of axes to process on this GPU  " << nAxes << '\n';
 
         std::cout << "gpuGridder::PlanOffsetValues() "
                   << "number of streams for this GPU " << numStreams << '\n';
@@ -666,8 +650,7 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes,
                 continue;
             }
 
-            std::cout << "processed_nAxes: " << processed_nAxes << '\n';
-            std::cout << "nAxes: " << nAxes << '\n';
+            std::cout << "processed_nAxes: " << processed_nAxes << "out of : " << nAxes << '\n';
 
             // Have all the axes been processed?
             if (processed_nAxes >= nAxes)

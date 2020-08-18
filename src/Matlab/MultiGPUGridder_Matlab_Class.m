@@ -23,8 +23,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         kerHWidth = 2;        
         kerTblSize = 501;
         extraPadding = 3;    
-        KBTable;
-        PlaneDensity;
+        KBTable;        
         coordAxes;      
         CASVolume;
         CASImages;
@@ -234,17 +233,17 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 % A new set of images to back project was passed
                 this.Images = single(varargin{1}); 
                 
+                % A new set of coordinate axes to use with the back projection was passed
+                this.coordAxes = single(varargin{2});
+                
                 if (this.RunFFTOnGPU == false)
                     
                     % Run the forward FFT and convert the images to CAS images
                     [~,interpBox,~]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-                    this.CASImages = CASImgsFromImgs(this.Images(:,:,1:size(varargin{1},3)), interpBox, []);                    
-
+                    this.CASImages = CASImgsFromImgs(this.Images, interpBox, []);
+                    
                 end
                 
-                % A new set of coordinate axes to use with the back projection was passed                
-                this.coordAxes = single(varargin{2});
-
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
@@ -266,21 +265,32 @@ classdef MultiGPUGridder_Matlab_Class < handle
            this.CASVolume= single(0 * this.CASVolume);
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
-        function Volume = reconstructVol(this, varargin)
-            error("")
-            this.Set(); % Run the set function in case one of the arrays has changed
-            mexMultiGPUReconstructVolume(this.objectHandle);
+        function Volume = reconstructVol(this, varargin)   
             
-%             if (this.RunFFTOnGPU == false)
-                % Convert the CASVolume to Volume
-                % Normalize by the plane density               
-                this.CASVolume = this.CASVolume ./(this.PlaneDensity+1e-6);
+            if (this.RunFFTOnGPU == true)
+                error("reconstructVol() is currently only supported if RunFFTOnGPU is set to false.")
+            end
 
-                this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);         
-                
-%             else
-%                 this.Volume = this.Volume ./ 4;
-%             end
+            this.Images = single(varargin{1});
+            this.coordAxes = single(varargin{2});
+
+            % Run a normal back projection first
+            this.resetVolume()
+            this.backProject();      
+            this.getVol();
+            tmpCASVolume = this.CASVolume;
+
+            % Now, set the CASImages to all ones and back project a second time to get the plane density array
+            this.CASImages(:) = 1;
+            this.resetVolume()            
+            this.backProject();     
+            this.getVol();         
+            PlaneDensity = this.CASVolume;
+  
+            % Convert the CASVolume to Volume
+            % Normalize by the plane density
+            tmpCASVolume = tmpCASVolume ./(PlaneDensity+1e-6);
+            this.Volume=volFromCAS_Gridder(tmpCASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
 
             Volume = single(this.Volume);         
         end   
