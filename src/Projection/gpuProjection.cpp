@@ -821,7 +821,7 @@ void gpuProjection::ForwardProject(int AxesOffset, int nAxesToProcess)
     // {
         
         // Copy the CAS volume to the corresponding GPU array
-        this->d_CASVolume->Reset();
+        // this->d_CASVolume->Reset();
         this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
     // }
 
@@ -971,9 +971,10 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     this->d_CoordAxes->Reset();
     this->d_Volume->Reset();
 
+
     if (this->d_PlaneDensity != NULL)
     {
-        this->d_PlaneDensity->Reset();
+        // this->d_PlaneDensity->Reset();
     }
 
     // Convert and copy the volume to CAS volume if we are running the FFT on the device
@@ -984,10 +985,10 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
     // }
     // else
     // {
-        this->d_CASVolume->Reset();
+        // this->d_CASVolume->Reset();
 
         // Copy the CAS volume to the corresponding GPU array
-        this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
+        // this->d_CASVolume->CopyToGPU(this->h_CASVolume->GetPointer(), this->h_CASVolume->bytes());
     // }
 
     gpuErrorCheck(cudaDeviceSynchronize());
@@ -1059,31 +1060,31 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                 cudaMemcpyHostToDevice,
                 BP_streams[Offsets_obj.stream_ID[i]]));
 
-            if (this->ApplyCTFs == true)
-            {
+            // if (this->ApplyCTFs == true)
+            // {
 
-                // Apply the CTFs to the images after taking the FFT
-                // Copy the section of the CTFs to the GPU
-                // CTFs have the same size as the images so we can safely reuse the pointer offsets from the images here
-                gpuErrorCheck(cudaMemcpyAsync(
-                    this->d_CTFs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                    this->h_CTFs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
-                    Offsets_obj.gpuImgs_streamBytes[i],
-                    cudaMemcpyHostToDevice,
-                    BP_streams[Offsets_obj.stream_ID[i]]));
+            //     // Apply the CTFs to the images after taking the FFT
+            //     // Copy the section of the CTFs to the GPU
+            //     // CTFs have the same size as the images so we can safely reuse the pointer offsets from the images here
+            //     gpuErrorCheck(cudaMemcpyAsync(
+            //         this->d_CTFs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            //         this->h_CTFs->GetPointer(Offsets_obj.Imgs_CPU_Offset[i]),
+            //         Offsets_obj.gpuImgs_streamBytes[i],
+            //         cudaMemcpyHostToDevice,
+            //         BP_streams[Offsets_obj.stream_ID[i]]));
 
-                // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
-                this->ImgsToCASImgs(
-                    BP_streams[Offsets_obj.stream_ID[i]],
-                    this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                    this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                    this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                    this->d_CTFs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                    this->d_CTFsPadded->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
-                    Offsets_obj.numAxesPerStream[i]);
-            }
-            else
-            {
+            //     // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
+            //     this->ImgsToCASImgs(
+            //         BP_streams[Offsets_obj.stream_ID[i]],
+            //         this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            //         this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            //         this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            //         this->d_CTFs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
+            //         this->d_CTFsPadded->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
+            //         Offsets_obj.numAxesPerStream[i]);
+            // }
+            // else
+            // {
                 // Since we aren't applying the CTFs, pass a null pointer instead
                 // Run the forward FFT to convert the pinned CPU images to CAS images (CAS type is needed for back projecting into the CAS volume)
                 this->ImgsToCASImgs(
@@ -1094,7 +1095,7 @@ void gpuProjection::BackProject(int AxesOffset, int nAxesToProcess)
                     NULL,
                     NULL,
                     Offsets_obj.numAxesPerStream[i]);
-            }
+            // }
         }
 
         // Run the back projection kernel
@@ -1225,7 +1226,7 @@ void gpuProjection::FreeMemory()
     delete d_Imgs;
     delete d_KB_Table;
     delete d_CoordAxes;
-    delete d_PlaneDensity;
+    // delete d_PlaneDensity;
     delete d_Volume;
 
     delete FP_streams;

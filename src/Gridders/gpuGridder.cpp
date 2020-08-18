@@ -112,17 +112,21 @@ void gpuGridder::InitializeGPUArrays()
     int PaddedVolumeSize = this->VolumeSize * this->interpFactor;
     int CASVolumeSize = this->VolumeSize * this->interpFactor + this->extraPadding * 2;
 
+    // Allocate the CAS volume
+    this->d_CASVolume = new DeviceMemory<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
+    this->d_CASVolume->AllocateGPUArray();
+
     // Allocate the volume
     this->d_Volume = new DeviceMemory<float>(3, this->VolumeSize, this->VolumeSize, this->VolumeSize, this->GPU_Device);
     this->d_Volume->AllocateGPUArray();
 
     // Allocate the plane density array (for the back projection)
-    this->d_PlaneDensity = new DeviceMemory<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
-    this->d_PlaneDensity->AllocateGPUArray();
+    // this->d_PlaneDensity = new DeviceMemory<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
+    // this->d_PlaneDensity->AllocateGPUArray();
 
-    // Allocate the CAS volume
-    this->d_CASVolume = new DeviceMemory<float>(3, CASVolumeSize, CASVolumeSize, CASVolumeSize, this->GPU_Device);
-    this->d_CASVolume->AllocateGPUArray();
+
+
+    cudaDeviceSynchronize();
 }
 
 void gpuGridder::Allocate()
@@ -209,7 +213,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     // Pass the device pointers to the projection object
     this->gpuProjection_Obj->SetDeviceVolume(this->d_Volume);
     this->gpuProjection_Obj->SetDeviceCASVolume(this->d_CASVolume);
-    this->gpuProjection_Obj->SetDevicePlaneDensity(this->d_PlaneDensity);
+    // this->gpuProjection_Obj->SetDevicePlaneDensity(this->d_PlaneDensity);
 
     // Set other needed parameters
     this->gpuProjection_Obj->SetMaskRadius(this->maskRadius);

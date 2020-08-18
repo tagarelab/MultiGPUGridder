@@ -8,12 +8,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
         RunFFTOnGPU = true;        
         
         % Flag for status output to the console
-        verbose = true;
+        verbose = false;
         
         % Int 32 type variables        
         VolumeSize;        
         NumAxes;
-        GPUs = int32([1]);
+        GPUs = int32([]);
         MaxAxesToAllocate;
         nStreamsFP = 10; % For the forward projection
         nStreamsBP = 1; % For the back projection
@@ -31,7 +31,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         Volume;
         Images;  
         MaskRadius;
-        KBPreComp;
+%         KBPreComp;
         
     end
     
@@ -141,12 +141,12 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the Kaiser Bessel pre-compensation array
             % After backprojection, the inverse FFT volume is divided by this array
             InterpVolSize = single(this.VolumeSize) * single(this.interpFactor);
-            this.KBPreComp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');    
+%             this.KBPreComp = zeros(repmat(size(this.Volume, 1) * this.interpFactor, 1, 3), 'single');    
            
-            preComp=getPreComp(InterpVolSize,this.kerHWidth);
-            preComp=preComp';
-            this.KBPreComp=single(reshape(kron(preComp,kron(preComp,preComp)),...
-                         InterpVolSize,InterpVolSize,InterpVolSize));                    
+%             preComp=getPreComp(InterpVolSize,this.kerHWidth);
+%             preComp=preComp';
+%             this.KBPreComp=single(reshape(kron(preComp,kron(preComp,preComp)),...
+%                          InterpVolSize,InterpVolSize,InterpVolSize));                    
 
         end        
         %% Deconstructor - Delete the C++ class instance 
@@ -184,7 +184,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsFP', this.objectHandle, int32(this.nStreamsFP));             
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsBP', this.objectHandle, int32(this.nStreamsBP));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
-            [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
+%             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
             [varargout{1:nargout}] = mexSetVariables('SetNumAxes', this.objectHandle, int32(size(this.coordAxes,2))); 
            
             
@@ -193,9 +193,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(this.PlaneDensity)
                 [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
             end
-            if ~isempty(this.CASVolume)
+%             if ~isempty(this.CASVolume)
                 [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));       
-            end
+%             end
             if ~isempty(this.CASImages)
                 [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));
             end
@@ -242,17 +242,19 @@ classdef MultiGPUGridder_Matlab_Class < handle
                     return
                 end
             end
-
-%             if (this.RunFFTOnGPU == false)
-                [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);                
-                this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);                
-%             end
+            
+            [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
+            this.CASVolume(:,:,1:end) = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
+            
             
             if size(this.coordAxes,2) < this.nStreamsFP
                 error("The number of projection directions must be >= the number of CUDA streams.")
             end            
             
-            this.Set(); % Run the set function in case one of the arrays has changed
+
+            this.Set(); % Run the set function in case one of the arrays has changed       
+            this.Set();
+
             mexMultiGPUForwardProject(this.objectHandle);            
             
             % Run the inverse FFT on the CAS images
@@ -261,7 +263,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             % Consider if we forward project less number of images then we first allocated for
-            ProjectionImages = this.Images(:,:,1:size(this.coordAxes,2));            
+            ProjectionImages = this.Images;%(:,:,1:size(this.coordAxes,2));            
             
         end         
           function backProject(this, varargin)
@@ -284,7 +286,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.coordAxes = single(varargin{2});
 
             end
-
+            
             this.Set(); % Run the set function in case one of the arrays has changed
             this.Set();
             this.Set();
@@ -304,7 +306,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
            this.Volume = single(0 * this.Volume); 
            
 %            if (this.RunFFTOnGPU == false)
-               this.CASVolume= single(0 * this.CASVolume); 
+%                this.CASVolume= single(0 * this.CASVolume); 
 %            end
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
