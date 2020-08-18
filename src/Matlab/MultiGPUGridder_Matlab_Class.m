@@ -294,9 +294,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = single(0 * this.Volume); 
            
-%            if (this.RunFFTOnGPU == false)
-%                this.CASVolume= single(0 * this.CASVolume); 
-%            end
+           this.CASVolume= single(0 * this.CASVolume);
+
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)

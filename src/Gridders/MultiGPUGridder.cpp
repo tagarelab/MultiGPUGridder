@@ -110,7 +110,6 @@ void MultiGPUGridder::ForwardProject()
         // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
         // Such as cudaMalloc or cudaDeviceSynchronize
         CPUThreads.reserve(Num_GPUs);
-
     }
 
     if (this->verbose == true)
@@ -124,7 +123,7 @@ void MultiGPUGridder::ForwardProject()
     // Pass the host memory pointers to each of the gpu gridder objects
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;        
+        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
         gpuGridder_vec[i]->h_Volume = this->h_Volume;
         gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
         gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
@@ -177,12 +176,11 @@ void MultiGPUGridder::ForwardProject()
         }
     }
 
-CPUThreads.clear();
-CPUThreads.shrink_to_fit();
+    CPUThreads.clear();
+    CPUThreads.shrink_to_fit();
 
     // Synchronize all of the GPUs
     GPU_Sync();
-
 }
 
 void MultiGPUGridder::BackProject()
@@ -212,7 +210,7 @@ void MultiGPUGridder::BackProject()
     // Pass the host memory pointers to each of the gpu gridder objects
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;    
+        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
         gpuGridder_vec[i]->h_Volume = this->h_Volume;
         gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
         gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
@@ -260,12 +258,11 @@ void MultiGPUGridder::BackProject()
         for (int i = 0; i < Num_GPUs; i++)
         {
             CPUThreads[i].join();
-
         }
     }
 
-CPUThreads.clear();
-CPUThreads.shrink_to_fit();
+    CPUThreads.clear();
+    CPUThreads.shrink_to_fit();
 
     // Synchronize all of the GPUs
     GPU_Sync();
@@ -274,7 +271,6 @@ CPUThreads.shrink_to_fit();
 void MultiGPUGridder::CASVolumeToVolume()
 {
     // Combine the CASVolume from each GPU and convert it to volume
-
     if (this->verbose == true)
     {
         std::cout << "MultiGPUGridder::CASVolumeToVolume()" << '\n';
@@ -283,42 +279,49 @@ void MultiGPUGridder::CASVolumeToVolume()
     // Synchronize all of the GPUs
     GPU_Sync();
 
-    // if (this->RunFFTOnDevice == 1)
-    // {
-    //     // We have to combine the output from each GPU in the frequency domain and not spatial domain
-    //     // int GPU_For_Reconstruction = 0; // Use the first GPU for reconstructing the volume from CAS volume
-
-    //     // Allow the first GPU to access the memory of the other GPUs
-    //     // This is needed for the reconstruct volume function
-    //     // EnablePeerAccess(GPU_For_Reconstruction);
-
-    //     // Add the CASVolume from all the GPUs to the first GPU (for reconstructing the volume)
-    //     // AddCASVolumes(GPU_For_Reconstruction);
-
-    //     for (int i = 0; i < this->Num_GPUs; i++)
-    //     {
-    //         // Reconstruct the volume on each GPU
-    //         gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
-    //         gpuGridder_vec[i]->CASVolumeToVolume();
-    //     }
-
-    //     // Synchronize all of the GPUs
-    //     GPU_Sync();
-
-    //     // Combine the volume arrays from each GPU and copy back to the host
-    //     SumVolumes();
-    // }
-
-    // if (this->RunFFTOnDevice == false || this->verbose == true)
-    // {
-        // We're not running the FFT on the GPU so send the required arrays back to the CPU memory
-
-        // Combine the CAS volume arrays from each GPU and copy back to the host
-        SumCASVolumes();
-    // }
+    // Combine the CAS volume arrays from each GPU and copy back to the host
+    // SumCASVolumes();
+    int GPU_For_Reconstruction = this->GPU_Devices[0];
+    EnablePeerAccess(GPU_For_Reconstruction);
+    AddCASVolumes(GPU_For_Reconstruction);
 
     // Synchronize all of the GPUs
     GPU_Sync();
+}
+
+void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
+{
+    // Allow the first GPU to access the memory of the other GPUs
+    // This is needed for the reconstruct volume function
+
+    if (this->PeerAccessEnabled == false)
+    {
+        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
+        for (int i = 0; i < this->Num_GPUs; i++)
+        {
+            if (i != GPU_For_Reconstruction)
+            {
+                // Is peer access already enabled?
+                int canAccessPeer;
+                cudaDeviceCanAccessPeer(&canAccessPeer, GPU_For_Reconstruction, i);
+
+                if (canAccessPeer == 1)
+                {
+                    // The first GPU can now access GPU device number i
+                    gpuErrorCheck(cudaDeviceEnablePeerAccess(i, 0));
+                }
+                else
+                {
+                    std::cerr << "The GPUs appear to not support peer access for sharing memory. \
+                    ReconstructVolume() and CASVolumeToVolume() cannot run without this ability.Please try \
+                    reconstructing on the CPU instead of the GPU."
+                              << '\n';
+                }
+            }
+        }
+
+        this->PeerAccessEnabled = true;
+    }
 }
 
 void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
@@ -334,7 +337,7 @@ void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
 
     gpuErrorCheck(cudaDeviceSynchronize());
     gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
-	std::unique_ptr<AddVolumeFilter> AddFilter(new AddVolumeFilter());
+    std::unique_ptr<AddVolumeFilter> AddFilter(new AddVolumeFilter());
 
     int CASVolumeSize = this->h_Volume->GetSize(0) * this->interpFactor + this->extraPadding * 2;
 
@@ -354,11 +357,8 @@ void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
         }
     }
 
-    // Copy the resulting array to the pinned host memory if the pointer exists
-    if (this->h_CASVolume != NULL)
-    {
-        gpuGridder_vec[GPU_For_Reconstruction]->CopyCASVolumeToHost();
-    }
+    // Copy the resulting array to the pinned host memory
+    gpuGridder_vec[GPU_For_Reconstruction]->CopyCASVolumeToHost();
 }
 
 void MultiGPUGridder::GPU_Sync()
@@ -406,7 +406,7 @@ void MultiGPUGridder::SumCASVolumes()
     // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)
     //if (this->h_CASVolume != NULL)
     //{
-        this->h_CASVolume->CopyArray(SummedVolume);
+    this->h_CASVolume->CopyArray(SummedVolume);
     //}
 
     // Release the temporary memory
@@ -426,11 +426,9 @@ void MultiGPUGridder::FreeMemory()
         {
             std::cout << "MultiGPUGridder::FreeMemory() on GPU " << this->GPU_Devices[i] << '\n';
         }
-
     }
 
     //delete [] gpuGridder_vec;
-
 }
 
 // Define C functions for the C++ class since Python ctypes can only talk to C (not C++)

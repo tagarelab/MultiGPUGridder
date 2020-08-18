@@ -161,7 +161,7 @@ private:
 
 	/// Allow the first GPU to access the memory of the other GPUs
 	/// This is needed for the reconstruct volume function
-	// void EnablePeerAccess(int GPU_For_Reconstruction);
+	void EnablePeerAccess(int GPU_For_Reconstruction);
 
 	bool PeerAccessEnabled;
 

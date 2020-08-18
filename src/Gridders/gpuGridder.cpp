@@ -323,17 +323,17 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     this->d_CASVolume->Reset();
     this->d_CoordAxes->Reset();
 
-    // Check the error flags to see if we had any issues during the initilization
-    if (this->ErrorFlag == 1 ||
-        this->d_CASVolume->GetErrorFlag() == 1 ||
-        this->d_CASImgs->GetErrorFlag() == 1 ||
-        this->d_Imgs->GetErrorFlag() == 1 ||
-        this->d_CoordAxes->GetErrorFlag() == 1 ||
-        this->d_KB_Table->GetErrorFlag() == 1)
-    {
-        std::cerr << "Error during initialization." << '\n';
-        return; // Don't run the kernel and return
-    }
+    // // Check the error flags to see if we had any issues during the initilization
+    // if (this->ErrorFlag == 1 ||
+    //     this->d_CASVolume->GetErrorFlag() == 1 ||
+    //     this->d_CASImgs->GetErrorFlag() == 1 ||
+    //     this->d_Imgs->GetErrorFlag() == 1 ||
+    //     this->d_CoordAxes->GetErrorFlag() == 1 ||
+    //     this->d_KB_Table->GetErrorFlag() == 1)
+    // {
+    //     std::cerr << "Error during initialization." << '\n';
+    //     return; // Don't run the kernel and return
+    // }
 
     gpuErrorCheck(cudaDeviceSynchronize());
 
@@ -411,8 +411,6 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
                 this->d_CASImgs->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 this->d_CASImgsComplex->GetPointer(Offsets_obj.gpuCASImgs_Offset[i]),
                 this->d_Imgs->GetPointer(Offsets_obj.gpuImgs_Offset[i]),
-                NULL,
-                NULL,
                 Offsets_obj.numAxesPerStream[i]);
         }
 
@@ -522,7 +520,7 @@ void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs
 }
 
 
-void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, float *CTFs, float *CTFsPadded, int numImgs)
+void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, int numImgs)
 {
     // Convert projection images to CAS images by running a forward FFT
     // CASImgs, Imgs, and CASImgsComplex, are the device allocated arrays (e.g. d_CASImgs) at some offset from the beginning of the array
@@ -591,36 +589,6 @@ void gpuGridder::ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComple
     FFTShiftFilter->SetNumberOfSlices(numImgs);
     FFTShiftFilter->Update(&stream);
 
-    if (this->ApplyCTFs == true)
-    {
-    // FFTShift the CTFs
-    std::unique_ptr<FFTShift2DFilter<float>> FFTShiftFilterCTF(new FFTShift2DFilter<float>());
-    FFTShiftFilterCTF->SetInput(CTFs);
-    FFTShiftFilterCTF->SetImageSize(ImgSize);
-    FFTShiftFilterCTF->SetNumberOfSlices(numImgs);
-    FFTShiftFilterCTF->Update(&stream);
-
-    // First pad the CTFs with zeros to be the same size as CASImgs
-    std::unique_ptr<PadVolumeFilter> CTFPadFilter(new PadVolumeFilter());
-    CTFPadFilter->SetInput(CTFs);
-    CTFPadFilter->SetOutput(CTFsPadded);
-    CTFPadFilter->SetInputSize(ImgSize); // CTFs are the same size as the images
-    CTFPadFilter->SetPaddingX((CASImgSize - ImgSize) / 2);
-    CTFPadFilter->SetPaddingY((CASImgSize - ImgSize) / 2);
-    CTFPadFilter->SetPaddingZ(0);
-    CTFPadFilter->SetNumberOfSlices(numImgs);
-    CTFPadFilter->Update(&stream);
-
-    // Multiply the CASImgsComplex with the CTFs
-    std::unique_ptr<MultiplyVolumeFilter<cufftComplex>> MultiplyFilter(new MultiplyVolumeFilter<cufftComplex>());
-    MultiplyFilter->SetVolumeSize(CASImgSize);
-    MultiplyFilter->SetVolumeOne(CASImgsComplex);
-    MultiplyFilter->SetVolumeTwo(CTFsPadded);
-    MultiplyFilter->SetNumberOfSlices(numImgs);
-    MultiplyFilter->Update(&stream);
-
-    }
-
     // Convert the complex result of the forward FFT to a CAS img type
     std::unique_ptr<ComplexToCASFilter> ComplexToCAS(new ComplexToCASFilter());
     ComplexToCAS->SetComplexInput(CASImgsComplex);
@@ -638,7 +606,7 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes,
 
     if (this->verbose == true)
     {
-        std::cout << "gpuProjection::PlanOffsetValues()" << '\n';
+        std::cout << "gpuGridder::PlanOffsetValues()" << '\n';
     }
 
     // For compactness define the CASImgSize, CASVolSize, and ImgSize here

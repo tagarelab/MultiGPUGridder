@@ -223,6 +223,6 @@ protected:
     bool verbose;
 
       /// Convert projection images to CAS images by running a forward FFT
-    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, float *CTFs, float *CTFsPadded, int numImgs);
+    void ImgsToCASImgs(cudaStream_t &stream, float *CASImgs, cufftComplex *CASImgsComplex, float *Imgs, int numImgs);
 
 };
