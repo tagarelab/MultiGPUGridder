@@ -37,12 +37,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
     methods
         %% Constructor - Create a new C++ class instance 
         function this = MultiGPUGridder_Matlab_Class(varargin)  
-            % Inputs are:            
-            % (1) VolumeSize
-            % (2) nCoordAxes
-            % (3) interpFactor        
-            
-            
+           
             p = inputParser;
             addOptional(p, 'VolumeSize', 0, @isnumeric);
             addOptional(p, 'NumAxes', 0, @isnumeric);
@@ -65,6 +60,11 @@ classdef MultiGPUGridder_Matlab_Class < handle
             this.nStreamsBP = p.Results.nStreamsBP;
             this.MaxAxesToAllocate = p.Results.MaxAxesToAllocate;
 
+            if (this.VolumeSize == 0)
+                error("VolumeSize is a required input.")
+            elseif (this.NumAxes == 0)
+                error("NumAxes is a required input.")
+            end
             
             % Create the Volume array
             this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');
