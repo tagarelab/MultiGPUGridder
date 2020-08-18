@@ -13,9 +13,9 @@ addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
 addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 512;
+VolumeSize = 256;
 interpFactor = 2;
-n1_axes = 100;
+n1_axes = 10;
 n2_axes = 10;
 
 % Create the volume

@@ -82,42 +82,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         MultiGPUGridderObj->SetCASImages((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
     }
 
-    // Set the pointer to the CTF images
-    if (!strcmp("SetCTFs", cmd))
-    {
-        // Pointer to the images array and the dimensions of the array
-        // MultiGPUGridderObj->SetCTFs((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
-    }
-
-    // Set the pointer to the Plane Density volume
-    if (!strcmp("SetPlaneDensity", cmd))
-    {
-        // Pointer to the volume array and the dimensions of the array
-        MultiGPUGridderObj->SetPlaneDensity((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
-    }
-
-    // Set the pointer to the Kaiser Bessel precompensation array (set using Matlab's getPreComp() functipn)
-    if (!strcmp("SetKBPreCompArray", cmd))
-    {
-        // Pointer to the volume array and the dimensions of the array
-        MultiGPUGridderObj->SetKBPreCompArray((float *)mxGetData(prhs[2]), (int *)mxGetData(prhs[3]));
-    }
-
-    // Set the GPUS to use
-    if (!strcmp("SetGPUs", cmd))
-    {
-        // int *GPU_Array = (int *)mxGetData(prhs[2]);
-        // int Number_GPUs = (int)mxGetScalar(prhs[3]);
-
-        // Log("GPU_Array:");
-        // Log(GPU_Array[0]);
-
-        // Log("Number_GPUs:");
-        // Log(Number_GPUs);
-
-        // MultiGPUGridderObj->SetGPU(0);
-    }
-
     // Set the Kaiser Bessel lookup table
     if (!strcmp("SetKBTable", cmd))
     {

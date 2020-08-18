@@ -129,9 +129,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 CASImagesSize = size(this.Volume, 1) * this.interpFactor; 
                 this.CASImages = zeros([CASImagesSize, CASImagesSize, this.NumAxes], 'single');  
                 
-                % Create the PlaneDensity array
-                this.PlaneDensity = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');
-            end
+             end
             
             % Create the CASVolume array
             this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');
@@ -184,18 +182,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsFP', this.objectHandle, int32(this.nStreamsFP));             
             [varargout{1:nargout}] = mexSetVariables('SetNumberStreamsBP', this.objectHandle, int32(this.nStreamsBP));
             [varargout{1:nargout}] = mexSetVariables('SetMaskRadius', this.objectHandle, single(this.MaskRadius));
-%             [varargout{1:nargout}] = mexSetVariables('SetKBPreCompArray', this.objectHandle, single(this.KBPreComp), int32(size(this.KBPreComp)));
             [varargout{1:nargout}] = mexSetVariables('SetNumAxes', this.objectHandle, int32(size(this.coordAxes,2))); 
-           
-            
-            
-            % Set the optional arrays
-            if ~isempty(this.PlaneDensity)
-                [varargout{1:nargout}] = mexSetVariables('SetPlaneDensity', this.objectHandle, single(this.PlaneDensity), int32(size(this.PlaneDensity)));
-            end
-%             if ~isempty(this.CASVolume)
-                [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));       
-%             end
+            [varargout{1:nargout}] = mexSetVariables('SetCASVolume', this.objectHandle, single(this.CASVolume), int32(size(this.CASVolume)));
+
             if ~isempty(this.CASImages)
                 [varargout{1:nargout}] = mexSetVariables('SetCASImages', this.objectHandle, single(this.CASImages), int32(size(this.CASImages)));
             end
@@ -311,7 +300,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)
-            
+            error("")
             this.Set(); % Run the set function in case one of the arrays has changed
             mexMultiGPUReconstructVolume(this.objectHandle);
             

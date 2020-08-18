@@ -125,14 +125,11 @@ void MultiGPUGridder::ForwardProject()
     for (int i = 0; i < Num_GPUs; i++)
     {
         gpuGridder_vec[i]->h_Imgs = this->h_Imgs;        
-        // gpuGridder_vec[i]->h_CTFs = this->h_CTFs;  
         gpuGridder_vec[i]->h_Volume = this->h_Volume;
         gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
         gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
-        gpuGridder_vec[i]->h_KBPreComp = this->h_KBPreComp;
         gpuGridder_vec[i]->h_CASVolume = this->h_CASVolume;
         gpuGridder_vec[i]->h_CASImgs = this->h_CASImgs;
-        gpuGridder_vec[i]->h_PlaneDensity = this->h_PlaneDensity;
     }
 
     // If this is the first time running allocate the needed GPU memory
@@ -215,15 +212,12 @@ void MultiGPUGridder::BackProject()
     // Pass the host memory pointers to each of the gpu gridder objects
     for (int i = 0; i < Num_GPUs; i++)
     {
-        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
-        gpuGridder_vec[i]->h_CTFs = this->h_CTFs;        
+        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;    
         gpuGridder_vec[i]->h_Volume = this->h_Volume;
         gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
         gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
-        gpuGridder_vec[i]->h_KBPreComp = this->h_KBPreComp;
         gpuGridder_vec[i]->h_CASVolume = this->h_CASVolume;
         gpuGridder_vec[i]->h_CASImgs = this->h_CASImgs;
-        gpuGridder_vec[i]->h_PlaneDensity = this->h_PlaneDensity;
     }
 
     // If this is the first time running allocate the needed GPU memory
@@ -327,94 +321,6 @@ void MultiGPUGridder::CASVolumeToVolume()
     GPU_Sync();
 }
 
-void MultiGPUGridder::ReconstructVolume()
-{
-    // First calculate the plane density on each GPU
-    // Then combine the CASVolume and plane density arrays and convert to volume
-
-    std::vector<std::thread> CPUThreads;
-    if (this->UseMultiThread == true)
-    {
-        // Reserve space for CPU threads with one CPU thread for each GPU
-        // Ensures the GPU process concurently if a CPU thread blocking CUDA API call is made
-        // Such as cudaMalloc or cudaDeviceSynchronize
-        CPUThreads.reserve(Num_GPUs);
-    }
-
-    // Synchronize all of the GPUs
-    GPU_Sync();
-
-    if (this->verbose == true)
-    {
-        std::cout << "MultiGPUGridder::ReconstructVolume()" << '\n';
-    }
-
-    // Plan which GPU will process which coordinate axes
-    CoordinateAxesPlan AxesPlan_obj = PlanCoordinateAxes();
-
-    for (int i = 0; i < this->Num_GPUs; i++)
-    {
-        if (this->UseMultiThread == true)
-        {
-            // Multi thread version
-            CPUThreads.push_back(std::thread(&gpuGridder::CalculatePlaneDensity, gpuGridder_vec[i], AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]));
-        }
-        else
-        {
-            // Calculate the plane densities on each GPU
-            gpuGridder_vec[i]->CalculatePlaneDensity(AxesPlan_obj.coordAxesOffset[i], AxesPlan_obj.NumAxesPerGPU[i]);
-        }
-    }
-
-    if (this->UseMultiThread == true)
-    {
-        // Join CPU threads together
-        for (int i = 0; i < Num_GPUs; i++)
-        {
-            CPUThreads[i].join();
-        }
-    }
-
-    // Synchronize all of the GPUs
-    GPU_Sync();
-
-    if (this->RunFFTOnDevice == 1)
-    {
-        for (int i = 0; i < this->Num_GPUs; i++)
-        {
-            // Reconstruct the volume on each GPU
-            gpuErrorCheck(cudaSetDevice(this->GPU_Devices[i]));
-            gpuGridder_vec[i]->ReconstructVolume();
-        }
-
-        // Synchronize all of the GPUs
-        GPU_Sync();
-
-        // Sum the reconstructed volumes on the CPU
-        SumVolumes();
-    }
-
-    if (this->RunFFTOnDevice == false || this->verbose == true)
-    {
-        // We're not running the FFT on the GPU so send the need arrays back to the CPU memory
-
-        // Synchronize all of the GPUs
-        GPU_Sync();
-
-        // Combine the CAS volume arrays from each GPU and copy back to the host
-        SumCASVolumes();
-
-        // Synchronize all of the GPUs
-        GPU_Sync();
-
-        // Combine the plane density arrays from each GPU and copy back to the host
-        SumPlaneDensity();
-    }
-
-    // Synchronize all of the GPUs
-    GPU_Sync();
-}
-
 void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
 {
     // Add the CASVolume from all the GPUs to the given GPU device (without needing to copy to host memory first)
@@ -452,47 +358,6 @@ void MultiGPUGridder::AddCASVolumes(int GPU_For_Reconstruction)
     if (this->h_CASVolume != NULL)
     {
         gpuGridder_vec[GPU_For_Reconstruction]->CopyCASVolumeToHost();
-    }
-}
-
-void MultiGPUGridder::AddPlaneDensities(int GPU_For_Reconstruction)
-{
-    // Add the plane density from all the GPUs to the given GPU device (without needing to copy to host memory first)
-    // This is needed for reconstructing the volume after back projection
-
-    if (this->verbose == true)
-    {
-        std::cout << "MultiGPUGridder::AddPlaneDensities()" << '\n';
-        std::cout << "Using GPU " << this->GPU_Devices[GPU_For_Reconstruction] << " for adding." << '\n';
-    }
-
-    gpuErrorCheck(cudaDeviceSynchronize());
-    gpuErrorCheck(cudaSetDevice(this->GPU_Devices[GPU_For_Reconstruction]));
-    std::unique_ptr<AddVolumeFilter> AddFilter(new AddVolumeFilter());
-
-
-    int PlaneDensityVolumeSize = this->h_Volume->GetSize(0) * this->interpFactor + this->extraPadding * 2;
-
-    if (this->Num_GPUs > 1)
-    {
-        for (int i = 0; i < this->Num_GPUs; i++)
-        {
-            if (this->GPU_Devices[i] != this->GPU_Devices[GPU_For_Reconstruction])
-            {
-                AddFilter->SetVolumeSize(PlaneDensityVolumeSize);
-                AddFilter->SetNumberOfSlices(PlaneDensityVolumeSize);
-                AddFilter->SetVolumeOne(gpuGridder_vec[GPU_For_Reconstruction]->GetPlaneDensityPtr());
-                AddFilter->SetVolumeTwo(gpuGridder_vec[i]->GetPlaneDensityPtr());
-                AddFilter->Update();
-                gpuErrorCheck(cudaDeviceSynchronize());
-            }
-        }
-    }
-    
-    // Copy the resulting array to the pinned host memory if the pointer exists
-    if (this->h_PlaneDensity != NULL)
-    {
-        gpuGridder_vec[GPU_For_Reconstruction]->CopyPlaneDensityToHost();
     }
 }
 
@@ -549,90 +414,6 @@ void MultiGPUGridder::SumCASVolumes()
 
     // Synchronize all of the GPUs
     GPU_Sync();
-}
-
-void MultiGPUGridder::SumVolumes()
-{
-    // Get the volume off each GPU and sum the arrays together within host memory
-
-    if (this->verbose == true)
-    {
-        std::cout << "MultiGPUGridder::SumVolumes()" << '\n';
-    }
-
-    // Temporary volume array
-    float *SummedVolume = new float[this->h_Volume->length()];
-
-    for (int i = 0; i < this->h_Volume->length(); i++)
-    {
-        SummedVolume[i] = 0; // TO DO: Consider replacing with memset
-    }
-
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        // Get the volume from the current GPU
-        float *tempVolume = gpuGridder_vec[i]->GetVolumeFromDevice();
-
-        // Add the volumes together
-        for (int i = 0; i < this->h_Volume->length(); i++)
-        {
-            SummedVolume[i] = SummedVolume[i] + tempVolume[i];
-        }
-
-        delete[] tempVolume;
-    }
-
-    // Copy the resulting summed volume to the pinned CPU array (if a pointer was previously provided)
-    if (this->h_Volume != NULL)
-    {
-        this->h_Volume->CopyArray(SummedVolume);
-    }
-
-    // Release the temporary memory
-    delete[] SummedVolume;
-}
-
-void MultiGPUGridder::SumPlaneDensity()
-{
-    // Get the plane density off each GPU and sum the arrays together
-    // This function is used to get the result after the back projection
-
-    if (this->verbose == true)
-    {
-        std::cout << "MultiGPUGridder::SumPlaneDensity()" << '\n';
-    }
-
-    // Temporary volume array
-    float *SummedVolume = new float[this->h_PlaneDensity->length()];
-
-    for (int i = 0; i < this->h_PlaneDensity->length(); i++)
-    {
-        SummedVolume[i] = 0; // TO DO: replace with memset
-    }
-
-    for (int i = 0; i < Num_GPUs; i++)
-    {
-        // Get the volume from the current GPU
-        float *tempVolume = gpuGridder_vec[i]->GetPlaneDensityFromDevice();
-
-        // Add the volumes together
-        for (int i = 0; i < this->h_PlaneDensity->length(); i++)
-        {
-            SummedVolume[i] = SummedVolume[i] + tempVolume[i];
-        }
-
-        delete[] tempVolume;        
-
-    }
-
-    // Copy the resulting summed plane densities to the pinned CPU array (if a pointer was previously provided)
-    if (this->h_PlaneDensity != NULL)
-    {
-        this->h_PlaneDensity->CopyArray(SummedVolume);
-    }
-
-    // Release the temporary memory
-    delete[] SummedVolume;
 }
 
 void MultiGPUGridder::FreeMemory()
