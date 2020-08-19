@@ -159,9 +159,12 @@ private:
 	// Flag to determine whether we are running the FFT on the GPU or not
 	int RunFFTOnDevice;
 
-	/// Allow the first GPU to access the memory of the other GPUs
+	/// Allow a specific GPU to access the memory of the other GPUs
 	/// This is needed for the reconstruct volume function
 	void EnablePeerAccess(int GPU_For_Reconstruction);
+
+	/// Remove the ability to access other GPU memories
+	void DisablePeerAccess(int GPU_Num);
 
 	bool PeerAccessEnabled;
 

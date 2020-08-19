@@ -15,8 +15,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         NumAxes;
         GPUs = int32([]);
         MaxAxesToAllocate;
-        nStreamsFP = 10; % For the forward projection
-        nStreamsBP = 1; % For the back projection
+        nStreamsFP;% For the forward projection
+        nStreamsBP; % For the back projection
         
         % Single type variables        
         interpFactor;
@@ -75,7 +75,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Reset all the GPU devices
             for i = 1:length(this.GPUs)
-                disp("Resetting GPU number "  + num2str(double(this.GPUs(i) + 1)))
+                if this.verbose == true
+                    disp("Resetting GPU number "  + num2str(double(this.GPUs(i) + 1)))
+                end
                 reset(gpuDevice(double(this.GPUs(i) + 1)));
             end
                 
@@ -166,22 +168,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end            
             
         end 
-        %% GetVariables - Get the variables of the C++ class instance 
-        function varargout = Get(this, variableName)                 
-            switch variableName
-                case 'Volume'
-                    [varargout{1:nargout}] = mexGetVariables('Volume', this.objectHandle);
-                case 'CASVolume'
-                    [varargout{1:nargout}] = mexGetVariables('CASVolume', this.objectHandle);
-                case 'Images'
-                    [varargout{1:nargout}] = mexGetVariables('Images', this.objectHandle);
-                case 'CASImages'
-                    [varargout{1:nargout}] = mexGetVariables('CASImages', this.objectHandle);
-                otherwise
-                    disp('Failed to locate variable')
-            end                       
-            
-        end 
+
         %% ForwardProject - Run the forward projection function
         function ProjectionImages = forwardProject(this, varargin)
 
@@ -206,8 +193,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             [origBox,interpBox,CASBox]=getSizes(single(this.VolumeSize), this.interpFactor,3);
-            this.CASVolume = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
-            
+            temp = CASFromVol_Gridder(this.Volume, this.kerHWidth, this.interpFactor, this.extraPadding);
+            this.CASVolume(:) = temp(:); % Keep the original memory pointer
             
             if size(this.coordAxes,2) < this.nStreamsFP
                 error("The number of projection directions must be >= the number of CUDA streams.")
@@ -247,6 +234,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             this.Set(); % Run the set function in case one of the arrays has changed
+            this.Set();
+            this.Set();
             mexMultiGPUBackProject(this.objectHandle);
             
         end   
@@ -262,7 +251,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = single(0 * this.Volume);            
-           this.CASVolume= single(0 * this.CASVolume);
+           this.CASVolume(:) = 0; % Keep the original memory pointer
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)   
@@ -298,7 +287,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function Volume = getVol(this)
         
            this.Set(); % Run the set function in case one of the arrays has changed
-           tic
+this.Set();
+this.Set();
+           
            mexMultiGPUGetVolume(this.objectHandle);
            
            

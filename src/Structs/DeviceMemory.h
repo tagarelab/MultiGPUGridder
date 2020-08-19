@@ -142,6 +142,8 @@ public:
             std::cerr << "Error in CopyFromGPU(): supplied array has " << Bytes << " bytes while the allocated GPU array has " << this->bytes() << " bytes." << '\n';
         }
 
+gpuErrorCheck(cudaSetDevice(this->GPU_Device));
+
         // Given a T type pointer (on host CPU) and number of bytes, copy the memory to this GPU array
         gpuErrorCheck(cudaMemcpy(Array, this->ptr, Bytes, cudaMemcpyDeviceToHost));
     }

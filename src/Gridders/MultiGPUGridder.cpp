@@ -280,10 +280,12 @@ void MultiGPUGridder::CASVolumeToVolume()
     GPU_Sync();
 
     // Combine the CAS volume arrays from each GPU and copy back to the host
-    // SumCASVolumes();
-    int GPU_For_Reconstruction = this->GPU_Devices[0];
-    EnablePeerAccess(GPU_For_Reconstruction);
-    AddCASVolumes(GPU_For_Reconstruction);
+    SumCASVolumes(); // Slower function but seems more reliable
+
+    // This function is faster, but seems to be less reliable if we clear the gridder and remake it
+    // int GPU_For_Reconstruction = this->GPU_Devices[0];
+    // EnablePeerAccess(GPU_For_Reconstruction);
+    // AddCASVolumes(GPU_For_Reconstruction);
 
     // Synchronize all of the GPUs
     GPU_Sync();
@@ -321,6 +323,41 @@ void MultiGPUGridder::EnablePeerAccess(int GPU_For_Reconstruction)
         }
 
         this->PeerAccessEnabled = true;
+    }
+}
+
+void MultiGPUGridder::DisablePeerAccess(int GPU_For_Reconstruction)
+{
+    // Allow the first GPU to access the memory of the other GPUs
+    // This is needed for the reconstruct volume function
+
+    if (this->PeerAccessEnabled == true)
+    {
+        gpuErrorCheck(cudaSetDevice(GPU_For_Reconstruction));
+        for (int i = 0; i < this->Num_GPUs; i++)
+        {
+            if (i != GPU_For_Reconstruction)
+            {
+                // Is peer access already enabled?
+                int canAccessPeer;
+                cudaDeviceCanAccessPeer(&canAccessPeer, GPU_For_Reconstruction, i);
+
+                if (canAccessPeer == 1)
+                {
+                    // The first GPU can no longer access GPU device number i
+                    gpuErrorCheck(cudaDeviceDisablePeerAccess(i));
+                }
+                else
+                {
+                    std::cerr << "The GPUs appear to not support peer access for sharing memory. \
+                    ReconstructVolume() and CASVolumeToVolume() cannot run without this ability.Please try \
+                    reconstructing on the CPU instead of the GPU."
+                              << '\n';
+                }
+            }
+        }
+
+        this->PeerAccessEnabled = false;
     }
 }
 
@@ -426,6 +463,12 @@ void MultiGPUGridder::FreeMemory()
         {
             std::cout << "MultiGPUGridder::FreeMemory() on GPU " << this->GPU_Devices[i] << '\n';
         }
+    }
+
+    // If the GPU peer access is enabled, disable it (i.e. the default setting)
+    if (this->PeerAccessEnabled == true)
+    {
+        this->DisablePeerAccess(this->GPU_Devices[0]);
     }
 
     //delete [] gpuGridder_vec;
