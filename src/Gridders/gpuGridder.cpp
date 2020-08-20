@@ -19,8 +19,13 @@ void gpuGridder::CopyCASVolumeToHost()
 
 float *gpuGridder::GetCASVolumeFromDevice()
 {
+    cudaSetDevice(this->GPU_Device);
+    cudaDeviceSynchronize();
+
     float *CASVolume = new float[this->d_CASVolume->length()];
     this->d_CASVolume->CopyFromGPU(CASVolume, this->d_CASVolume->bytes());
+
+    cudaDeviceSynchronize();
 
     return CASVolume;
 }
@@ -421,6 +426,7 @@ void gpuGridder::BackProject(int AxesOffset, int nAxesToProcess)
     }
 
     gpuErrorCheck(cudaDeviceSynchronize());
+
 }
 
 void gpuGridder::CASImgsToImgs(cudaStream_t &stream, float *CASImgs, float *Imgs, int numImgs, cufftComplex *CASImgsComplex)
@@ -656,7 +662,7 @@ gpuGridder::Offsets gpuGridder::PlanOffsetValues(int coordAxesOffset, int nAxes,
                 continue;
             }
 
-            std::cout << "processed_nAxes: " << processed_nAxes << "out of : " << nAxes << '\n';
+            std::cout << "processed_nAxes: " << processed_nAxes << " out of " << nAxes << '\n';
 
             // Have all the axes been processed?
             if (processed_nAxes >= nAxes)

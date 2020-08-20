@@ -13,9 +13,9 @@ addpath(genpath("C:\GitRepositories\MultiGPUGridder\src\src"))
 addpath(genpath("/home/brent/cryo_EM/lib"))
 
 % Parameters for creating the volume and coordinate axes
-VolumeSize = 100;
+VolumeSize = 128;
 interpFactor = 2;
-n1_axes = 10;
+n1_axes = 100;
 n2_axes = 50;
 
 % Create the volume
@@ -29,8 +29,8 @@ coordAxes = coordAxes(:,1:n1_axes*n2_axes);
 
 % Create the gridder object
 gridder = MultiGPUGridder_Matlab_Class('VolumeSize', VolumeSize, ...
-    'NumAxes', n1_axes * n2_axes, 'RunFFTOnGPU', 1, 'verbose', 1, 'MaxAxesToAllocate', 2000);
-
+    'NumAxes', n1_axes * n2_axes, 'RunFFTOnGPU', 0, 'verbose', 1, 'MaxAxesToAllocate', 5000);
+                
 % Set the volume
 gridder.setVolume(MRI_volume);
 
@@ -46,6 +46,14 @@ easyMontage(images(:,:,1:min(100, size(images,3))), 1)
 % Run the back projection
 gridder.resetVolume();
 tic
+
+gridder.backProject(images, coordAxes)
+disp("Back Project: " + toc + " seconds")
+
+tic
+vol=gridder.getVol();
+disp("Get volume: " + toc + " seconds")
+easyMontage(vol, 2)
 
 gridder.backProject(images, coordAxes)
 disp("Back Project: " + toc + " seconds")

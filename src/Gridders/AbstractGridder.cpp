@@ -100,7 +100,7 @@ void AbstractGridder::SetCASVolume(float *CASVolume, int *ArraySize)
     }
     else
     {
-        // Just copy the pointer
+         // Just copy the pointer
         this->h_CASVolume->CopyPointer(CASVolume);
 
         // Check to see if we need to pin the array again (if the pointer is different)

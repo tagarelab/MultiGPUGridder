@@ -118,6 +118,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.CASImages = zeros([CASImagesSize, CASImagesSize, this.NumAxes], 'single');  
                 
             end            
+            
             % Create the CASVolume array
             this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');                  
 
@@ -210,7 +211,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             end
             
             % Consider if we forward project less number of images then we first allocated for
-            ProjectionImages = this.Images;%(:,:,1:size(this.coordAxes,2));            
+            ProjectionImages = this.Images(:,:,1:size(this.coordAxes,2));            
             
         end         
           function backProject(this, varargin)
@@ -218,7 +219,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             if ~isempty(varargin) > 0
                 
                 % A new set of images to back project was passed
-                this.Images = single(varargin{1}); 
+                this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
                 
                 % A new set of coordinate axes to use with the back projection was passed
                 this.coordAxes = single(varargin{2});
@@ -233,7 +234,6 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
             end
             
-            this.Set(); % Run the set function in case one of the arrays has changed
             this.Set();
             this.Set();
             mexMultiGPUBackProject(this.objectHandle);
@@ -251,7 +251,7 @@ classdef MultiGPUGridder_Matlab_Class < handle
             
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
            this.Volume = single(0 * this.Volume);            
-           this.CASVolume(:) = 0; % Keep the original memory pointer
+           this.CASVolume = single(0 * this.CASVolume); % Keep the original memory pointer
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)   
@@ -287,14 +287,13 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function Volume = getVol(this)
         
            this.Set(); % Run the set function in case one of the arrays has changed
-this.Set();
-this.Set();
+           this.Set();
+           this.Set();
            
-           mexMultiGPUGetVolume(this.objectHandle);
-           
+           mexMultiGPUGetVolume(this.objectHandle);           
            
            % Convert the CASVolume to Volume
-           this.Volume=volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
+           this.Volume = volFromCAS_Gridder(this.CASVolume,single(this.VolumeSize),this.kerHWidth, this.interpFactor);
 
            Volume = single(this.Volume); 
 

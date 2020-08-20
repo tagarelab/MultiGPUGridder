@@ -276,16 +276,28 @@ void MultiGPUGridder::CASVolumeToVolume()
         std::cout << "MultiGPUGridder::CASVolumeToVolume()" << '\n';
     }
 
+    // Pass the host memory pointers to each of the gpu gridder objects
+    // TO DO: is this needed?
+    for (int i = 0; i < Num_GPUs; i++)
+    {
+        gpuGridder_vec[i]->h_Imgs = this->h_Imgs;
+        gpuGridder_vec[i]->h_Volume = this->h_Volume;
+        gpuGridder_vec[i]->h_CoordAxes = this->h_CoordAxes;
+        gpuGridder_vec[i]->h_KB_Table = this->h_KB_Table;
+        gpuGridder_vec[i]->h_CASVolume = this->h_CASVolume;
+        gpuGridder_vec[i]->h_CASImgs = this->h_CASImgs;
+    }
+
     // Synchronize all of the GPUs
     GPU_Sync();
 
     // Combine the CAS volume arrays from each GPU and copy back to the host
-    SumCASVolumes(); // Slower function but seems more reliable
+    // SumCASVolumes(); // Slower function but seems more reliable
 
     // This function is faster, but seems to be less reliable if we clear the gridder and remake it
-    // int GPU_For_Reconstruction = this->GPU_Devices[0];
-    // EnablePeerAccess(GPU_For_Reconstruction);
-    // AddCASVolumes(GPU_For_Reconstruction);
+    int GPU_For_Reconstruction = this->GPU_Devices[0];
+    EnablePeerAccess(GPU_For_Reconstruction);
+    AddCASVolumes(GPU_For_Reconstruction);
 
     // Synchronize all of the GPUs
     GPU_Sync();
@@ -417,6 +429,9 @@ void MultiGPUGridder::SumCASVolumes()
     {
         std::cout << "MultiGPUGridder::SumCASVolumes()" << '\n';
     }
+
+    // Synchronize all of the GPUs
+    GPU_Sync();
 
     // Temporary volume array
     float *SummedVolume = new float[this->h_CASVolume->length()];
