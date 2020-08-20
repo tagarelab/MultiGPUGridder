@@ -40,8 +40,6 @@ set(SOURCE_Files
 	${CMAKE_SOURCE_DIR}/Gridders/MultiGPUGridder.h
 	${CMAKE_SOURCE_DIR}/Gridders/MultiGPUGridder.cpp
 
-	${CMAKE_SOURCE_DIR}/Projection/gpuProjection.h
-	${CMAKE_SOURCE_DIR}/Projection/gpuProjection.cpp
 	${CMAKE_SOURCE_DIR}/Projection/gpuForwardProject.h
 	${CMAKE_SOURCE_DIR}/Projection/gpuForwardProject.cu
 	${CMAKE_SOURCE_DIR}/Projection/gpuBackProject.h

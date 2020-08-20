@@ -210,7 +210,7 @@ public:
         // Free the currently allocated memory
         if (this->IsAllocated() == true)
         {
-            std::free(this->ptr);
+           std::free(this->ptr);
         }
     }
 
