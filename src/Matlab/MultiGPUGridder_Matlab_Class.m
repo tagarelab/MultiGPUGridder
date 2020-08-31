@@ -122,6 +122,13 @@ classdef MultiGPUGridder_Matlab_Class < handle
             % Create the CASVolume array
             this.CASVolume = zeros(repmat(size(this.Volume, 1) * this.interpFactor + this.extraPadding * 2, 1, 3), 'single');                  
 
+            % Create the coordinate axes array
+            this.coordAxes = zeros(9, this.NumAxes, 'single');
+            
+            % Set the matlab array pointers to the C++ class
+            % NOTE: Ensure that the pointers are not overwritten anywhere in the Matlab class
+            % it is possible to call Set() again to re-copy the pointers, but this is not as reliable
+            this.Set();
         end        
         %% Deconstructor - Delete the C++ class instance 
         function delete(this)
@@ -178,14 +185,19 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 if length(varargin) == 1
                     % A new set of coordinate axes was passed
                     % (:,1:size(single(varargin{1}),2))
-                    this.coordAxes = single(varargin{1});            
-                    
+                    numAxes = size(single(varargin{1}),2);
+                    this.coordAxes(:,1:numAxes) = single(varargin{1});        
+                    mexSetVariables('SetNumAxes', this.objectHandle, int32(numAxes)); 
+                       
                 elseif length(varargin) == 3
                     % Varargin 1: Mean volume
                     % Varargin 2: Coordinate axes
                     % Varargin 3: Mask radius
                     this.Volume = single(varargin{1});
-                    this.coordAxes = single(varargin{2});
+                    numAxes = size(single(varargin{2}),2);
+                    this.coordAxes(:,1:numAxes) = single(varargin{2});        
+                    mexSetVariables('SetNumAxes', this.objectHandle, int32(numAxes)); 
+                    
                     this.MaskRadius = single(varargin{3});                    
                 else
                     disp('forwardProject(): Unknown input')
@@ -201,19 +213,18 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 error("The number of projection directions must be >= the number of CUDA streams.")
             end          
 
-            this.Set(); % Run the set function in case one of the arrays has changed       
-
             mexMultiGPUForwardProject(this.objectHandle);            
             
             % Run the inverse FFT on the CAS images
             if (this.RunFFTOnGPU == false)
-                this.Images(:,:,1:size(this.coordAxes,2)) = imgsFromCASImgs(this.CASImages(:,:,1:size(this.coordAxes,2)), interpBox, []); 
+                this.Images(:,:,1:numAxes) = imgsFromCASImgs(this.CASImages(:,:,1:numAxes), interpBox, []); 
             end
             
             % Consider if we forward project less number of images then we first allocated for
             ProjectionImages = this.Images(:,:,1:size(this.coordAxes,2));            
             
         end         
+        
           function backProject(this, varargin)
 
             if ~isempty(varargin) > 0
@@ -222,7 +233,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 this.Images(:,:,1:size(varargin{1},3)) = single(varargin{1}); 
                 
                 % A new set of coordinate axes to use with the back projection was passed
-                this.coordAxes = single(varargin{2});
+                numAxes = size(single(varargin{2}),2);
+                this.coordAxes(:,1:numAxes) = single(varargin{2});
+                mexSetVariables('SetNumAxes', this.objectHandle, int32(numAxes));
                 
                 if (this.RunFFTOnGPU == false)
                     
@@ -234,12 +247,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 
             end
             
-            this.Set();
-            this.Set();
-            mexMultiGPUBackProject(this.objectHandle);
+            mexMultiGPUBackProject(this.objectHandle);   
             
-        end   
-    
+        end       
     
         %% setVolume - Set the volume
         function setVolume(this, varargin)
@@ -250,8 +260,8 @@ classdef MultiGPUGridder_Matlab_Class < handle
         function resetVolume(this)
             
             % Multiply the volume by zero to reset. The resetted volume will be copied to the GPUs during this.Set()
-           this.Volume = single(0 * this.Volume);            
-           this.CASVolume = single(0 * this.CASVolume); % Keep the original memory pointer
+           this.Volume(:) = 0;            
+           this.CASVolume(:) = 0;  % Keep the original memory pointer
         end
         %% reconstructVol - Reconstruct the volume by dividing by the plane density
         function Volume = reconstructVol(this, varargin)   
@@ -286,9 +296,9 @@ classdef MultiGPUGridder_Matlab_Class < handle
         %% getVol - Convert the CAS Volume to Volume
         function Volume = getVol(this)
         
-           this.Set(); % Run the set function in case one of the arrays has changed
-           this.Set();
-           this.Set();
+%            this.Set(); % Run the set function in case one of the arrays has changed
+%            this.Set();
+%            this.Set();
            
            mexMultiGPUGetVolume(this.objectHandle);           
            
