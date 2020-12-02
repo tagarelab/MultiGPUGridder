@@ -81,7 +81,7 @@ Here is a simple example on running the multi-GPU gridder from within Matlab:
 
 ## API Documentation
 
-[Please see the corresponding API documentation for further details.](https://brentfoster.github.io/MultiGPUGridder/)
+[Please see the corresponding API documentation for further details.](https://brentfoster.github.io/MultiGPUGridder/MultiGPUGridder_Doxygen/html/index.html)
 
 
 
