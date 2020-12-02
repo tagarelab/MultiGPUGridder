@@ -155,7 +155,7 @@ easyMontage(vol, 2)
 reconstructVol = gridder.reconstructVol();
 easyMontage(reconstructVol, 3)
 </pre><div class="image">
-<img src="../../Documentation/Images/Matlab_Example.png"  alt="Matlab_Example"/>
+<img src="../../src/Documentation/Images/Matlab_Example.png"  alt="Matlab_Example"/>
 </div>
 <h1><a class="anchor" id="matlab_unit_tests"></a>
 Matlab - Unit Tests</h1>
@@ -165,7 +165,7 @@ Matlab - Unit Tests</h1>
 CUDA - Asynchronous memory transfers</h1>
 <p>For large datasets, there is significant copying of data to/from the GPUs. CUDA allows for overlapping of memory transfers and kernel executation (see <a href="https://devblogs.nvidia.com/how-overlap-data-transfers-cuda-cc/">NVIDIA documentation for further information</a>. This greatly lowers the computation time for large datasets. CUDA streams allow us to perform this.</p>
 <div class="image">
-<img src="../../Documentation/Images/CUDA_Streaming_Overview.png"  alt="CUDA_Streaming_Overview"/>
+<img src="../../src/Documentation/Images/CUDA_Streaming_Overview.png"  alt="CUDA_Streaming_Overview"/>
 </div>
 <p>For example, in the <a class="el" href="classgpu_gridder.html#ae11f5283443a948896f1c48b6dd7c577">gpuGridder::ForwardProject</a> function, we perform asynchronous (async) memory transfers from the host (i.e.the CPU) to the device (i.e.the GPU). The following simplified code illustrates this </p><pre class="fragment">cudaMemcpyAsync(
     d_CoordAxes-&gt;GetPointer(),
@@ -243,12 +243,12 @@ Matlab Wrapper - Mex Functions</h1>
 </table>
 <p>The mexCreateGridder creates an instance of the <a class="el" href="class_multi_g_p_u_gridder.html" title="A class for gridding on multiple GPUs. ">MultiGPUGridder</a> class. The <a class="el" href="class_multi_g_p_u_gridder.html" title="A class for gridding on multiple GPUs. ">MultiGPUGridder</a> class then creates an instance of the <a class="el" href="classgpu_gridder.html" title="A class for gridding on the GPU. ">gpuGridder</a> class with one <a class="el" href="classgpu_gridder.html" title="A class for gridding on the GPU. ">gpuGridder</a> object per GPU. Then in the mexMultiGPUForwardProject function for example, the <a class="el" href="class_multi_g_p_u_gridder.html" title="A class for gridding on multiple GPUs. ">MultiGPUGridder</a> object simply iterates over the <a class="el" href="classgpu_gridder.html" title="A class for gridding on the GPU. ">gpuGridder</a> objects and calls the <a class="el" href="classgpu_gridder.html#ae11f5283443a948896f1c48b6dd7c577">gpuGridder::ForwardProject</a> function. See the figure below for a graphical representation of this.</p>
 <div class="image">
-<img src="../../Documentation/Images/Multi_GPU_Gridder_Overview.png"  alt="Multi_GPU_Gridder_Overview"/>
+<img src="../../src/Documentation/Images/Multi_GPU_Gridder_Overview.png"  alt="Multi_GPU_Gridder_Overview"/>
 </div>
  </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Dec 2 2020 10:18:08 for Multi-GPU Gridding by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Wed Dec 2 2020 10:24:51 for Multi-GPU Gridding by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>
