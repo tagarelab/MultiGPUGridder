@@ -1,0 +1,10 @@
+var searchData=
+[
+  ['r',['r',['../imgs_from_c_a_s_imgs_8m.html#a9aa716b148e0a9e796305b8bb5e622c4',1,'r(1,:,:):&#160;imgsFromCASImgs.m'],['../imgs_from_c_a_s_imgs_8m.html#ac9da214d43ff523642a9b3312de49f93',1,'r(:, 1,:):&#160;imgsFromCASImgs.m']]],
+  ['r0',['r0',['../fuzzymask_8m.html#a302b14de44a85138f40698491f3ec375',1,'r0(1) is the%radius along x:&#160;fuzzymask.m'],['../fuzzymask_8m.html#a69cfb58a5d56d589d1c1366fd8234794',1,'r0(2) is radius in the y direction.r0:&#160;fuzzymask.m']]],
+  ['realtocomplexfilter',['RealToComplexFilter',['../class_real_to_complex_filter.html#a6d4052b13ccc01405b1006c51e7ba423',1,'RealToComplexFilter']]],
+  ['reconstructvolume',['ReconstructVolume',['../classgpu_gridder.html#a9e4e7f3ef31f51e504cf20d5c3c1b05a',1,'gpuGridder']]],
+  ['reset',['Reset',['../class_device_memory.html#ab7ae28a2432824a9ed650c2c5b2858e0',1,'DeviceMemory::Reset()'],['../class_host_memory.html#afbd9166c2cbb7dbba7ef0de524675147',1,'HostMemory::Reset()'],['../_add_volume_test_8m.html#a48812c06132551c8490cfe6d127d1f12',1,'reset(gpuDevice(GPU_Device+1)):&#160;AddVolumeTest.m'],['../_complex_to_c_a_s_test_8m.html#a48812c06132551c8490cfe6d127d1f12',1,'reset(gpuDevice(GPU_Device+1)):&#160;ComplexToCASTest.m'],['../_divide_scalar_test_8m.html#a48812c06132551c8490cfe6d127d1f12',1,'reset(gpuDevice(GPU_Device+1)):&#160;DivideScalarTest.m']]],
+  ['resetvolume',['ResetVolume',['../class_abstract_gridder.html#ae62be08b3628ab484cb8e352cbabb87c',1,'AbstractGridder::ResetVolume()'],['../class_multi_g_p_u_gridder___python_1_1_multi_g_p_u_gridder.html#af558190e4d7ff89e2e9fe65f0705a722',1,'MultiGPUGridder_Python.MultiGPUGridder.ResetVolume()'],['../_multi_gridder_timing_test_8m.html#ab321b8973a781d36221f8bfc36d5c62a',1,'resetVolume():&#160;MultiGridderTimingTest.m']]],
+  ['runkernel',['RunKernel',['../classgpu_back_project.html#a8da0a037f899e21e584332c2d160a362',1,'gpuBackProject::RunKernel()'],['../classgpu_forward_project.html#a9f89c0e6fb70e14192b3efddc2c96ec1',1,'gpuForwardProject::RunKernel()']]]
+];

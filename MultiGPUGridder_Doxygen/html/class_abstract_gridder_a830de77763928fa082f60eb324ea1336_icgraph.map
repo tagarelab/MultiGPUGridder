@@ -1,0 +1,5 @@
+<map id="AbstractGridder::GetNumAxes" name="AbstractGridder::GetNumAxes">
+<area shape="rect" id="node2" href="$class_multi_g_p_u_gridder.html#a7748bf56f77d005736d8e71ee9d9955a" title="Set the number of CUDA streams to use with each GPU for the back projection. " alt="" coords="253,31,497,57"/>
+<area shape="rect" id="node3" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="545,5,781,32"/>
+<area shape="rect" id="node4" href="$mex_set_variables_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="615,56,712,83"/>
+</map>

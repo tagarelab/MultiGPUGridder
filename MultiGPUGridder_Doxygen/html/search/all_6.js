@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['fc0',['fc0',['../get_pre_comp_8m.html#a765a37a25bf76cd5064a577cd7a9e3c0',1,'fc0():&#160;getPreComp.m'],['../utils_2get_pre_comp_8m.html#a765a37a25bf76cd5064a577cd7a9e3c0',1,'fc0():&#160;getPreComp.m']]],
+  ['fftshift2_2em',['fftshift2.m',['../fftshift2_8m.html',1,'']]],
+  ['fftshift2dfilter',['FFTShift2DFilter',['../class_f_f_t_shift2_d_filter.html',1,'FFTShift2DFilter&lt; T &gt;'],['../class_f_f_t_shift2_d_filter.html#a10f91720cf16be2a796b6b6cfaf1b6bf',1,'FFTShift2DFilter::FFTShift2DFilter()']]],
+  ['fftshift2dfilter_2eh',['FFTShift2DFilter.h',['../_f_f_t_shift2_d_filter_8h.html',1,'']]],
+  ['fftshift2dtest_2em',['FFTShift2DTest.m',['../_f_f_t_shift2_d_test_8m.html',1,'']]],
+  ['fftshift3dfilter',['FFTShift3DFilter',['../class_f_f_t_shift3_d_filter.html',1,'FFTShift3DFilter&lt; T &gt;'],['../class_f_f_t_shift3_d_filter.html#ac5c7725665de67f254fa09053f827b73',1,'FFTShift3DFilter::FFTShift3DFilter()']]],
+  ['fftshift3dfilter_2eh',['FFTShift3DFilter.h',['../_f_f_t_shift3_d_filter_8h.html',1,'']]],
+  ['fftshift3dtest_2em',['FFTShift3DTest.m',['../_f_f_t_shift3_d_test_8m.html',1,'']]],
+  ['fftshiftedvolume',['FFTShiftedVolume',['../_f_f_t_shift2_d_test_8m.html#ae9b3605df1361fea09008d4354625ffc',1,'FFTShiftedVolume():&#160;FFTShift2DTest.m'],['../_f_f_t_shift3_d_test_8m.html#ae9b3605df1361fea09008d4354625ffc',1,'FFTShiftedVolume():&#160;FFTShift3DTest.m']]],
+  ['fftw',['fftw',['../_c_a_s_imgs_from_imgs_8m.html#a73c82cab0a34286f490187be5b871c96',1,'fftw(&apos;swisdom&apos;, fftinfo):&#160;CASImgsFromImgs.m'],['../imgs_from_c_a_s_imgs_8m.html#ad1e92812438130ecab1b563ae1c147ef',1,'fftw(&apos;swisdom&apos;, fftinfo):&#160;imgsFromCASImgs.m']]],
+  ['filter_5funit_5ftests_2em',['Filter_Unit_Tests.m',['../_filter___unit___tests_8m.html',1,'']]],
+  ['filterresults',['FilterResults',['../_run___unit___tests_8m.html#ad832700da9991766879645a6ebf9f78a',1,'Run_Unit_Tests.m']]],
+  ['float_5fcoordaxes',['float_CoordAxes',['../namespace_multi_g_p_u_gridder___python.html#a906b8d0e1d27907e9bb5b771cb708331',1,'MultiGPUGridder_Python']]],
+  ['float_5fvol',['float_Vol',['../namespace_multi_g_p_u_gridder___python.html#a6a29180718e28545a6245f19ca1edcd3',1,'MultiGPUGridder_Python']]],
+  ['floor',['floor',['../fuzzymask_8m.html#ae51f2ac037b3f715fd9c1f91b3b5d669',1,'fuzzymask.m']]],
+  ['forward_5fproject',['Forward_Project',['../class_multi_g_p_u_gridder___python_1_1_multi_g_p_u_gridder.html#a8ba2d2b6c4dc29f691faa6a93c1de4f3',1,'MultiGPUGridder_Python::MultiGPUGridder']]],
+  ['forwardproject',['ForwardProject',['../class_abstract_gridder.html#a8aafbe850ffeb16208f656aa282a6882',1,'AbstractGridder::ForwardProject()'],['../classgpu_gridder.html#ae11f5283443a948896f1c48b6dd7c577',1,'gpuGridder::ForwardProject()'],['../class_multi_g_p_u_gridder.html#acdd9be21e2fa04d2d85936a2835d730d',1,'MultiGPUGridder::ForwardProject()']]],
+  ['forwardprojectionresults',['ForwardProjectionResults',['../_run___unit___tests_8m.html#a92006d9b80d4377696d56d8ddaf21a0a',1,'Run_Unit_Tests.m']]],
+  ['forwardprojecttests_2em',['ForwardProjectTests.m',['../_forward_project_tests_8m.html',1,'']]],
+  ['fprintf',['fprintf',['../mex__interface_8m.html#a572482c448f88f03e29ac017afe99d2d',1,'fprintf():&#160;mex_interface.m'],['../mex__interface_8m.html#a3a105cde09aa03c5f572502f72d6f996',1,'fprintf(&apos;Object instance of%s\n&apos;, func2str(this.mexHandle)):&#160;mex_interface.m']]],
+  ['freememory',['FreeMemory',['../class_abstract_gridder.html#a69911a325fdba4a15c42c3bf61d745d4',1,'AbstractGridder']]],
+  ['fromcas_2em',['FromCAS.m',['../_from_c_a_s_8m.html',1,'']]],
+  ['ft',['FT',['../get_pre_comp_8m.html#acdc10e46472ef4d82d939134bdb7c735',1,'FT(=IFT) and normalize it.preComp:&#160;getPreComp.m'],['../utils_2get_pre_comp_8m.html#acdc10e46472ef4d82d939134bdb7c735',1,'FT(=IFT) and normalize it.preComp:&#160;getPreComp.m']]],
+  ['function',['function',['../get_sizes_8m.html#af5c17788289fd88c5ce8d031980f35c4',1,'function():&#160;getSizes.m'],['../_c_a_s_from_vol___gridder_8m.html#ade3ffaf7945cab02707f9cf57caf3def',1,'function():&#160;CASFromVol_Gridder.m'],['../utils_2get_sizes_8m.html#af5c17788289fd88c5ce8d031980f35c4',1,'function():&#160;getSizes.m']]],
+  ['fuzzymask_2em',['fuzzymask.m',['../fuzzymask_8m.html',1,'']]]
+];

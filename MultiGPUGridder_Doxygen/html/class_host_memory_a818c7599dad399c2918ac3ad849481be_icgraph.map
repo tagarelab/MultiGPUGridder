@@ -1,0 +1,8 @@
+<map id="HostMemory::length" name="HostMemory::length">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#a2daeb6521f3235460e15b19e440df458" title="Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array..." alt="" coords="217,5,404,47"/>
+<area shape="rect" id="node4" href="$class_multi_g_p_u_gridder.html#a4118494a3b10b521e55bd3e6e803914f" title="Get the CAS volume arrays from each gpuGridder, sum them together, and copy the result back to the ho..." alt="" coords="193,71,428,98"/>
+<area shape="rect" id="node6" href="$class_host_memory.html#a849d2ca17116f375d41dd8b060673046" title="Allocate the memory for the host array. " alt="" coords="217,123,404,164"/>
+<area shape="rect" id="node7" href="$mex_c_a_s_to_complex_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="262,189,359,215"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#a798cffcd48773dba66a89d8cc3718421" title="Set the number of CUDA streams to use for the back projection kernel. " alt="" coords="490,13,698,39"/>
+<area shape="rect" id="node5" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="476,71,712,98"/>
+</map>

@@ -1,0 +1,15 @@
+<map id="HostMemory::bytes" name="HostMemory::bytes">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#a36b4533f6adf806d9d7bbfff167f1a74" title="Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if r..." alt="" coords="193,5,389,47"/>
+<area shape="rect" id="node4" href="$classgpu_gridder.html#a2daeb6521f3235460e15b19e440df458" title="Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array..." alt="" coords="197,71,384,112"/>
+<area shape="rect" id="node5" href="$classgpu_gridder.html#ae11f5283443a948896f1c48b6dd7c577" title="gpuGridder::ForwardProject" alt="" coords="200,137,381,163"/>
+<area shape="rect" id="node6" href="$classgpu_gridder.html#af3740086e3f9cb6558e20191122dc11c" title="gpuGridder::BackProject" alt="" coords="209,187,373,214"/>
+<area shape="rect" id="node7" href="$class_device_memory.html#a82a46f8a5d6059de72a5410248a30374" title="Copy an array array from the CPU to the previously allocated array on the GPU. " alt="" coords="191,239,391,280"/>
+<area shape="rect" id="node8" href="$class_device_memory.html#ab47698a6cffb784fb5517d835f89453f" title="Copy an array from the CPU to the allocated array on the GPU asynchronously. " alt="" coords="191,304,391,345"/>
+<area shape="rect" id="node9" href="$class_device_memory.html#a6bbf7f29f8406955cf7456851a114fcc" title="Copy the array from the GPU to a previously allocated array on the host (i.e. CPU). " alt="" coords="191,369,391,411"/>
+<area shape="rect" id="node10" href="$class_device_memory.html#a6e577bd1fa613fb8b3723ccfb1070e6f" title="Allocate the memory on the GPU. " alt="" coords="191,435,391,476"/>
+<area shape="rect" id="node11" href="$class_device_memory.html#ab7ae28a2432824a9ed650c2c5b2858e0" title="Reset the GPU array back to all zeros. " alt="" coords="191,500,391,541"/>
+<area shape="rect" id="node12" href="$class_host_memory.html#a241bdee2d30062eacfe32eaae61a09f5" title="Copy the array to a second array. " alt="" coords="197,565,384,607"/>
+<area shape="rect" id="node13" href="$class_host_memory.html#a182bdcb3698340ba89cb5c5ee9d6cadb" title="Pin the memory to the CPU in order to enable asynchronous memory transfers to and from the GPU..." alt="" coords="197,631,384,672"/>
+<area shape="rect" id="node14" href="$class_host_memory.html#afbd9166c2cbb7dbba7ef0de524675147" title="Reset the array back to all zeros. " alt="" coords="197,696,384,737"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#a798cffcd48773dba66a89d8cc3718421" title="Set the number of CUDA streams to use for the back projection kernel. " alt="" coords="439,46,647,73"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="HostMemory::IsAllocated" name="HostMemory::IsAllocated">
+<area shape="rect" id="node2" href="$class_host_memory.html#a241bdee2d30062eacfe32eaae61a09f5" title="Copy the array to a second array. " alt="" coords="224,5,411,47"/>
+<area shape="rect" id="node3" href="$class_host_memory.html#abd14e0120c89fc539be413123ae4b43a" title="Copy a given pointer to the class. " alt="" coords="224,71,411,112"/>
+<area shape="rect" id="node4" href="$class_host_memory.html#a182bdcb3698340ba89cb5c5ee9d6cadb" title="Pin the memory to the CPU in order to enable asynchronous memory transfers to and from the GPU..." alt="" coords="224,136,411,177"/>
+<area shape="rect" id="node5" href="$class_host_memory.html#a85b3ee8eed1bdba0f0bc4e12e228579d" title="Free the memory if it was allocated by this class. " alt="" coords="224,201,411,243"/>
+<area shape="rect" id="node6" href="$class_host_memory.html#afbd9166c2cbb7dbba7ef0de524675147" title="Reset the array back to all zeros. " alt="" coords="224,267,411,308"/>
+</map>

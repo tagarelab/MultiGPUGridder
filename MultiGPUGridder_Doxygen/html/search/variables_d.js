@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['o1',['o1',['../_from_c_a_s_8m.html#abd0b28131a67be89458e7270db98e571',1,'o1():&#160;FromCAS.m'],['../imgs_from_c_a_s_imgs_8m.html#abd0b28131a67be89458e7270db98e571',1,'o1():&#160;imgsFromCASImgs.m'],['../_c_a_s_to_complex_test_8m.html#abd0b28131a67be89458e7270db98e571',1,'o1():&#160;CASToComplexTest.m']]],
+  ['o2',['o2',['../_from_c_a_s_8m.html#ad86cef6aa918a35ea169a80a501f76d0',1,'o2():&#160;FromCAS.m'],['../imgs_from_c_a_s_imgs_8m.html#ad86cef6aa918a35ea169a80a501f76d0',1,'o2():&#160;imgsFromCASImgs.m'],['../_c_a_s_to_complex_test_8m.html#ad86cef6aa918a35ea169a80a501f76d0',1,'o2():&#160;CASToComplexTest.m']]],
+  ['o3',['o3',['../_from_c_a_s_8m.html#ac19e7616321530b3af2c70b5ad4b5489',1,'FromCAS.m']]],
+  ['obj',['obj',['../class_multi_g_p_u_gridder___python_1_1_multi_g_p_u_gridder.html#a18563711d6dfe173cd3610f7d7bcda5f',1,'MultiGPUGridder_Python::MultiGPUGridder']]],
+  ['objecthandle',['objectHandle',['../mex__interface_8m.html#a0a92e8b98c2f8014ac8376d6c7510de8',1,'mex_interface.m']]],
+  ['off',['off',['../plot_profiles_8m.html#afdf5105e3d50a6a241bb483d278cf699',1,'plotProfiles.m']]],
+  ['on',['on',['../create__uniform__axes_8m.html#a58ab1fd68e97078232808206b850161b',1,'create_uniform_axes.m']]],
+  ['origb',['origB',['../get_sizes_8m.html#a74c700c6437b26b64cdf25ecb7dc5ce6',1,'origB():&#160;getSizes.m'],['../_c_a_s_from_vol___gridder_8m.html#a06138e8f7e05175625b0a186a12ec927',1,'origB():&#160;CASFromVol_Gridder.m'],['../utils_2get_sizes_8m.html#a74c700c6437b26b64cdf25ecb7dc5ce6',1,'origB():&#160;getSizes.m']]],
+  ['origcenter',['origCenter',['../_c_a_s_from_vol___gridder_8m.html#af1d897e28e648aec91690a6ba1eb1f36',1,'origCenter():&#160;CASFromVol_Gridder.m'],['../vol_from_c_a_s___gridder_8m.html#a1cda2e952566ac9cbea64434741e5569',1,'origCenter():&#160;volFromCAS_Gridder.m']]],
+  ['orige',['origE',['../get_sizes_8m.html#a7bfeb96c0814e6932611369bbdd33e56',1,'origE():&#160;getSizes.m'],['../_c_a_s_from_vol___gridder_8m.html#a6318fc51503c8afa4874ee101020c136',1,'origE():&#160;CASFromVol_Gridder.m'],['../utils_2get_sizes_8m.html#a7bfeb96c0814e6932611369bbdd33e56',1,'origE():&#160;getSizes.m']]],
+  ['orighalfwidth',['origHalfWidth',['../_c_a_s_from_vol___gridder_8m.html#a7f0d8f610efaf1a8ad14415cb6f174da',1,'origHalfWidth():&#160;CASFromVol_Gridder.m'],['../vol_from_c_a_s___gridder_8m.html#a7f0d8f610efaf1a8ad14415cb6f174da',1,'origHalfWidth():&#160;volFromCAS_Gridder.m']]],
+  ['origsize',['origSize',['../_c_a_s_from_vol___gridder_8m.html#a79a5851e1c52a7ae6219d57b6af10344',1,'CASFromVol_Gridder.m']]],
+  ['outputimgs',['outputImgs',['../namespace_multi_g_p_u_gridder___python.html#a8514b50b5706eced4378f1b8538a7fe3',1,'MultiGPUGridder_Python']]],
+  ['outputimgs_5fnumpy_5farr',['outputImgs_numpy_arr',['../namespace_multi_g_p_u_gridder___python.html#a88139abe17b53b320c05fab45c82978a',1,'MultiGPUGridder_Python']]],
+  ['outputvol',['outputVol',['../namespace_multi_g_p_u_gridder___python.html#a720dab88169b9e432aeb5676212a89a1',1,'MultiGPUGridder_Python']]],
+  ['outputvol_5fnumpy_5farr',['outputVol_numpy_arr',['../namespace_multi_g_p_u_gridder___python.html#a0da28455b75aab44cf388feb3b173ff5',1,'MultiGPUGridder_Python']]]
+];

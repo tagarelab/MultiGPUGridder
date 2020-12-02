@@ -1,0 +1,6 @@
+<map id="AbstractGridder::ForwardProject" name="AbstractGridder::ForwardProject">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#a76a8540b918f695aaf5649dc58a86d4f" title="gpuGridder::~gpuGridder" alt="" coords="227,5,391,32"/>
+<area shape="rect" id="node3" href="$class_multi_g_p_u_gridder.html#acdd9be21e2fa04d2d85936a2835d730d" title="Run the forward projection kernel on each gpuGridder object. " alt="" coords="221,57,397,98"/>
+<area shape="rect" id="node4" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="445,39,681,65"/>
+<area shape="rect" id="node5" href="$mex_multi_g_p_u_forward_project_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="515,89,612,116"/>
+</map>

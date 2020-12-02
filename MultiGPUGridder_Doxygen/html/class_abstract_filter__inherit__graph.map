@@ -1,0 +1,14 @@
+<map id="AbstractFilter" name="AbstractFilter">
+<area shape="rect" id="node2" href="$class_add_volume_filter.html" title="A filter for adding two GPU arrays. " alt="" coords="180,5,299,32"/>
+<area shape="rect" id="node3" href="$class_c_a_s_to_complex_filter.html" title="A filter for converting a GPU array to CAS type. " alt="" coords="166,56,313,83"/>
+<area shape="rect" id="node4" href="$class_complex_to_c_a_s_filter.html" title="A filter for converting a cufftComplex GPU array to CAS type. " alt="" coords="166,107,313,133"/>
+<area shape="rect" id="node5" href="$class_complex_to_real_filter.html" title="A filter for extracting the real component of a cufftComplex array. " alt="" coords="167,157,312,184"/>
+<area shape="rect" id="node6" href="$class_crop_volume_filter.html" title="A filter for cropping a GPU array. " alt="" coords="178,208,301,235"/>
+<area shape="rect" id="node7" href="$class_divide_scalar_filter.html" title="A filter for dividing a GPU array with a scalar. " alt="" coords="177,259,302,285"/>
+<area shape="rect" id="node8" href="$class_divide_volume_filter.html" title="A filter for dividing two GPU arrays. " alt="" coords="173,309,305,336"/>
+<area shape="rect" id="node9" href="$class_f_f_t_shift2_d_filter.html" title="A filter for 2D FFT shift on a GPU array. " alt="" coords="164,360,315,387"/>
+<area shape="rect" id="node10" href="$class_f_f_t_shift3_d_filter.html" title="A filter for 3D FFT shift on a GPU array. " alt="" coords="164,411,315,437"/>
+<area shape="rect" id="node11" href="$class_multiply_volume_filter.html" title="A filter for multiplying two GPU arrays. " alt="" coords="153,461,325,488"/>
+<area shape="rect" id="node12" href="$class_pad_volume_filter.html" title="A filter for zero padding a GPU array. " alt="" coords="180,512,299,539"/>
+<area shape="rect" id="node13" href="$class_real_to_complex_filter.html" title="A filter for converting an array to cufftComplex type. " alt="" coords="167,563,312,589"/>
+</map>

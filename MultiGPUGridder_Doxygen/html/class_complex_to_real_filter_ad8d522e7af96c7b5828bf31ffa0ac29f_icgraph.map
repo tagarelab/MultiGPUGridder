@@ -1,0 +1,6 @@
+<map id="ComplexToRealFilter::UpdateFilter" name="ComplexToRealFilter::UpdateFilter">
+<area shape="rect" id="node2" href="$class_complex_to_real_filter.html#ab4c4d6f8df2671ff4bcbc03ed7073aa0" title="If using a stack of 2D images, this is the number of images. " alt="" coords="199,5,345,47"/>
+<area shape="rect" id="node5" href="$class_complex_to_real_filter.html#aa67ce3ef721890dae830d332fc1c5444" title="Update the filter. " alt="" coords="199,71,345,112"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#af3740086e3f9cb6558e20191122dc11c" title="gpuGridder::BackProject" alt="" coords="393,17,557,43"/>
+<area shape="rect" id="node4" href="$mex_complex_to_real_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="427,71,524,98"/>
+</map>

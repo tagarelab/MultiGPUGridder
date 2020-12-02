@@ -1,0 +1,6 @@
+<map id="DeviceMemory::CopyFromGPU" name="DeviceMemory::CopyFromGPU">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#a36b4533f6adf806d9d7bbfff167f1a74" title="Copy the CAS volume array from the GPU back to the pinned host (i.e. CPU) memory. This is needed if r..." alt="" coords="261,5,457,47"/>
+<area shape="rect" id="node4" href="$classgpu_gridder.html#a2daeb6521f3235460e15b19e440df458" title="Copy the GPU volume array back to the host (i.e. CPU) and return the pointer to the new host array..." alt="" coords="266,71,453,112"/>
+<area shape="rect" id="node5" href="$mex_add_volume_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="311,137,408,163"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#a798cffcd48773dba66a89d8cc3718421" title="Set the number of CUDA streams to use for the back projection kernel. " alt="" coords="505,46,713,73"/>
+</map>

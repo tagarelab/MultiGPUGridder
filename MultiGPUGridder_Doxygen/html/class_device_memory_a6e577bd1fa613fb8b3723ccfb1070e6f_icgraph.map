@@ -1,0 +1,6 @@
+<map id="DeviceMemory::AllocateGPUArray" name="DeviceMemory::AllocateGPUArray">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#af960a33291f2c084ecfb1eb8ca4702d6" title="gpuGridder::SetGPU" alt="" coords="279,31,421,57"/>
+<area shape="rect" id="node5" href="$mex_add_volume_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="301,81,399,108"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#aa2a18f9abf19e19601e1cfbacf37c25b" title="gpuGridder::gpuGridder" alt="" coords="495,5,651,32"/>
+<area shape="rect" id="node4" href="$classgpu_gridder.html#a798cffcd48773dba66a89d8cc3718421" title="Set the number of CUDA streams to use for the back projection kernel. " alt="" coords="469,56,677,83"/>
+</map>

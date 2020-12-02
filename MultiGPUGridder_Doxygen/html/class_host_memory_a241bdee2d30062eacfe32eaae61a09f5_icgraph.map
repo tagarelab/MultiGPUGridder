@@ -1,0 +1,4 @@
+<map id="HostMemory::CopyArray" name="HostMemory::CopyArray">
+<area shape="rect" id="node2" href="$class_multi_g_p_u_gridder.html#a4118494a3b10b521e55bd3e6e803914f" title="Get the CAS volume arrays from each gpuGridder, sum them together, and copy the result back to the ho..." alt="" coords="220,5,455,32"/>
+<area shape="rect" id="node3" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="503,5,739,32"/>
+</map>

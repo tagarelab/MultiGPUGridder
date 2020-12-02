@@ -1,0 +1,6 @@
+<map id="AbstractGridder::BackProject" name="AbstractGridder::BackProject">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#a76a8540b918f695aaf5649dc58a86d4f" title="gpuGridder::~gpuGridder" alt="" coords="263,5,427,32"/>
+<area shape="rect" id="node3" href="$class_multi_g_p_u_gridder.html#a266378f28abeb02218b28211ff4b11cb" title="Run the back projection kernel on each gpuGridder object. " alt="" coords="245,56,445,83"/>
+<area shape="rect" id="node4" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="493,31,729,57"/>
+<area shape="rect" id="node5" href="$mex_multi_g_p_u_back_project_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="563,81,660,108"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="gpuGridder::SetGPU" name="gpuGridder::SetGPU">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#aa2a18f9abf19e19601e1cfbacf37c25b" title="gpuGridder::gpuGridder" alt="" coords="222,5,378,32"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#a798cffcd48773dba66a89d8cc3718421" title="Set the number of CUDA streams to use for the back projection kernel. " alt="" coords="196,56,404,83"/>
+</map>

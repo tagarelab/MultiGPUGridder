@@ -1,0 +1,5 @@
+<map id="ComplexToCASFilter" name="ComplexToCASFilter">
+<area shape="rect" id="node2" href="$class_abstract_filter.html" title="An interface class for GPU filters. " alt="" coords="128,320,228,347"/>
+<area shape="rect" id="node5" href="$class_host_memory.html" title="HostMemory\&lt; float \&gt;" alt="" coords="421,124,567,151"/>
+<area shape="rect" id="node8" href="$class_device_memory.html" title="DeviceMemory\&lt; float \&gt;" alt="" coords="211,215,369,241"/>
+</map>

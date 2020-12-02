@@ -1,0 +1,4 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$class_host_memory.html" title="A class for allocating host (i.e. CPU) memory. " alt="" coords="5,5,135,32"/>
+<area shape="rect" id="node2" href="$class_device_memory.html" title="A class for allocating device (i.e. GPU) memory. " alt="" coords="183,5,325,32"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="HostMemory::GetSize" name="HostMemory::GetSize">
+<area shape="rect" id="node2" href="$classgpu_gridder.html#ae11f5283443a948896f1c48b6dd7c577" title="gpuGridder::ForwardProject" alt="" coords="230,5,411,32"/>
+<area shape="rect" id="node3" href="$classgpu_gridder.html#af3740086e3f9cb6558e20191122dc11c" title="gpuGridder::BackProject" alt="" coords="503,68,667,95"/>
+<area shape="rect" id="node4" href="$classgpu_gridder.html#a21d66a508db669993dc47901b05a6f9b" title="Convert projection images to CAS images by running a forward FFT. " alt="" coords="223,107,418,133"/>
+<area shape="rect" id="node5" href="$class_multi_g_p_u_gridder.html#a07d3abc9ecf444edd29f12cb1a00ead5" title="Sum the CAS volumes from each gpuGridder to the given device after running the back projection..." alt="" coords="205,157,436,184"/>
+<area shape="rect" id="node6" href="$class_multi_g_p_u_gridder.html#adae1d1ad775f21d8dc5b602e3094a608" title="Combine the CAS volumes on all the GPUs (the result from the back projection) and convert to volume u..." alt="" coords="484,195,685,237"/>
+<area shape="rect" id="node7" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="733,148,969,175"/>
+<area shape="rect" id="node8" href="$mex_multi_g_p_u_get_volume_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="803,203,900,229"/>
+</map>

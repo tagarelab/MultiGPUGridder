@@ -1,0 +1,7 @@
+<map id="AddVolumeFilter::Update" name="AddVolumeFilter::Update">
+<area shape="rect" id="node2" href="$class_multi_g_p_u_gridder.html#a07d3abc9ecf444edd29f12cb1a00ead5" title="Sum the CAS volumes from each gpuGridder to the given device after running the back projection..." alt="" coords="221,31,452,57"/>
+<area shape="rect" id="node6" href="$mex_add_volume_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="288,81,385,108"/>
+<area shape="rect" id="node3" href="$class_multi_g_p_u_gridder.html#adae1d1ad775f21d8dc5b602e3094a608" title="Combine the CAS volumes on all the GPUs (the result from the back projection) and convert to volume u..." alt="" coords="500,53,701,94"/>
+<area shape="rect" id="node4" href="$class_multi_g_p_u_gridder.html#ad9887606ab06b20c7e3b57e1b9bfde6d" title="MultiGPUGridder::~MultiGPUGridder" alt="" coords="749,5,985,32"/>
+<area shape="rect" id="node5" href="$mex_multi_g_p_u_get_volume_8cpp.html#a6a215cbfde54f82a3ce599228fc3fce5" title="mexFunction" alt="" coords="819,60,916,87"/>
+</map>
