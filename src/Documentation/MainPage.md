@@ -82,7 +82,7 @@ Here is a simple example on running the Matlab wrapper:
     reconstructVol = gridder.reconstructVol();
     easyMontage(reconstructVol, 3)
 
-![Matlab_Example](./Images/Matlab_Example.png)
+![Matlab_Example](../../Documentation/Images/Matlab_Example.png)
 
 \section matlab_unit_tests Matlab - Unit Tests
 
@@ -94,7 +94,7 @@ For changing the testing parameters (such as if your computer has a different nu
 
 For large datasets, there is significant copying of data to/from the GPUs. CUDA allows for overlapping of memory transfers and kernel executation (see [NVIDIA documentation for further information](https://devblogs.nvidia.com/how-overlap-data-transfers-cuda-cc/). This greatly lowers the computation time for large datasets. CUDA streams allow us to perform this.
 
-![CUDA_Streaming_Overview](./Images/CUDA_Streaming_Overview.png)
+![CUDA_Streaming_Overview](../../Documentation/Images/CUDA_Streaming_Overview.png)
 
 For example, in the gpuGridder::ForwardProject function, we perform asynchronous (async) memory transfers from the host (i.e.the CPU) to the device (i.e.the GPU). The following simplified code illustrates this
 
@@ -195,5 +195,5 @@ asynchronous memory transfer to and from the GPUs. Please see the [NVIDIA docume
 The mexCreateGridder creates an instance of the MultiGPUGridder class. The MultiGPUGridder class then creates an instance of the gpuGridder class with one gpuGridder object per GPU. Then in the mexMultiGPUForwardProject function for example, the MultiGPUGridder object simply iterates over the gpuGridder objects and calls the gpuGridder::ForwardProject function. See the figure below for a graphical representation of this.
 
 
-![Multi_GPU_Gridder_Overview](./Images/Multi_GPU_Gridder_Overview.png)
+![Multi_GPU_Gridder_Overview](../../Documentation/Images/Multi_GPU_Gridder_Overview.png)
 
