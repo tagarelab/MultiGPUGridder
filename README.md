@@ -13,6 +13,7 @@ wrapper for calling all the functions from within Matlab or from within Python.
 | **CUDA**         | >= 10.0   | Used for calling the GPU functions and processing data on the GPU.|
 | **NVCC**         | >= 10.0   | NVIDIA CUDA compiler for compiling the GPU code. Should be included with the CUDA download.|
 | **C++ Compiler** | >= C++11  | A C++ compiler is needed for compiling the C++ code.|
+| **CMake** | >= 3.14  | A recent version of CMake is needed to link the dependencies.|
 | **Nvidia GPU**    |  >=3.0  Compute capability       | Between 1 and 12 NVIDIA GPUs are required. Please contact us if you need support for more than 12 GPUs.|
 | **Matlab**       | >= R2018a | Optional: If compiling the MATLAB wrappers for calling the class.|
 | **Python**       | >= 3.0    | Optional: If compiling the Python wrappers for calling the class.|
