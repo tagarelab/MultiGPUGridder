@@ -65,6 +65,23 @@ classdef MultiGPUGridder_Matlab_Class < handle
                 error("NumAxes is a required input.")
             end
             
+            
+            % Adjust interpFactor to scale to the closest factor of 2^ (i.e. 64, 128, 256, etc)
+            % For example, this is particularly needed if the image size is 208 so the GPU can allocate memory correctly
+            if(this.VolumeSize < 64)
+                this.interpFactor = 128 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 64 && this.VolumeSize < 128)
+                this.interpFactor = 256 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 128 && this.VolumeSize < 256)
+                this.interpFactor = single(512 / double(this.VolumeSize));
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            elseif (this.VolumeSize > 512 && this.VolumeSize < 512)
+                this.interpFactor = 1024 / single(this.VolumeSize);
+                warning("interpFactor adjusted from " + num2str(varargin{3}) + " to " + num2str(this.interpFactor)+  " so that the volume size will be on the order of 2^n.")
+            end          
+                        
             % Create the Volume array
             this.Volume = zeros(repmat(this.VolumeSize, 1, 3), 'single');
                         
